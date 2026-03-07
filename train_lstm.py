@@ -2,14 +2,15 @@ import numpy as np
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
 
-X=np.load("X.npy")
-y=np.load("y.npy")
+X = np.load("X.npy")
+y = np.load("y.npy")
 
-X=X.reshape((X.shape[0],X.shape[1],1))
+model = Sequential()
 
-model=Sequential()
+model.add(LSTM(64, input_shape=(X.shape[1], X.shape[2])))
 
-model.add(LSTM(50,input_shape=(X.shape[1],1)))
+model.add(Dense(32))
+
 model.add(Dense(1))
 
 model.compile(
@@ -17,8 +18,13 @@ model.compile(
     loss="mse"
 )
 
-model.fit(X,y,epochs=10,batch_size=32)
+model.fit(
+    X,
+    y,
+    epochs=15,
+    batch_size=32
+)
 
-model.save("hospital_forecast_model.h5")
+model.save("hospital_forecast_model.keras")
 
-print("Model trained!")
+print("Advanced model trained")

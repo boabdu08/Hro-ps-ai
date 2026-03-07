@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
 
 df = pd.read_csv("clean_data.csv")
 
@@ -20,14 +22,24 @@ y=[]
 for i in range(len(features)-sequence_length):
 
     X.append(features[i:i+sequence_length])
-
     y.append(features[i+sequence_length][0])
 
 X=np.array(X)
 y=np.array(y)
 
-np.save("X.npy",X)
-np.save("y.npy",y)
+model=Sequential()
 
-print("Multi-feature sequences ready")
-print(X.shape)
+model.add(LSTM(64,input_shape=(X.shape[1],X.shape[2])))
+model.add(Dense(32))
+model.add(Dense(1))
+
+model.compile(
+    optimizer="adam",
+    loss="mse"
+)
+
+model.fit(X,y,epochs=10,batch_size=32)
+
+model.save("hospital_forecast_model.keras")
+
+print("Model retrained successfully")

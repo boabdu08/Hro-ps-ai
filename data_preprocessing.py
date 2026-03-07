@@ -1,18 +1,22 @@
 import pandas as pd
 
-# قراءة الداتا
 df = pd.read_csv("hospital_patient_flow.csv")
 
-# تحويل التاريخ
 df["datetime"] = pd.to_datetime(df["datetime"])
 
-# ترتيب الداتا حسب الوقت
 df = df.sort_values("datetime")
 
-# حذف القيم الفارغة
+weather_map = {
+    "sunny":0,
+    "rainy":1,
+    "cold":2,
+    "hot":3
+}
+
+df["weather"] = df["weather"].map(weather_map)
+
 df = df.dropna()
 
-# حفظ الداتا النظيفة
 df.to_csv("clean_data.csv", index=False)
 
-print("Data cleaned successfully")
+print("Advanced data cleaned")
