@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from tensorflow.keras.models import load_model
 import shap
-
+API_BASE_URL = "http://127.0.0.1:8000"
 
 # ========================================
 # PAGE CONFIG (MUST be first Streamlit call)
