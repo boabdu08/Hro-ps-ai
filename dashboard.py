@@ -1,6 +1,7 @@
 # ========================================
 # IMPORTS
 # ========================================
+import requests
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -10,6 +11,7 @@ import plotly.graph_objects as go
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from tensorflow.keras.models import load_model
 import shap
+
 
 # ========================================
 # PAGE CONFIG (MUST be first Streamlit call)
@@ -122,6 +124,17 @@ for _ in range(24):
     new_row = sequence[-1].copy()
     new_row[0] = pred
     sequence = np.vstack([sequence[1:], new_row])
+    API_URL = "http://127.0.0.1:8000/predict"
+
+payload = {
+    "sequence": last_sequence.tolist()
+}
+
+response = requests.post(API_URL, json=payload)
+
+result = response.json()
+
+prediction = result["predicted_patients_next_hour"]
 
 forecast_df = pd.DataFrame({"hour": range(1, 25), "forecast": predictions})
 peak = float(np.max(predictions))
