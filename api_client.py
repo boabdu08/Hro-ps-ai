@@ -2,6 +2,7 @@ import requests
 
 API_BASE_URL = "http://127.0.0.1:8000"
 
+
 def get_prediction(sequence):
     url = f"{API_BASE_URL}/predict"
 
@@ -22,7 +23,6 @@ def get_prediction(sequence):
 
 
 def simulate(predicted_patients, beds_available, doctors_available, demand_increase):
-
     url = f"{API_BASE_URL}/simulate"
 
     payload = {
