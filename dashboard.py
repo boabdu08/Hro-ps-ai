@@ -79,14 +79,20 @@ show_top_kpis(
     doctors=doctors_needed
 )
 
+st.markdown("---")
 forecast_df, forecast_values = show_forecast_panel(df, last_sequence)
 
+st.markdown("---")
 show_capacity_panel(recommended, emergency_level)
 
+st.markdown("---")
 show_digital_twin_panel(prediction)
 
+st.markdown("---")
 show_operations_panel(prediction)
 
+st.markdown("---")
 show_hospital_map_panel(prediction)
 
+st.markdown("---")
 show_heatmap(df)

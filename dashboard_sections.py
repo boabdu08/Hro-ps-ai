@@ -7,26 +7,20 @@ from api_client import get_prediction, simulate
 
 
 def show_top_kpis(current_patients, prediction, peak, emergency_level, beds, doctors):
-    st.subheader("📌 System Overview")
+    st.markdown("## 🏥 Hospital Command Center")
 
     c1, c2, c3, c4, c5, c6 = st.columns(6)
 
     c1.metric("Current Patients", int(current_patients))
     c2.metric("Next Hour", int(prediction))
     c3.metric("Peak Load", int(peak))
-    c4.metric("Emergency", emergency_level)
+    c4.metric("Emergency Level", emergency_level)
     c5.metric("Beds Needed", int(beds))
     c6.metric("Doctors Needed", int(doctors))
 
 
 def show_forecast_panel(df, last_sequence):
-    st.subheader("📈 Forecast Center")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.write("### Historical Patient Flow")
-        st.line_chart(df["patients"])
+    st.markdown("## 📈 Forecast & Demand Analysis")
 
     predictions = []
     sequence = last_sequence.copy()
@@ -53,11 +47,32 @@ def show_forecast_panel(df, last_sequence):
         "forecast": predictions
     })
 
-    with col2:
-        st.write("### 24-Hour Forecast")
-        st.line_chart(forecast_df.set_index("hour"))
+    col1, col2 = st.columns(2)
 
-    st.write("### Actual vs Forecast")
+    with col1:
+        st.write("### Historical Patient Flow")
+        fig_hist = px.line(
+            df.reset_index(),
+            x=df.index,
+            y="patients",
+            title="Historical Patients"
+        )
+        fig_hist.update_layout(height=350, xaxis_title="Time Index", yaxis_title="Patients")
+        st.plotly_chart(fig_hist, use_container_width=True)
+
+    with col2:
+        st.write("### 24-Hour AI Forecast")
+        fig_forecast = px.line(
+            forecast_df,
+            x="hour",
+            y="forecast",
+            markers=True,
+            title="Predicted Patient Demand"
+        )
+        fig_forecast.update_layout(height=350, xaxis_title="Next Hours", yaxis_title="Predicted Patients")
+        st.plotly_chart(fig_forecast, use_container_width=True)
+
+    st.write("### Actual vs Forecast Comparison")
     actual = df["patients"].tail(len(predictions)).values
     min_len = min(len(actual), len(predictions))
 
@@ -66,15 +81,17 @@ def show_forecast_panel(df, last_sequence):
         "Forecast": predictions[:min_len]
     })
 
-    st.line_chart(compare_df)
+    fig_compare = px.line(compare_df, title="Actual vs Forecast")
+    fig_compare.update_layout(height=350, xaxis_title="Time Window", yaxis_title="Patients")
+    st.plotly_chart(fig_compare, use_container_width=True)
 
     return forecast_df, predictions
 
 
 def show_capacity_panel(resources, emergency_level):
-    st.subheader("🚨 Capacity & Alerts")
+    st.markdown("## 🚨 Capacity & Alerts")
 
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns([1, 1])
 
     with col1:
         beds_needed = resources.get("beds_needed", 0)
@@ -87,16 +104,25 @@ def show_capacity_panel(resources, emergency_level):
             title={"text": "Bed Occupancy %"},
             gauge={
                 "axis": {"range": [0, 100]},
+                "bar": {"thickness": 0.25},
                 "steps": [
-                    {"range": [0, 60], "color": "lightgray"},
-                    {"range": [60, 80], "color": "gray"},
-                    {"range": [80, 100], "color": "darkgray"}
-                ]
+                    {"range": [0, 60], "color": "#d9f2d9"},
+                    {"range": [60, 80], "color": "#fff3cd"},
+                    {"range": [80, 100], "color": "#f8d7da"}
+                ],
+                "threshold": {
+                    "line": {"width": 4},
+                    "thickness": 0.75,
+                    "value": 85
+                }
             }
         ))
+        fig.update_layout(height=350)
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
+        st.write("### Alert Center")
+
         if emergency_level == "HIGH":
             st.error("High emergency load detected")
         elif emergency_level == "MEDIUM":
@@ -105,14 +131,23 @@ def show_capacity_panel(resources, emergency_level):
             st.success("Emergency load is stable")
 
         if resources.get("beds_needed", 0) > 120:
-            st.error("Bed shortage expected")
+            st.error("Expected bed shortage")
+        else:
+            st.success("Bed capacity is sufficient")
 
         if resources.get("doctors_needed", 0) > 15:
             st.warning("Doctor shortage expected")
+        else:
+            st.success("Doctor capacity is sufficient")
+
+        if resources.get("nurses_needed", 0) > 25:
+            st.warning("Nurse shortage expected")
+        else:
+            st.success("Nurse capacity is sufficient")
 
 
 def show_digital_twin_panel(prediction):
-    st.subheader("🧠 Digital Twin Simulation")
+    st.markdown("## 🧠 Digital Twin Simulation")
 
     c1, c2, c3 = st.columns(3)
 
@@ -123,20 +158,26 @@ def show_digital_twin_panel(prediction):
     sim = simulate(prediction, beds, doctors, demand)
 
     if sim:
+        st.write("### Simulation Results")
+
         s1, s2, s3 = st.columns(3)
         s1.metric("Simulated Patients", int(sim["simulated_patients"]))
         s2.metric("Emergency Level", sim["emergency_level"])
         s3.metric("Doctor Shortage", int(sim["doctor_shortage"]))
 
-        st.write("### Bed Allocation")
-        st.json(sim["bed_allocation"])
+        left, right = st.columns(2)
 
-        st.write("### Recommended Resources")
-        st.json(sim["recommended_resources"])
+        with left:
+            st.write("#### Bed Allocation")
+            st.json(sim["bed_allocation"])
+
+        with right:
+            st.write("#### Recommended Resources")
+            st.json(sim["recommended_resources"])
 
 
 def show_operations_panel(prediction):
-    st.subheader("⚙️ Operations Center")
+    st.markdown("## ⚙️ Operations Center")
 
     col1, col2 = st.columns(2)
 
@@ -150,7 +191,7 @@ def show_operations_panel(prediction):
             "Surgeries": [surgeries // rooms + (1 if i < surgeries % rooms else 0) for i in range(rooms)]
         })
 
-        st.dataframe(schedule, use_container_width=True)
+        st.dataframe(schedule, use_container_width=True, hide_index=True)
 
     with col2:
         st.write("### Resource Optimizer")
@@ -164,11 +205,18 @@ def show_operations_panel(prediction):
             "Recommended": [doctors, nurses, beds]
         })
 
-        st.table(opt_df)
+        fig_bar = px.bar(
+            opt_df,
+            x="Resource",
+            y="Recommended",
+            title="Recommended Resources"
+        )
+        fig_bar.update_layout(height=350)
+        st.plotly_chart(fig_bar, use_container_width=True)
 
 
 def show_hospital_map_panel(prediction):
-    st.subheader("🏥 Department Status")
+    st.markdown("## 🏥 Department Status")
 
     hospital_map = pd.DataFrame({
         "Department": ["ER", "ICU", "General Ward", "Surgery", "Radiology"],
@@ -184,11 +232,21 @@ def show_hospital_map_panel(prediction):
 
     hospital_map["Available"] = hospital_map["Capacity"] - hospital_map["Occupied"]
 
-    st.dataframe(hospital_map, use_container_width=True)
+    st.dataframe(hospital_map, use_container_width=True, hide_index=True)
+
+    fig_dept = px.bar(
+        hospital_map,
+        x="Department",
+        y=["Capacity", "Occupied", "Available"],
+        barmode="group",
+        title="Department Capacity Overview"
+    )
+    fig_dept.update_layout(height=400)
+    st.plotly_chart(fig_dept, use_container_width=True)
 
 
 def show_heatmap(df):
-    st.subheader("🔥 Weekly Patient Heatmap")
+    st.markdown("## 🔥 Weekly Patient Heatmap")
 
     heatmap_data = pd.pivot_table(
         df,
@@ -201,7 +259,9 @@ def show_heatmap(df):
     fig = px.imshow(
         heatmap_data,
         labels=dict(x="Month", y="Day of Week", color="Patients"),
-        aspect="auto"
+        aspect="auto",
+        title="Patient Load by Day and Month"
     )
 
+    fig.update_layout(height=450)
     st.plotly_chart(fig, use_container_width=True)
