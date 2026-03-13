@@ -22,7 +22,8 @@ def ensure_log_schema(df):
         "status",
         "approved_by",
         "execution_status",
-        "execution_note"
+        "execution_note",
+        "affected_files"
     ]
 
     for col in required_cols:
@@ -36,15 +37,16 @@ def ensure_log_schema(df):
 def load_recommendations():
     if not os.path.exists(LOG_FILE):
         df = pd.DataFrame(columns=[
-            "recommendation_id",
-            "timestamp",
-            "type",
-            "message",
-            "status",
-            "approved_by",
-            "execution_status",
-            "execution_note"
-        ])
+    "recommendation_id",
+    "timestamp",
+    "type",
+    "message",
+    "status",
+    "approved_by",
+    "execution_status",
+    "execution_note",
+    "affected_files"
+])
         df.to_csv(LOG_FILE, index=False)
         return df
 
@@ -140,7 +142,8 @@ def sync_recommendations(peak, beds_needed, doctors_needed, emergency_level):
                 "status": "pending",
                 "approved_by": "",
                 "execution_status": "",
-                "execution_note": ""
+                "execution_note": "",
+                "affected_files": ""
             })
 
     if new_rows:
@@ -173,7 +176,7 @@ def execute_staff_decision(message):
     shifts_df = pd.concat([shifts_df, new_shift], ignore_index=True)
     save_csv(shifts_df, SHIFTS_FILE)
 
-    return "executed", f"Added backup doctor shift in {department} for {next_day}."
+    return "executed", f"Added backup doctor shift in {department} for {next_day}.", SHIFTS_FILE
 
 
 def execute_beds_decision(message):
@@ -181,7 +184,7 @@ def execute_beds_decision(message):
     appointments_df = load_csv_or_empty(APPOINTMENTS_FILE, appointments_cols)
 
     if appointments_df.empty:
-        return "skipped", "No appointments found to rebalance."
+        return "skipped", "No appointments found to rebalance.", APPOINTMENTS_FILE
 
     busiest_idx = appointments_df["patient_count"].astype(float).idxmax()
     appointments_df.loc[busiest_idx, "status"] = "Review Required"
@@ -189,7 +192,7 @@ def execute_beds_decision(message):
     save_csv(appointments_df, APPOINTMENTS_FILE)
 
     row = appointments_df.loc[busiest_idx]
-    return "executed", f"Marked appointment slot {row['time_slot']} in {row['department']} as Review Required."
+    return "executed", f"Marked appointment slot {row['time_slot']} in {row['department']} as Review Required.", APPOINTMENTS_FILE
 
 
 def execute_capacity_decision(message):
@@ -197,15 +200,14 @@ def execute_capacity_decision(message):
     appointments_df = load_csv_or_empty(APPOINTMENTS_FILE, appointments_cols)
 
     if appointments_df.empty:
-        return "skipped", "No appointment slots available for capacity reallocation."
+        return "skipped", "No appointment slots available for capacity reallocation.", APPOINTMENTS_FILE
 
     top_two = appointments_df.sort_values(by="patient_count", ascending=False).head(2).index
     appointments_df.loc[top_two, "status"] = "Reschedule Suggested"
 
     save_csv(appointments_df, APPOINTMENTS_FILE)
 
-    return "executed", "Marked top pressure appointment slots as Reschedule Suggested."
-
+    return "executed", "Marked top pressure appointment slots as Reschedule Suggested.", APPOINTMENTS_FILE
 
 def execute_emergency_decision(message):
     or_cols = ["booking_id", "room", "doctor", "department", "date", "time_slot", "procedure", "status"]
@@ -215,6 +217,7 @@ def execute_emergency_decision(message):
     appt_df = load_csv_or_empty(APPOINTMENTS_FILE, appointments_cols)
 
     note_parts = []
+    affected_files = []
 
     if not or_df.empty:
         pending_mask = or_df["status"].astype(str).str.lower() == "pending"
@@ -222,6 +225,7 @@ def execute_emergency_decision(message):
             or_df.loc[pending_mask, "status"] = "Priority Review"
             save_csv(or_df, OR_FILE)
             note_parts.append("Pending OR bookings escalated to Priority Review")
+            affected_files.append(OR_FILE)
 
     if not appt_df.empty:
         busiest_idx = appt_df["patient_count"].astype(float).idxmax()
@@ -230,12 +234,12 @@ def execute_emergency_decision(message):
 
         row = appt_df.loc[busiest_idx]
         note_parts.append(f"Appointment slot {row['time_slot']} in {row['department']} set to Restricted Intake")
+        affected_files.append(APPOINTMENTS_FILE)
 
     if not note_parts:
-        return "skipped", "No OR bookings or appointments available for emergency actions."
+        return "skipped", "No OR bookings or appointments available for emergency actions.", ""
 
-    return "executed", " | ".join(note_parts)
-
+    return "executed", " | ".join(note_parts), ", ".join(affected_files)
 
 def execute_decision(decision_type, message):
     if decision_type == "staff":
@@ -250,8 +254,7 @@ def execute_decision(decision_type, message):
     if decision_type == "emergency":
         return execute_emergency_decision(message)
 
-    return "skipped", "No execution rule defined for this recommendation type."
-
+    return "skipped", "No execution rule defined for this recommendation type.", ""
 
 # ========================================
 # APPROVE / REJECT
@@ -262,11 +265,12 @@ def approve_recommendation(recommendation_id, approver_name):
     row_mask = df["recommendation_id"] == recommendation_id
     row = df[row_mask].iloc[0]
 
-    execution_status, execution_note = execute_decision(
-        decision_type=row["type"],
-        message=row["message"]
-    )
-
+    execution_status, execution_note, affected_files = execute_decision(
+    decision_type=row["type"],
+    message=row["message"]
+)
+    
+    df.loc[row_mask, "affected_files"] = affected_files
     df.loc[row_mask, "status"] = "approved"
     df.loc[row_mask, "approved_by"] = approver_name
     df.loc[row_mask, "execution_status"] = execution_status
@@ -283,6 +287,7 @@ def reject_recommendation(recommendation_id, approver_name):
     df.loc[row_mask, "approved_by"] = approver_name
     df.loc[row_mask, "execution_status"] = "not_executed"
     df.loc[row_mask, "execution_note"] = "Recommendation rejected by manager."
+    df.loc[row_mask, "affected_files"] = ""
 
     save_recommendations(df)
 

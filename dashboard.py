@@ -13,6 +13,11 @@ from notification_sections import (
     show_admin_decision_history,
     show_department_notice_board
 )
+from audit_sections import (
+    show_audit_summary,
+    show_audit_table,
+    show_execution_trace
+)
 from approval_sections import show_admin_approval_panel
 from auth import login_form, require_login, logout_button
 from api_client import get_prediction, get_system_status
@@ -340,7 +345,7 @@ st.markdown("---")
 # ROLE-BASED TABS
 # =========================
 if role == "admin":
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12 = st.tabs([
     "📊 Overview",
     "📈 Forecast",
     "🧠 Simulation",
@@ -351,7 +356,8 @@ if role == "admin":
     "🏥 OR Bookings",
     "📅 Appointments",
     "✅ Approvals",
-    "📢 Decision Feed"
+    "📢 Decision Feed",
+    "🧾 Audit"
 ])
 
     with tab1:
@@ -409,6 +415,13 @@ if role == "admin":
         show_staff_decision_feed(role=role, department=department)
         st.markdown("---")
         show_admin_decision_history()
+    with tab12:
+        st.subheader("Decision Audit & Execution Trace")
+        show_audit_summary()
+        st.markdown("---")
+        show_execution_trace()
+        st.markdown("---")
+        show_audit_table()
 
 elif role == "doctor":
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
