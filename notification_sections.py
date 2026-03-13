@@ -50,11 +50,18 @@ def show_staff_decision_feed(role, department=None):
         else:
             st.info(f"📌 {row['message']}")
 
+        execution_note = row.get("execution_note", "")
+        execution_status = row.get("execution_status", "")
+
         st.caption(
             f"Decision ID: {row['recommendation_id']} | "
             f"Approved by: {row['approved_by']} | "
+            f"Execution: {execution_status} | "
             f"Time: {row['timestamp']}"
         )
+
+        if isinstance(execution_note, str) and execution_note.strip():
+            st.caption(f"Execution Note: {execution_note}")
         st.markdown("---")
 
 
