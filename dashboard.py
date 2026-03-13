@@ -8,6 +8,11 @@ from staff_sections import (
     show_appointments,
     show_admin_appointments_overview
 )
+from notification_sections import (
+    show_staff_decision_feed,
+    show_admin_decision_history,
+    show_department_notice_board
+)
 from approval_sections import show_admin_approval_panel
 from auth import login_form, require_login, logout_button
 from api_client import get_prediction, get_system_status
@@ -335,7 +340,7 @@ st.markdown("---")
 # ROLE-BASED TABS
 # =========================
 if role == "admin":
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs([
     "📊 Overview",
     "📈 Forecast",
     "🧠 Simulation",
@@ -345,7 +350,8 @@ if role == "admin":
     "🕒 Shifts",
     "🏥 OR Bookings",
     "📅 Appointments",
-    "✅ Approvals"
+    "✅ Approvals",
+    "📢 Decision Feed"
 ])
 
     with tab1:
@@ -398,14 +404,20 @@ if role == "admin":
             emergency_level=emergency_level,
             approver_name=name
         )
+    with tab11:
+        st.subheader("Approved Decisions & History")
+        show_staff_decision_feed(role=role, department=department)
+        st.markdown("---")
+        show_admin_decision_history()
 
 elif role == "doctor":
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "📊 Overview",
     "📈 Forecast",
     "🏥 My Department",
     "🕒 My Shifts",
-    "🏥 OR / Appointments"
+    "🏥 OR / Appointments",
+    "📢 Notifications"
 ])
 
     with tab1:
@@ -435,13 +447,19 @@ elif role == "doctor":
         show_or_bookings(role="doctor", doctor_name=name)
         st.markdown("---")
         show_appointments(role="doctor", doctor_name=name)
+    with tab6:
+        st.subheader("Doctor Notification Feed")
+        show_staff_decision_feed(role=role, department=department)
+        st.markdown("---")
+        show_department_notice_board(department)
 
 elif role == "nurse":
-    tab1, tab2, tab3, tab4 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📊 Overview",
     "🏥 My Department",
     "🕒 My Shifts",
-    "📅 Appointments"
+    "📅 Appointments",
+    "📢 Notifications"
 ])
 
     with tab1:
@@ -465,7 +483,12 @@ elif role == "nurse":
     with tab4:
         st.subheader("Department Appointments")
         show_appointments(role="nurse", department=department)
-    
+    with tab5:
+        st.subheader("Nursing Notification Feed")
+        show_staff_decision_feed(role=role, department=department)
+        st.markdown("---")
+        show_department_notice_board(department)
+
 else:
     st.error(f"Unsupported role: {role}")
     st.stop()
