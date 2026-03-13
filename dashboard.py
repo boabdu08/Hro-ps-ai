@@ -15,7 +15,78 @@ from dashboard_sections import (
 
 st.set_page_config(page_title="Hospital AI Command Center", layout="wide")
 
-st.title("🏥 Hospital AI Command Center")
+st.markdown("""
+<div class="custom-header">
+    <h1>🏥 Hospital AI Command Center</h1>
+    <p style="margin:0; font-size:1rem;">
+        AI-powered forecasting, hospital capacity monitoring, digital twin simulation, and operational planning.
+    </p>
+</div>
+""", unsafe_allow_html=True)
+
+# =========================
+# Custom Styling
+# =========================
+st.markdown("""
+    <style>
+    .main {
+        padding-top: 1rem;
+    }
+
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 2rem;
+    }
+
+    h1, h2, h3 {
+        font-weight: 700 !important;
+    }
+
+    [data-testid="stMetricValue"] {
+        font-size: 1.6rem;
+    }
+
+    [data-testid="stMetricLabel"] {
+        font-size: 0.95rem;
+        font-weight: 600;
+    }
+
+    section[data-testid="stSidebar"] {
+        border-right: 1px solid rgba(128,128,128,0.2);
+    }
+
+    div[data-baseweb="tab-list"] {
+        gap: 10px;
+    }
+
+    button[role="tab"] {
+        border-radius: 10px;
+        padding: 8px 16px;
+        font-weight: 600;
+    }
+
+    hr {
+        margin-top: 1.2rem;
+        margin-bottom: 1.2rem;
+    }
+
+    .custom-header {
+        padding: 1rem 1.2rem;
+        border-radius: 14px;
+        background: linear-gradient(90deg, rgba(0,120,255,0.10), rgba(0,180,120,0.10));
+        margin-bottom: 1rem;
+    }
+
+    .custom-footer {
+        text-align: center;
+        font-size: 0.9rem;
+        color: gray;
+        margin-top: 2rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(128,128,128,0.2);
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # =========================
 # Load data
@@ -178,3 +249,11 @@ with tab5:
     st.subheader("Department Capacity & Status")
 
     show_hospital_map_panel(prediction)
+
+    
+
+st.markdown("""
+<div class="custom-footer">
+    Hospital Resource Optimization with AI • Graduation Project Dashboard
+</div>
+""", unsafe_allow_html=True)
