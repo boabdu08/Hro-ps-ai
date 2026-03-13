@@ -1,0 +1,7 @@
+staff_username,name,role,department,shift_date,shift_type,status
+doctor1,Dr. Ahmed,doctor,ER,2026-03-14,Morning,Assigned
+doctor1,Dr. Ahmed,doctor,ER,2026-03-15,Evening,Assigned
+doctor2,Dr. Sara,doctor,ICU,2026-03-14,Night,Assigned
+nurse1,Nurse Mona,nurse,General Ward,2026-03-14,Morning,Assigned
+nurse1,Nurse Mona,nurse,General Ward,2026-03-15,Evening,Assigned
+nurse2,Nurse Ali,nurse,ER,2026-03-14,Night,Assigned

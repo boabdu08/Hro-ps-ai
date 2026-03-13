@@ -1,7 +1,13 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-
+from staff_sections import (
+    show_my_shifts,
+    show_all_shifts,
+    show_or_bookings,
+    show_appointments,
+    show_admin_appointments_overview
+)
 from auth import login_form, require_login, logout_button
 from api_client import get_prediction, get_system_status
 from dashboard_sections import (
@@ -328,14 +334,17 @@ st.markdown("---")
 # ROLE-BASED TABS
 # =========================
 if role == "admin":
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        "📊 Overview",
-        "📈 Forecast",
-        "🧠 Simulation",
-        "⚙️ Operations",
-        "🏥 Departments",
-        "🔬 Explainability"
-    ])
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
+    "📊 Overview",
+    "📈 Forecast",
+    "🧠 Simulation",
+    "⚙️ Operations",
+    "🏥 Departments",
+    "🔬 Explainability",
+    "🕒 Shifts",
+    "🏥 OR Bookings",
+    "📅 Appointments"
+])
 
     with tab1:
         st.subheader("System Overview")
@@ -367,13 +376,26 @@ if role == "admin":
     with tab6:
         st.subheader("AI Explainability for Doctors")
         show_explainability_panel(last_sequence)
+    with tab7:
+        st.subheader("Shift Management")
+        show_all_shifts()
+
+    with tab8:
+        st.subheader("Operating Room Booking Management")
+        show_or_bookings(role="admin")
+
+    with tab9:
+        st.subheader("Appointments Overview")
+        show_admin_appointments_overview()
 
 elif role == "doctor":
-    tab1, tab2, tab3 = st.tabs([
-        "📊 Overview",
-        "📈 Forecast",
-        "🏥 My Department"
-    ])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "📊 Overview",
+    "📈 Forecast",
+    "🏥 My Department",
+    "🕒 My Shifts",
+    "🏥 OR / Appointments"
+])
 
     with tab1:
         st.subheader("Doctor Overview")
@@ -393,12 +415,23 @@ elif role == "doctor":
     with tab3:
         st.subheader(f"My Department: {department}")
         show_hospital_map_panel(prediction)
+    with tab4:
+        st.subheader("My Assigned Shifts")
+        show_my_shifts(username=user["username"], role=role)
+
+    with tab5:
+        st.subheader("My OR Bookings and Appointments")
+        show_or_bookings(role="doctor", doctor_name=name)
+        st.markdown("---")
+        show_appointments(role="doctor", doctor_name=name)
 
 elif role == "nurse":
-    tab1, tab2 = st.tabs([
-        "📊 Overview",
-        "🏥 My Department"
-    ])
+    tab1, tab2, tab3, tab4 = st.tabs([
+    "📊 Overview",
+    "🏥 My Department",
+    "🕒 My Shifts",
+    "📅 Appointments"
+])
 
     with tab1:
         st.subheader("Nursing Overview")
@@ -414,7 +447,14 @@ elif role == "nurse":
     with tab2:
         st.subheader(f"My Department: {department}")
         show_hospital_map_panel(prediction)
+    with tab3:
+        st.subheader("My Assigned Shifts")
+        show_my_shifts(username=user["username"], role=role)
 
+    with tab4:
+        st.subheader("Department Appointments")
+        show_appointments(role="nurse", department=department)
+    
 else:
     st.error(f"Unsupported role: {role}")
     st.stop()
