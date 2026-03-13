@@ -300,19 +300,39 @@ def show_heatmap(df):
         aggfunc="mean"
     )
 
+    day_labels = {
+        0: "Mon",
+        1: "Tue",
+        2: "Wed",
+        3: "Thu",
+        4: "Fri",
+        5: "Sat",
+        6: "Sun"
+    }
+
+    heatmap_data = heatmap_data.rename(index=day_labels)
+
     fig = px.imshow(
         heatmap_data,
-        labels=dict(x="Month", y="Day of Week", color="Patients"),
+        labels=dict(x="Month", y="Day of Week", color="Patient Load"),
         aspect="auto",
-        title="Patient Load by Day and Month"
+        title="Patient Load by Day and Month",
+        color_continuous_scale=[
+            [0.0, "green"],
+            [0.5, "yellow"],
+            [1.0, "red"]
+        ]
     )
 
     fig.update_layout(
         height=450,
-        margin=dict(l=20, r=20, t=50, b=20)
+        margin=dict(l=20, r=20, t=50, b=20),
+        coloraxis_colorbar=dict(title="Load")
     )
+
     st.plotly_chart(fig, use_container_width=True)
 
+    st.caption("Green = Stable load • Yellow = Warning level • Red = High pressure")
 
 def show_explainability_panel(last_sequence):
     st.markdown("## 🔬 Explainable AI Panel")
