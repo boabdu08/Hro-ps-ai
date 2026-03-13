@@ -17,6 +17,9 @@ st.set_page_config(page_title="Hospital AI Command Center", layout="wide")
 
 st.title("🏥 Hospital AI Command Center")
 
+# =========================
+# Load data
+# =========================
 df = pd.read_csv("clean_data.csv")
 
 required_cols = ["patients", "day_of_week", "month", "is_weekend", "holiday", "weather"]
@@ -34,6 +37,9 @@ if len(features) < 24:
 
 last_sequence = features[-24:]
 
+# =========================
+# API prediction
+# =========================
 result = get_prediction(last_sequence)
 
 if result is None:
@@ -46,8 +52,11 @@ emergency_level = result["emergency_level"]
 
 beds_needed = recommended["beds_needed"]
 doctors_needed = recommended["doctors_needed"]
+nurses_needed = recommended.get("nurses_needed", 0)
 
-# rolling forecast for peak
+# =========================
+# Rolling forecast to estimate peak
+# =========================
 predictions = []
 sequence = last_sequence.copy()
 
@@ -70,6 +79,41 @@ if len(predictions) == 0:
 
 peak = float(np.max(predictions))
 
+# =========================
+# Sidebar
+# =========================
+with st.sidebar:
+    st.header("🧭 Command Sidebar")
+
+    st.markdown("### System Status")
+    st.success("API Connected")
+    st.info("Dashboard Active")
+
+    st.markdown("### Dataset Info")
+    st.write(f"Rows: {len(df)}")
+    st.write(f"Columns: {len(df.columns)}")
+
+    st.markdown("### Live Summary")
+    st.metric("Current Patients", int(df["patients"].iloc[-1]))
+    st.metric("Next Hour Forecast", int(prediction))
+    st.metric("Peak Load", int(peak))
+
+    st.markdown("### Capacity Snapshot")
+    st.write(f"Beds Needed: **{beds_needed}**")
+    st.write(f"Doctors Needed: **{doctors_needed}**")
+    st.write(f"Nurses Needed: **{nurses_needed}**")
+
+    st.markdown("### Emergency")
+    if emergency_level == "HIGH":
+        st.error("High")
+    elif emergency_level == "MEDIUM":
+        st.warning("Medium")
+    else:
+        st.success("Low")
+
+# =========================
+# Top KPIs
+# =========================
 show_top_kpis(
     current_patients=int(df["patients"].iloc[-1]),
     prediction=int(prediction),
@@ -80,19 +124,57 @@ show_top_kpis(
 )
 
 st.markdown("---")
-forecast_df, forecast_values = show_forecast_panel(df, last_sequence)
 
-st.markdown("---")
-show_capacity_panel(recommended, emergency_level)
+# =========================
+# Tabs Layout
+# =========================
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "📊 Overview",
+    "📈 Forecast",
+    "🧠 Simulation",
+    "⚙️ Operations",
+    "🏥 Departments"
+])
 
-st.markdown("---")
-show_digital_twin_panel(prediction)
+# -------------------------
+# TAB 1: OVERVIEW
+# -------------------------
+with tab1:
+    st.subheader("System Overview")
 
-st.markdown("---")
-show_operations_panel(prediction)
+    show_capacity_panel(recommended, emergency_level)
 
-st.markdown("---")
-show_hospital_map_panel(prediction)
+# -------------------------
+# TAB 2: FORECAST
+# -------------------------
+with tab2:
+    st.subheader("Forecast & Demand Monitoring")
 
-st.markdown("---")
-show_heatmap(df)
+    forecast_df, forecast_values = show_forecast_panel(df, last_sequence)
+
+    st.markdown("---")
+    show_heatmap(df)
+
+# -------------------------
+# TAB 3: SIMULATION
+# -------------------------
+with tab3:
+    st.subheader("Digital Twin & Scenario Planning")
+
+    show_digital_twin_panel(prediction)
+
+# -------------------------
+# TAB 4: OPERATIONS
+# -------------------------
+with tab4:
+    st.subheader("Hospital Operations Center")
+
+    show_operations_panel(prediction)
+
+# -------------------------
+# TAB 5: DEPARTMENTS
+# -------------------------
+with tab5:
+    st.subheader("Department Capacity & Status")
+
+    show_hospital_map_panel(prediction)
