@@ -8,6 +8,7 @@ from staff_sections import (
     show_appointments,
     show_admin_appointments_overview
 )
+from approval_sections import show_admin_approval_panel
 from auth import login_form, require_login, logout_button
 from api_client import get_prediction, get_system_status
 from dashboard_sections import (
@@ -334,7 +335,7 @@ st.markdown("---")
 # ROLE-BASED TABS
 # =========================
 if role == "admin":
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
     "📊 Overview",
     "📈 Forecast",
     "🧠 Simulation",
@@ -343,7 +344,8 @@ if role == "admin":
     "🔬 Explainability",
     "🕒 Shifts",
     "🏥 OR Bookings",
-    "📅 Appointments"
+    "📅 Appointments",
+    "✅ Approvals"
 ])
 
     with tab1:
@@ -387,6 +389,15 @@ if role == "admin":
     with tab9:
         st.subheader("Appointments Overview")
         show_admin_appointments_overview()
+    with tab10:
+        st.subheader("Manager Approval Workflow")
+        show_admin_approval_panel(
+            peak=peak,
+            beds_needed=beds_needed,
+            doctors_needed=doctors_needed,
+            emergency_level=emergency_level,
+            approver_name=name
+        )
 
 elif role == "doctor":
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
