@@ -270,12 +270,16 @@ with qc2:
         key="selected_time_window"
     )
 
-
-    with qc3:
-    show_advanced_view = st.checkbox("Show Advanced Insights", value=True)
-
+with qc3:
+    show_advanced_view = st.checkbox(
+        "Show Advanced Insights",
+        value=True,
+        key="show_advanced_view"
+    )
     if st.button("🔄 Refresh Dashboard"):
         st.experimental_rerun()
+   
+    
 
 st.info(
     f"Current Focus: **{selected_department}** | "
