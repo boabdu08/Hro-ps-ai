@@ -6,15 +6,26 @@ from tensorflow.keras.models import load_model
 
 app = FastAPI(title="Hospital AI API")
 
-# تحميل الموديل مرة واحدة
+# ========================================
+# LOAD MODEL
+# ========================================
 model = load_model("hospital_forecast_model.keras", compile=False)
 
+FEATURE_NAMES = [
+    "patients",
+    "day_of_week",
+    "month",
+    "is_weekend",
+    "holiday",
+    "weather"
+]
 
-# -------- Request Models --------
+
+# ========================================
+# REQUEST MODELS
+# ========================================
 class PredictRequest(BaseModel):
     sequence: List[List[float]]
-    # لازم تكون 24 صف × 6 features
-    # [patients, day_of_week, month, is_weekend, holiday, weather]
 
 
 class SimulateRequest(BaseModel):
@@ -24,7 +35,13 @@ class SimulateRequest(BaseModel):
     demand_increase_percent: float = 0
 
 
-# -------- Utility Functions --------
+class ExplainRequest(BaseModel):
+    sequence: List[List[float]]
+
+
+# ========================================
+# HELPER FUNCTIONS
+# ========================================
 def optimize_resources(predicted_patients: float):
     beds_needed = int(predicted_patients * 1.1)
     doctors_needed = max(1, int(predicted_patients / 8))
@@ -64,11 +81,59 @@ def allocate_beds(predicted_patients: int, available_beds: int):
         }
 
 
-# -------- Routes --------
+def validate_sequence_shape(arr: np.ndarray):
+    return arr.shape == (24, 6)
+
+
+def explain_feature_importance(sequence_array: np.ndarray):
+    """
+    Local sensitivity-based explanation.
+    Perturb each feature in the LAST timestep only and measure prediction change.
+    """
+    base_pred = float(model.predict(np.array([sequence_array]), verbose=0)[0][0])
+
+    impacts = []
+
+    for i, feature_name in enumerate(FEATURE_NAMES):
+        modified = sequence_array.copy()
+
+        if feature_name == "patients":
+            modified[-1, i] = modified[-1, i] * 1.10
+        elif feature_name in ["day_of_week", "month", "weather"]:
+            modified[-1, i] = modified[-1, i] + 1
+        else:
+            modified[-1, i] = 1 - modified[-1, i]
+
+        new_pred = float(model.predict(np.array([modified]), verbose=0)[0][0])
+        impact = new_pred - base_pred
+
+        impacts.append({
+            "feature": feature_name,
+            "impact": impact
+        })
+
+    impacts = sorted(impacts, key=lambda x: abs(x["impact"]), reverse=True)
+
+    return {
+        "base_prediction": base_pred,
+        "feature_impacts": impacts
+    }
+
+
+# ========================================
+# ROUTES
+# ========================================
 @app.get("/")
 def home():
+    return {"message": "Hospital AI API is running"}
+
+
+@app.get("/status")
+def system_status():
     return {
-        "message": "Hospital AI API is running"
+        "system": "Hospital AI",
+        "model": "LSTM Forecast",
+        "status": "running"
     }
 
 
@@ -76,19 +141,17 @@ def home():
 def predict(data: PredictRequest):
     arr = np.array(data.sequence, dtype=float)
 
-    if arr.shape != (24, 6):
-        return {
-            "error": "Input must be shape (24, 6)"
-        }
+    if not validate_sequence_shape(arr):
+        return {"error": "Input must be shape (24, 6)"}
 
     X = np.array([arr])
-    pred = model.predict(X, verbose=0)[0][0]
+    pred = float(model.predict(X, verbose=0)[0][0])
 
     resources = optimize_resources(pred)
     emergency = predict_emergency_load(pred)
 
     return {
-        "predicted_patients_next_hour": float(pred),
+        "predicted_patients_next_hour": pred,
         "emergency_level": emergency,
         "recommended_resources": resources
     }
@@ -111,10 +174,14 @@ def simulate(data: SimulateRequest):
         "recommended_resources": resources,
         "doctor_shortage": doctor_shortage
     }
-@app.get("/status")
-def system_status():
-    return {
-        "system": "Hospital AI",
-        "model": "LSTM Forecast",
-        "status": "running"
-    }
+
+
+@app.post("/explain")
+def explain(data: ExplainRequest):
+    arr = np.array(data.sequence, dtype=float)
+
+    if not validate_sequence_shape(arr):
+        return {"error": "Input must be shape (24, 6)"}
+
+    result = explain_feature_importance(arr)
+    return result

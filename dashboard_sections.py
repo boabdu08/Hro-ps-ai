@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from api_client import get_prediction, simulate
+from api_client import get_prediction, simulate, explain_prediction
 
 
 def show_top_kpis(current_patients, prediction, peak, emergency_level, beds, doctors):
@@ -312,3 +312,49 @@ def show_heatmap(df):
         margin=dict(l=20, r=20, t=50, b=20)
     )
     st.plotly_chart(fig, use_container_width=True)
+
+
+def show_explainability_panel(last_sequence):
+    st.markdown("## 🔬 Explainable AI Panel")
+
+    explanation = explain_prediction(last_sequence)
+
+    if explanation is None or "feature_impacts" not in explanation:
+        st.warning("Explainability service unavailable.")
+        return
+
+    base_prediction = explanation["base_prediction"]
+    impacts = explanation["feature_impacts"]
+
+    st.metric("Base Prediction", int(base_prediction))
+
+    impact_df = pd.DataFrame(impacts)
+    impact_df["abs_impact"] = impact_df["impact"].abs()
+
+    fig = px.bar(
+        impact_df,
+        x="feature",
+        y="impact",
+        title="Feature Influence on Forecast",
+        text="impact"
+    )
+    fig.update_layout(
+        height=400,
+        xaxis_title="Feature",
+        yaxis_title="Prediction Impact",
+        margin=dict(l=20, r=20, t=50, b=20)
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.write("### Clinical Interpretation")
+    for row in impacts:
+        feature = row["feature"]
+        impact = row["impact"]
+
+        if impact > 0:
+            st.write(f"- **{feature}** increases predicted patient demand by approximately **{impact:.2f}**.")
+        elif impact < 0:
+            st.write(f"- **{feature}** decreases predicted patient demand by approximately **{abs(impact):.2f}**.")
+        else:
+            st.write(f"- **{feature}** has negligible effect on the current prediction.")

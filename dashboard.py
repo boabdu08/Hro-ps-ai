@@ -10,7 +10,8 @@ from dashboard_sections import (
     show_digital_twin_panel,
     show_operations_panel,
     show_hospital_map_panel,
-    show_heatmap
+    show_heatmap,
+    show_explainability_panel
 )
 
 # =========================
@@ -93,22 +94,6 @@ st.markdown("""
     </p>
 </div>
 """, unsafe_allow_html=True)
-
-# =========================
-# System Status Badges
-# =========================
-badge1, badge2, badge3, badge4 = st.columns(4)
-
-badge1.success("🟢 API Online")
-badge2.info("📡 Forecast Model Active")
-badge3.warning("🏥 Hospital Monitoring Enabled")
-
-if emergency_level == "HIGH":
-    badge4.error("🚨 Emergency Mode")
-elif emergency_level == "MEDIUM":
-    badge4.warning("⚠️ Elevated Pressure")
-else:
-    badge4.success("✅ Normal Operations")
 
 # =========================
 # LOAD DATA
@@ -205,6 +190,22 @@ with st.sidebar:
         st.success("Low")
 
 # =========================
+# STATUS BADGES
+# =========================
+badge1, badge2, badge3, badge4 = st.columns(4)
+
+badge1.success("🟢 API Online")
+badge2.info("📡 Forecast Model Active")
+badge3.warning("🏥 Hospital Monitoring Enabled")
+
+if emergency_level == "HIGH":
+    badge4.error("🚨 Emergency Mode")
+elif emergency_level == "MEDIUM":
+    badge4.warning("⚠️ Elevated Pressure")
+else:
+    badge4.success("✅ Normal Operations")
+
+# =========================
 # TOP KPI ROW
 # =========================
 show_top_kpis(
@@ -227,24 +228,22 @@ else:
     st.success("✅ System Stable: No major emergency pressure detected.")
 
 # =========================
-# System Health Overview
+# SYSTEM HEALTH OVERVIEW
 # =========================
 st.markdown("## 🧠 System Health Overview")
 
 h1, h2, h3, h4 = st.columns(4)
-
 h1.metric("Patients Now", int(df["patients"].iloc[-1]))
 h2.metric("Predicted Next Hour", int(prediction))
 h3.metric("Peak Forecast", int(peak))
 h4.metric("Beds Required", int(beds_needed))
 
 # =========================
-# Capacity Summary
+# CAPACITY SUMMARY
 # =========================
 st.markdown("### Hospital Resource Snapshot")
 
 c1, c2, c3 = st.columns(3)
-
 c1.metric("Beds Needed", beds_needed)
 c2.metric("Doctors Needed", doctors_needed)
 c3.metric("Nurses Needed", nurses_needed)
@@ -271,12 +270,14 @@ with qc2:
     )
 
 with qc3:
-    
-    show_advanced_view = st.checkbox("Show Advanced Insights", value=True)
+    show_advanced_view = st.checkbox(
+        "Show Advanced Insights",
+        value=True,
+        key="show_advanced_view"
+    )
 
     if st.button("🔄 Refresh Dashboard"):
-        st.experimental_rerun()
-    
+        st.rerun()
 
 st.info(
     f"Current Focus: **{selected_department}** | "
@@ -291,12 +292,13 @@ st.markdown("---")
 # =========================
 # TABS
 # =========================
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "📊 Overview",
     "📈 Forecast",
     "🧠 Simulation",
     "⚙️ Operations",
-    "🏥 Departments"
+    "🏥 Departments",
+    "🔬 Explainability"
 ])
 
 # -------------------------
@@ -340,6 +342,13 @@ with tab5:
 
     if selected_department != "All Departments":
         st.info(f"Focused department view selected: {selected_department}")
+
+# -------------------------
+# TAB 6: EXPLAINABILITY
+# -------------------------
+with tab6:
+    st.subheader("AI Explainability for Doctors")
+    show_explainability_panel(last_sequence)
 
 # =========================
 # FOOTER
