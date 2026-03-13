@@ -278,7 +278,7 @@ with qc3:
     )
     if st.button("🔄 Refresh Dashboard"):
         st.experimental_rerun()
-   
+    
     
 
 st.info(
