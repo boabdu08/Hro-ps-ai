@@ -2,7 +2,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-from api_client import get_prediction
+from auth import login_form, require_login, logout_button
+from api_client import get_prediction, get_system_status
 from dashboard_sections import (
     show_top_kpis,
     show_forecast_panel,
@@ -96,13 +97,27 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================
+# AUTHENTICATION
+# =========================
+if not require_login():
+    login_form()
+    st.stop()
+
+user = st.session_state["user"]
+role = user["role"]
+name = user["name"]
+department = user["department"]
+
+st.info(f"Logged in as **{name}** | Role: **{role}** | Department: **{department}**")
+
+# =========================
 # LOAD DATA
 # =========================
 df = pd.read_csv("clean_data.csv")
 
 required_cols = ["patients", "day_of_week", "month", "is_weekend", "holiday", "weather"]
-
 missing = [c for c in required_cols if c not in df.columns]
+
 if missing:
     st.error(f"Missing required columns: {missing}")
     st.stop()
@@ -116,6 +131,12 @@ if len(features) < 24:
 last_sequence = features[-24:]
 
 # =========================
+# API STATUS
+# =========================
+status_result = get_system_status()
+api_online = status_result is not None and status_result.get("status") == "running"
+
+# =========================
 # API PREDICTION
 # =========================
 result = get_prediction(last_sequence)
@@ -124,13 +145,13 @@ if result is None:
     st.error("API not reachable. Make sure FastAPI is running on http://127.0.0.1:8000")
     st.stop()
 
-prediction = result["predicted_patients_next_hour"]
+prediction = float(result["predicted_patients_next_hour"])
 recommended = result["recommended_resources"]
 emergency_level = result["emergency_level"]
 
-beds_needed = recommended["beds_needed"]
-doctors_needed = recommended["doctors_needed"]
-nurses_needed = recommended.get("nurses_needed", 0)
+beds_needed = int(recommended["beds_needed"])
+doctors_needed = int(recommended["doctors_needed"])
+nurses_needed = int(recommended.get("nurses_needed", 0))
 
 # =========================
 # ROLLING FORECAST FOR PEAK
@@ -144,7 +165,7 @@ for _ in range(24):
     if res is None:
         break
 
-    pred = res["predicted_patients_next_hour"]
+    pred = float(res["predicted_patients_next_hour"])
     predictions.append(pred)
 
     new_row = sequence[-1].copy()
@@ -163,8 +184,18 @@ peak = float(np.max(predictions))
 with st.sidebar:
     st.header("🧭 Command Sidebar")
 
+    st.markdown("### User Session")
+    st.write(f"**Name:** {name}")
+    st.write(f"**Role:** {role}")
+    st.write(f"**Department:** {department}")
+
+    logout_button()
+
     st.markdown("### System Status")
-    st.success("API Connected")
+    if api_online:
+        st.success("API Connected")
+    else:
+        st.error("API Offline")
     st.info("Dashboard Active")
 
     st.markdown("### Dataset Info")
@@ -194,7 +225,11 @@ with st.sidebar:
 # =========================
 badge1, badge2, badge3, badge4 = st.columns(4)
 
-badge1.success("🟢 API Online")
+if api_online:
+    badge1.success("🟢 API Online")
+else:
+    badge1.error("🔴 API Offline")
+
 badge2.info("📡 Forecast Model Active")
 badge3.warning("🏥 Hospital Monitoring Enabled")
 
@@ -290,65 +325,99 @@ display_peak = peak if selected_time_window == "Next 24 Hours" else prediction
 st.markdown("---")
 
 # =========================
-# TABS
+# ROLE-BASED TABS
 # =========================
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-    "📊 Overview",
-    "📈 Forecast",
-    "🧠 Simulation",
-    "⚙️ Operations",
-    "🏥 Departments",
-    "🔬 Explainability"
-])
+if role == "admin":
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+        "📊 Overview",
+        "📈 Forecast",
+        "🧠 Simulation",
+        "⚙️ Operations",
+        "🏥 Departments",
+        "🔬 Explainability"
+    ])
 
-# -------------------------
-# TAB 1: OVERVIEW
-# -------------------------
-with tab1:
-    st.subheader("System Overview")
-    show_capacity_panel(recommended, emergency_level)
+    with tab1:
+        st.subheader("System Overview")
+        show_capacity_panel(recommended, emergency_level)
 
-# -------------------------
-# TAB 2: FORECAST
-# -------------------------
-with tab2:
-    st.subheader("Forecast & Demand Monitoring for Hospital Planning")
-    forecast_df, forecast_values = show_forecast_panel(df, last_sequence)
+    with tab2:
+        st.subheader("Forecast & Demand Monitoring for Hospital Planning")
+        forecast_df, forecast_values = show_forecast_panel(df, last_sequence)
 
-    if show_advanced_view:
-        st.markdown("---")
-        show_heatmap(df)
+        if show_advanced_view:
+            st.markdown("---")
+            show_heatmap(df)
 
-# -------------------------
-# TAB 3: SIMULATION
-# -------------------------
-with tab3:
-    st.subheader("Digital Twin & Scenario Planning for Capacity Decisions")
-    show_digital_twin_panel(prediction)
+    with tab3:
+        st.subheader("Digital Twin & Scenario Planning for Capacity Decisions")
+        show_digital_twin_panel(prediction)
 
-# -------------------------
-# TAB 4: OPERATIONS
-# -------------------------
-with tab4:
-    st.subheader("Hospital Operations Center (Scheduling & Resources)")
-    show_operations_panel(prediction)
+    with tab4:
+        st.subheader("Hospital Operations Center (Scheduling & Resources)")
+        show_operations_panel(prediction)
 
-# -------------------------
-# TAB 5: DEPARTMENTS
-# -------------------------
-with tab5:
-    st.subheader("Department Capacity & Status")
-    show_hospital_map_panel(prediction)
+    with tab5:
+        st.subheader("Department Capacity & Status")
+        show_hospital_map_panel(prediction)
 
-    if selected_department != "All Departments":
-        st.info(f"Focused department view selected: {selected_department}")
+        if selected_department != "All Departments":
+            st.info(f"Focused department view selected: {selected_department}")
 
-# -------------------------
-# TAB 6: EXPLAINABILITY
-# -------------------------
-with tab6:
-    st.subheader("AI Explainability for Doctors")
-    show_explainability_panel(last_sequence)
+    with tab6:
+        st.subheader("AI Explainability for Doctors")
+        show_explainability_panel(last_sequence)
+
+elif role == "doctor":
+    tab1, tab2, tab3 = st.tabs([
+        "📊 Overview",
+        "📈 Forecast",
+        "🏥 My Department"
+    ])
+
+    with tab1:
+        st.subheader("Doctor Overview")
+        show_top_kpis(
+            current_patients=int(df["patients"].iloc[-1]),
+            prediction=int(prediction),
+            peak=int(display_peak),
+            emergency_level=emergency_level,
+            beds=beds_needed,
+            doctors=doctors_needed
+        )
+
+    with tab2:
+        st.subheader("Forecast & Demand Monitoring")
+        forecast_df, forecast_values = show_forecast_panel(df, last_sequence)
+
+    with tab3:
+        st.subheader(f"My Department: {department}")
+        show_hospital_map_panel(prediction)
+
+elif role == "nurse":
+    tab1, tab2 = st.tabs([
+        "📊 Overview",
+        "🏥 My Department"
+    ])
+
+    with tab1:
+        st.subheader("Nursing Overview")
+        show_top_kpis(
+            current_patients=int(df["patients"].iloc[-1]),
+            prediction=int(prediction),
+            peak=int(display_peak),
+            emergency_level=emergency_level,
+            beds=beds_needed,
+            doctors=doctors_needed
+        )
+
+    with tab2:
+        st.subheader(f"My Department: {department}")
+        show_hospital_map_panel(prediction)
+
+else:
+    st.error(f"Unsupported role: {role}")
+    st.stop()
 
 # =========================
 # FOOTER
