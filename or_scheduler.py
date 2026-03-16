@@ -1,6 +1,9 @@
 import pandas as pd
 
+
 def schedule_operations(num_surgeries, rooms_available):
+    num_surgeries = int(num_surgeries)
+    rooms_available = max(1, int(rooms_available))
 
     surgeries_per_room = num_surgeries // rooms_available
     extra = num_surgeries % rooms_available
@@ -13,7 +16,7 @@ def schedule_operations(num_surgeries, rooms_available):
             surgeries += 1
 
         schedule.append({
-            "room": i+1,
+            "room": i + 1,
             "surgeries": surgeries
         })
 

@@ -1,1 +1,5 @@
 recommendation_id,timestamp,type,message,status,approved_by,execution_status,execution_note,affected_files
+REC-20260316051935067206,2026-03-16 05:19:35,capacity,Peak forecast reached 135 patients. Recommend opening overflow capacity.,rejected,Hospital Admin,not_executed,Recommendation rejected by manager.,
+REC-20260316051935067218,2026-03-16 05:19:35,beds,Beds needed = 145. Recommend reallocating beds or delaying non-urgent admissions.,approved,Hospital Admin,executed,Marked appointment slot 12:00-14:00 in General Ward as Review Required.,appointments.csv
+REC-20260316051935067226,2026-03-16 05:19:35,staff,Doctors needed = 18. Recommend adding backup doctors to upcoming shifts.,approved,Hospital Admin,executed,Added backup doctor shift in ER for 2026-03-17.,shifts.csv
+REC-20260316051935067233,2026-03-16 05:19:35,emergency,Emergency load is HIGH. Recommend activating emergency surge plan.,approved,Hospital Admin,executed,Pending OR bookings escalated to Priority Review | Appointment slot 12:00-14:00 in General Ward set to Restricted Intake,"or_bookings.csv, appointments.csv"

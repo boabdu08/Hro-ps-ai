@@ -1,44 +1,33 @@
-import streamlit as st
-import pandas as pd
 import os
+import pandas as pd
+import streamlit as st
 
 LOG_FILE = "recommendation_log.csv"
 
+EXPECTED_COLS = [
+    "recommendation_id",
+    "timestamp",
+    "type",
+    "message",
+    "status",
+    "approved_by",
+    "execution_status",
+    "execution_note",
+    "affected_files"
+]
 
-@st.cache_data
+
 def load_decisions():
     if not os.path.exists(LOG_FILE):
-        return pd.DataFrame(columns=[
-            "recommendation_id",
-            "timestamp",
-            "type",
-            "message",
-            "status",
-            "approved_by",
-            "execution_status",
-            "execution_note",
-            "affected_files"
-        ])
+        return pd.DataFrame(columns=EXPECTED_COLS)
 
     df = pd.read_csv(LOG_FILE)
 
-    expected_cols = [
-        "recommendation_id",
-        "timestamp",
-        "type",
-        "message",
-        "status",
-        "approved_by",
-        "execution_status",
-        "execution_note",
-        "affected_files"
-    ]
-
-    for col in expected_cols:
+    for col in EXPECTED_COLS:
         if col not in df.columns:
             df[col] = ""
 
-    return df[expected_cols]
+    return df[EXPECTED_COLS].copy()
 
 
 def show_staff_decision_feed(role, department=None):
@@ -115,15 +104,15 @@ def show_department_notice_board(department):
         return
 
     department_keywords = {
-        "ER": ["emergency", "staff", "capacity"],
-        "ICU": ["staff", "beds", "capacity"],
+        "ER": ["emergency", "staff", "capacity", "beds"],
+        "ICU": ["staff", "beds", "capacity", "emergency"],
         "General Ward": ["beds", "capacity", "staff"],
-        "Surgery": ["capacity", "staff"],
-        "Radiology": ["capacity"]
+        "Surgery": ["capacity", "staff", "emergency"],
+        "Radiology": ["capacity", "staff"]
     }
 
     keywords = department_keywords.get(department, [])
-    filtered = approved_df[approved_df["type"].isin(keywords)]
+    filtered = approved_df[approved_df["type"].isin(keywords)].copy()
 
     if filtered.empty:
         st.info("No department-specific notices currently available.")
@@ -133,5 +122,9 @@ def show_department_notice_board(department):
 
     for _, row in filtered.iterrows():
         st.info(row["message"])
+
+        if str(row.get("execution_note", "")).strip():
+            st.caption(f"Execution Note: {row['execution_note']}")
+
         st.caption(f"Approved by: {row['approved_by']} | {row['timestamp']}")
         st.markdown("---")

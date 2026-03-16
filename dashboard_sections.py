@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+
 from api_client import get_prediction, simulate, explain_prediction
 
 
@@ -28,7 +29,7 @@ def show_forecast_panel(df, last_sequence):
     for _ in range(24):
         result = get_prediction(sequence)
 
-        if result is None:
+        if result is None or "predicted_patients_next_hour" not in result:
             break
 
         pred = float(result["predicted_patients_next_hour"])
@@ -117,9 +118,9 @@ def show_capacity_panel(resources, emergency_level):
     col1, col2 = st.columns([1, 1])
 
     with col1:
-        beds_needed = resources.get("beds_needed", 0)
-        doctors_needed = resources.get("doctors_needed", 0)
-        nurses_needed = resources.get("nurses_needed", 0)
+        beds_needed = int(resources.get("beds_needed", 0))
+        doctors_needed = int(resources.get("doctors_needed", 0))
+        nurses_needed = int(resources.get("nurses_needed", 0))
 
         capacity = 120
         occupancy = (beds_needed / capacity) * 100 if capacity > 0 else 0
@@ -148,9 +149,9 @@ def show_capacity_panel(resources, emergency_level):
         st.plotly_chart(fig, use_container_width=True)
 
         mini1, mini2, mini3 = st.columns(3)
-        mini1.metric("Beds", int(beds_needed))
-        mini2.metric("Doctors", int(doctors_needed))
-        mini3.metric("Nurses", int(nurses_needed))
+        mini1.metric("Beds", beds_needed)
+        mini2.metric("Doctors", doctors_needed)
+        mini3.metric("Nurses", nurses_needed)
 
     with col2:
         st.write("### Capacity Alert Center")
@@ -162,17 +163,17 @@ def show_capacity_panel(resources, emergency_level):
         else:
             st.success("Emergency load is stable")
 
-        if resources.get("beds_needed", 0) > 120:
+        if beds_needed > 120:
             st.error("Expected bed shortage")
         else:
             st.success("Bed capacity is sufficient")
 
-        if resources.get("doctors_needed", 0) > 15:
+        if doctors_needed > 15:
             st.warning("Doctor shortage expected")
         else:
             st.success("Doctor capacity is sufficient")
 
-        if resources.get("nurses_needed", 0) > 25:
+        if nurses_needed > 25:
             st.warning("Nurse shortage expected")
         else:
             st.success("Nurse capacity is sufficient")
@@ -231,9 +232,9 @@ def show_operations_panel(prediction):
     with col2:
         st.write("### Resource Optimizer")
 
-        doctors = max(1, int(prediction / 8))
-        nurses = max(1, int(prediction / 4))
-        beds = int(prediction * 1.1)
+        doctors = max(1, int(np.ceil(prediction / 8)))
+        nurses = max(1, int(np.ceil(prediction / 4)))
+        beds = int(np.ceil(prediction * 1.1))
 
         opt_df = pd.DataFrame({
             "Resource": ["Doctors", "Nurses", "Beds"],
@@ -390,10 +391,16 @@ def show_hybrid_model_panel(last_sequence):
     arimax_pred = float(result.get("arimax_prediction", 0))
     hybrid_pred = float(result.get("hybrid_prediction", result.get("predicted_patients_next_hour", 0)))
 
+    weights = result.get("hybrid_weights", {})
+    lstm_weight = weights.get("lstm", "N/A")
+    arimax_weight = weights.get("arimax", "N/A")
+
     c1, c2, c3 = st.columns(3)
     c1.metric("LSTM Prediction", int(lstm_pred))
     c2.metric("ARIMAX Prediction", int(arimax_pred))
     c3.metric("Hybrid Prediction", int(hybrid_pred))
+
+    st.caption(f"Hybrid Weights → LSTM: {lstm_weight} | ARIMAX: {arimax_weight}")
 
     compare_df = pd.DataFrame({
         "Model": ["LSTM", "ARIMAX", "Hybrid"],
@@ -408,6 +415,7 @@ def show_hybrid_model_panel(last_sequence):
     )
     fig.update_layout(height=350)
     st.plotly_chart(fig, use_container_width=True)
+
 
 def show_forecast_evaluation_panel():
     st.markdown("## 📏 Forecast Evaluation Panel")
@@ -438,17 +446,21 @@ def show_forecast_evaluation_panel():
     fig_metrics.update_layout(height=420, margin=dict(l=20, r=20, t=50, b=20))
     st.plotly_chart(fig_metrics, use_container_width=True)
 
-    st.write("### Actual vs Predicted")
-    compare_df = detailed_df[["time_index", "actual", "lstm_pred", "arimax_pred", "hybrid_pred"]].copy()
+    required_cols = ["time_index", "actual", "lstm_pred", "arimax_pred", "hybrid_pred"]
+    if all(col in detailed_df.columns for col in required_cols):
+        st.write("### Actual vs Predicted")
+        compare_df = detailed_df[required_cols].copy()
 
-    fig_compare = px.line(
-        compare_df,
-        x="time_index",
-        y=["actual", "lstm_pred", "arimax_pred", "hybrid_pred"],
-        title="Actual vs Forecasted Patient Flow"
-    )
-    fig_compare.update_layout(height=450, margin=dict(l=20, r=20, t=50, b=20))
-    st.plotly_chart(fig_compare, use_container_width=True)
+        fig_compare = px.line(
+            compare_df,
+            x="time_index",
+            y=["actual", "lstm_pred", "arimax_pred", "hybrid_pred"],
+            title="Actual vs Forecasted Patient Flow"
+        )
+        fig_compare.update_layout(height=450, margin=dict(l=20, r=20, t=50, b=20))
+        st.plotly_chart(fig_compare, use_container_width=True)
 
-    st.write("### Detailed Predictions")
-    st.dataframe(compare_df.tail(50), use_container_width=True, hide_index=True)
+        st.write("### Detailed Predictions")
+        st.dataframe(compare_df.tail(50), use_container_width=True, hide_index=True)
+    else:
+        st.warning("Detailed prediction columns not found in forecast_predictions_detailed.csv.")

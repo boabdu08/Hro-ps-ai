@@ -1,44 +1,33 @@
-import streamlit as st
-import pandas as pd
 import os
+import pandas as pd
+import streamlit as st
 
 LOG_FILE = "recommendation_log.csv"
 
+EXPECTED_COLS = [
+    "recommendation_id",
+    "timestamp",
+    "type",
+    "message",
+    "status",
+    "approved_by",
+    "execution_status",
+    "execution_note",
+    "affected_files"
+]
 
-@st.cache_data
+
 def load_audit_log():
     if not os.path.exists(LOG_FILE):
-        return pd.DataFrame(columns=[
-            "recommendation_id",
-            "timestamp",
-            "type",
-            "message",
-            "status",
-            "approved_by",
-            "execution_status",
-            "execution_note",
-            "affected_files"
-        ])
+        return pd.DataFrame(columns=EXPECTED_COLS)
 
     df = pd.read_csv(LOG_FILE)
 
-    expected_cols = [
-        "recommendation_id",
-        "timestamp",
-        "type",
-        "message",
-        "status",
-        "approved_by",
-        "execution_status",
-        "execution_note",
-        "affected_files"
-    ]
-
-    for col in expected_cols:
+    for col in EXPECTED_COLS:
         if col not in df.columns:
             df[col] = ""
 
-    return df[expected_cols]
+    return df[EXPECTED_COLS].copy()
 
 
 def show_audit_summary():
@@ -93,7 +82,7 @@ def show_execution_trace():
     executed_df = executed_df.sort_values(by="timestamp", ascending=False)
 
     for _, row in executed_df.iterrows():
-        st.success(f"{row['recommendation_id']} — {row['type'].upper()}")
+        st.success(f"{row['recommendation_id']} — {str(row['type']).upper()}")
         st.write(f"**Message:** {row['message']}")
         st.write(f"**Approved By:** {row['approved_by']}")
         st.write(f"**Execution Note:** {row['execution_note']}")

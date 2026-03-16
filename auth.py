@@ -9,7 +9,11 @@ def login_form():
     password = st.text_input("Password", type="password")
 
     if st.button("Login"):
-        user = login_user_api(username, password)
+        if not username.strip() or not password.strip():
+            st.warning("Please enter both username and password.")
+            return
+
+        user = login_user_api(username.strip(), password)
 
         if user:
             st.session_state["logged_in"] = True

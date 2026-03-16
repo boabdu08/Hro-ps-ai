@@ -74,3 +74,16 @@ def login_user_api(username, password):
     except requests.exceptions.RequestException as e:
         print("Login API error:", e)
         return None
+
+
+def get_latest_sequence():
+    url = f"{API_BASE_URL}/patient_flow/latest"
+
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        return data.get("sequence")
+    except requests.exceptions.RequestException as e:
+        print("Latest sequence API error:", e)
+        return None

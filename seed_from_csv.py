@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 from database import engine, SessionLocal, Base
 from models import (
@@ -10,11 +11,7 @@ from models import (
     AuditLog,
 )
 
-# =========================
-# CREATE TABLES
-# =========================
 Base.metadata.create_all(bind=engine)
-
 db = SessionLocal()
 
 
@@ -130,17 +127,26 @@ def seed_users():
 
 def seed_recommendation_log():
     try:
+        if not os.path.exists("recommendation_log.csv"):
+            print("recommendation_log.csv not found. Skipping recommendation log seeding.")
+            return
+
         df = pd.read_csv("recommendation_log.csv")
+        if df.empty:
+            print("recommendation_log.csv is empty. Skipping recommendation log seeding.")
+            return
+
         for _, row in df.iterrows():
             record = RecommendationLog(
                 timestamp=safe_value(row.get("timestamp")),
                 department=safe_value(row.get("department")),
-                recommendation=safe_value(row.get("recommendation")),
+                recommendation=safe_value(row.get("recommendation") or row.get("message")),
                 status=safe_value(row.get("status")),
-                approver=safe_value(row.get("approver")),
+                approver=safe_value(row.get("approver") or row.get("approved_by")),
                 execution_status=safe_value(row.get("execution_status")),
             )
             db.add(record)
+
         db.commit()
         print("recommendation_log seeded successfully.")
     except Exception as e:
@@ -150,7 +156,10 @@ def seed_recommendation_log():
 
 def seed_audit_log():
     try:
-        # لو عندك ملف audit_log.csv استخدمه هنا
+        if not os.path.exists("audit_log.csv"):
+            print("audit_log.csv not found. Skipping audit log seeding.")
+            return
+
         df = pd.read_csv("audit_log.csv")
         for _, row in df.iterrows():
             record = AuditLog(
@@ -164,20 +173,20 @@ def seed_audit_log():
             db.add(record)
         db.commit()
         print("audit_log seeded successfully.")
-    except FileNotFoundError:
-        print("audit_log.csv not found. Skipping audit log seeding.")
     except Exception as e:
         db.rollback()
         print("Error seeding audit_log:", e)
 
 
 if __name__ == "__main__":
-    seed_patients_flow()
-    seed_appointments()
-    seed_or_bookings()
-    seed_staff_shifts()
-    seed_users()
-    seed_recommendation_log()
-    seed_audit_log()
-    db.close()
-    print("CSV to PostgreSQL seeding completed.")
+    try:
+        seed_patients_flow()
+        seed_appointments()
+        seed_or_bookings()
+        seed_staff_shifts()
+        seed_users()
+        seed_recommendation_log()
+        seed_audit_log()
+        print("CSV to PostgreSQL seeding completed.")
+    finally:
+        db.close()

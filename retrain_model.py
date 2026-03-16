@@ -1,45 +1,20 @@
-import pandas as pd
-import numpy as np
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense
+import subprocess
+import sys
 
-df = pd.read_csv("clean_data.csv")
 
-features = df[[
-    "patients",
-    "day_of_week",
-    "month",
-    "is_weekend",
-    "holiday",
-    "weather"
-]].values
+def run_step(script_name):
+    print(f"\n===== Running {script_name} =====")
+    result = subprocess.run([sys.executable, script_name], check=False)
 
-sequence_length = 24
+    if result.returncode != 0:
+        raise RuntimeError(f"{script_name} failed with exit code {result.returncode}")
 
-X=[]
-y=[]
+    print(f"✅ {script_name} completed successfully.")
 
-for i in range(len(features)-sequence_length):
 
-    X.append(features[i:i+sequence_length])
-    y.append(features[i+sequence_length][0])
+if __name__ == "__main__":
+    run_step("prepare_sequences.py")
+    run_step("train_arimax.py")
+    run_step("train_lstm.py")
 
-X=np.array(X)
-y=np.array(y)
-
-model=Sequential()
-
-model.add(LSTM(64,input_shape=(X.shape[1],X.shape[2])))
-model.add(Dense(32))
-model.add(Dense(1))
-
-model.compile(
-    optimizer="adam",
-    loss="mse"
-)
-
-model.fit(X,y,epochs=10,batch_size=32)
-
-model.save("hospital_forecast_model.keras")
-
-print("Model retrained successfully")
+    print("\n✅ Full retraining pipeline completed successfully.")

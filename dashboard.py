@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 from auth import login_form, require_login, logout_button
-from api_client import get_prediction, get_system_status
+from api_client import get_prediction, get_system_status, get_latest_sequence
 
 from dashboard_sections import (
     show_forecast_evaluation_panel,
@@ -40,7 +40,6 @@ from audit_sections import (
     show_execution_trace,
 )
 
-
 # =========================
 # PAGE CONFIG
 # =========================
@@ -48,7 +47,6 @@ st.set_page_config(
     page_title="Hospital AI Command Center",
     layout="wide"
 )
-
 
 # =========================
 # CUSTOM STYLING
@@ -59,44 +57,35 @@ st.markdown(
     .main {
         padding-top: 1rem;
     }
-
     .block-container {
         padding-top: 1rem;
         padding-bottom: 2rem;
     }
-
     h1, h2, h3 {
         font-weight: 700 !important;
     }
-
     [data-testid="stMetricValue"] {
         font-size: 1.6rem;
     }
-
     [data-testid="stMetricLabel"] {
         font-size: 0.95rem;
         font-weight: 600;
     }
-
     section[data-testid="stSidebar"] {
         border-right: 1px solid rgba(128,128,128,0.2);
     }
-
     div[data-baseweb="tab-list"] {
         gap: 10px;
     }
-
     button[role="tab"] {
         border-radius: 10px;
         padding: 8px 16px;
         font-weight: 600;
     }
-
     hr {
         margin-top: 1.2rem;
         margin-bottom: 1.2rem;
     }
-
     .custom-header {
         padding: 1rem 1.2rem;
         border-radius: 14px;
@@ -107,7 +96,6 @@ st.markdown(
         );
         margin-bottom: 1rem;
     }
-
     .custom-footer {
         text-align: center;
         font-size: 0.9rem;
@@ -120,7 +108,6 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
 
 # =========================
 # HEADER
@@ -138,7 +125,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
 # =========================
 # AUTHENTICATION
 # =========================
@@ -146,21 +132,28 @@ if not require_login():
     login_form()
     st.stop()
 
-user = st.session_state["user"]
-role = user["role"]
-name = user["name"]
-department = user["department"]
-username = user["username"]
+user = st.session_state.get("user") or {}
+role = user.get("role")
+name = user.get("name", "Unknown User")
+department = user.get("department", "Unknown Department")
+username = user.get("username", "")
+
+if not role:
+    st.error("User session is incomplete. Please log in again.")
+    st.stop()
 
 st.info(
     f"Logged in as **{name}** | Role: **{role}** | Department: **{department}**"
 )
 
-
 # =========================
-# LOAD DATA
+# LOAD HISTORICAL DATA (temporary fallback for charts)
 # =========================
-df = pd.read_csv("clean_data.csv")
+try:
+    df = pd.read_csv("clean_data.csv")
+except FileNotFoundError:
+    st.error("clean_data.csv not found.")
+    st.stop()
 
 required_cols = [
     "patients",
@@ -182,15 +175,21 @@ if len(features) < 24:
     st.error("Need at least 24 rows of data.")
     st.stop()
 
-last_sequence = features[-24:]
-
-
 # =========================
 # API STATUS
 # =========================
 status_result = get_system_status()
 api_online = status_result is not None and status_result.get("status") == "running"
 
+# =========================
+# LOAD LATEST SEQUENCE FROM API / DB
+# =========================
+latest_sequence = get_latest_sequence()
+
+if latest_sequence is not None and len(latest_sequence) == 24:
+    last_sequence = np.array(latest_sequence, dtype=float)
+else:
+    last_sequence = features[-24:]
 
 # =========================
 # API PREDICTION
@@ -209,7 +208,6 @@ beds_needed = int(recommended["beds_needed"])
 doctors_needed = int(recommended["doctors_needed"])
 nurses_needed = int(recommended.get("nurses_needed", 0))
 
-
 # =========================
 # ROLLING FORECAST FOR PEAK
 # =========================
@@ -218,7 +216,7 @@ sequence = last_sequence.copy()
 
 for _ in range(24):
     res = get_prediction(sequence)
-    if res is None:
+    if res is None or "predicted_patients_next_hour" not in res:
         break
 
     pred = float(res["predicted_patients_next_hour"])
@@ -233,7 +231,7 @@ if len(predictions) == 0:
     st.stop()
 
 peak = float(np.max(predictions))
-
+current_patients_value = int(last_sequence[-1][0])
 
 # =========================
 # SIDEBAR
@@ -261,7 +259,7 @@ with st.sidebar:
     st.write(f"Columns: {len(df.columns)}")
 
     st.markdown("### Live Summary")
-    st.metric("Current Patients", int(df["patients"].iloc[-1]))
+    st.metric("Current Patients", current_patients_value)
     st.metric("Next Hour Forecast", int(prediction))
     st.metric("Peak Load", int(peak))
 
@@ -277,7 +275,6 @@ with st.sidebar:
         st.warning("Medium")
     else:
         st.success("Low")
-
 
 # =========================
 # STATUS BADGES
@@ -299,19 +296,17 @@ elif emergency_level == "MEDIUM":
 else:
     badge4.success("✅ Normal Operations")
 
-
 # =========================
 # TOP KPI ROW
 # =========================
 show_top_kpis(
-    current_patients=int(df["patients"].iloc[-1]),
+    current_patients=current_patients_value,
     prediction=int(prediction),
     peak=int(peak),
     emergency_level=emergency_level,
     beds=beds_needed,
     doctors=doctors_needed
 )
-
 
 # =========================
 # ALERT BANNER
@@ -323,18 +318,16 @@ elif emergency_level == "MEDIUM":
 else:
     st.success("✅ System Stable: No major emergency pressure detected.")
 
-
 # =========================
 # SYSTEM HEALTH OVERVIEW
 # =========================
 st.markdown("## 🧠 System Health Overview")
 
 h1, h2, h3, h4 = st.columns(4)
-h1.metric("Patients Now", int(df["patients"].iloc[-1]))
+h1.metric("Patients Now", current_patients_value)
 h2.metric("Predicted Next Hour", int(prediction))
 h3.metric("Peak Forecast", int(peak))
 h4.metric("Beds Required", int(beds_needed))
-
 
 # =========================
 # CAPACITY SUMMARY
@@ -345,7 +338,6 @@ c1, c2, c3 = st.columns(3)
 c1.metric("Beds Needed", beds_needed)
 c2.metric("Doctors Needed", doctors_needed)
 c3.metric("Nurses Needed", nurses_needed)
-
 
 # =========================
 # QUICK CONTROLS
@@ -386,7 +378,6 @@ st.info(
 display_peak = peak if selected_time_window == "Next 24 Hours" else prediction
 
 st.markdown("---")
-
 
 # =========================
 # ROLE-BASED TABS
@@ -510,7 +501,7 @@ elif role == "doctor":
     with tab1:
         st.subheader("Doctor Overview")
         show_top_kpis(
-            current_patients=int(df["patients"].iloc[-1]),
+            current_patients=current_patients_value,
             prediction=int(prediction),
             peak=int(display_peak),
             emergency_level=emergency_level,
@@ -554,7 +545,7 @@ elif role == "nurse":
     with tab1:
         st.subheader("Nursing Overview")
         show_top_kpis(
-            current_patients=int(df["patients"].iloc[-1]),
+            current_patients=current_patients_value,
             prediction=int(prediction),
             peak=int(display_peak),
             emergency_level=emergency_level,
@@ -583,7 +574,6 @@ elif role == "nurse":
 else:
     st.error(f"Unsupported role: {role}")
     st.stop()
-
 
 # =========================
 # FOOTER

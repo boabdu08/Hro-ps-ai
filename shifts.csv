@@ -5,3 +5,4 @@ doctor2,Dr. Sara,doctor,ICU,2026-03-14,Night,Assigned
 nurse1,Nurse Mona,nurse,General Ward,2026-03-14,Morning,Assigned
 nurse1,Nurse Mona,nurse,General Ward,2026-03-15,Evening,Assigned
 nurse2,Nurse Ali,nurse,ER,2026-03-14,Night,Assigned
+backup_doctor,Backup Doctor,doctor,ER,2026-03-17,Emergency Backup,Auto-Assigned

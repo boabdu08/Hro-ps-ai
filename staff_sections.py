@@ -1,21 +1,38 @@
+import os
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 
 
+def _load_csv_or_empty(path, columns):
+    if not os.path.exists(path):
+        return pd.DataFrame(columns=columns)
+
+    df = pd.read_csv(path)
+    for col in columns:
+        if col not in df.columns:
+            df[col] = None
+    return df[columns].copy()
+
+
 @st.cache_data
 def load_shifts():
-    return pd.read_csv("shifts.csv")
+    columns = ["staff_username", "name", "role", "department", "shift_date", "shift_type", "status"]
+    return _load_csv_or_empty("shifts.csv", columns)
 
 
 @st.cache_data
 def load_or_bookings():
-    return pd.read_csv("or_bookings.csv")
+    columns = ["booking_id", "room", "doctor", "department", "date", "time_slot", "procedure", "status"]
+    return _load_csv_or_empty("or_bookings.csv", columns)
 
 
 @st.cache_data
 def load_appointments():
-    return pd.read_csv("appointments.csv")
+    columns = ["appointment_id", "department", "doctor", "date", "time_slot", "patient_count", "status"]
+    df = _load_csv_or_empty("appointments.csv", columns)
+    df["patient_count"] = pd.to_numeric(df["patient_count"], errors="coerce").fillna(0)
+    return df
 
 
 def show_my_shifts(username, role):
@@ -46,6 +63,11 @@ def show_all_shifts():
     st.markdown("## 👥 Staff Shift Management")
 
     df = load_shifts()
+
+    if df.empty:
+        st.info("No shifts available.")
+        return
+
     st.dataframe(df, use_container_width=True, hide_index=True)
 
     summary = df.groupby(["department", "shift_type"]).size().reset_index(name="assigned_staff")
@@ -121,6 +143,10 @@ def show_admin_appointments_overview():
     st.markdown("## 📊 Appointment Management Overview")
 
     df = load_appointments()
+
+    if df.empty:
+        st.info("No appointments available.")
+        return
 
     st.dataframe(df, use_container_width=True, hide_index=True)
 

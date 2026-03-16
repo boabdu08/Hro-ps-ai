@@ -2,4 +2,4 @@ appointment_id,department,doctor,date,time_slot,patient_count,status
 AP001,ER,Dr. Ahmed,2026-03-14,08:00-10:00,12,Open
 AP002,ER,Dr. Ahmed,2026-03-14,10:00-12:00,15,Busy
 AP003,ICU,Dr. Sara,2026-03-14,09:00-11:00,8,Open
-AP004,General Ward,Dr. Ward Team,2026-03-14,12:00-14:00,20,Busy
+AP004,General Ward,Dr. Ward Team,2026-03-14,12:00-14:00,20,Review Required

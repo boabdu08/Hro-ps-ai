@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from tensorflow.keras.models import load_model
 
 from database import get_db
-from models import User
+from models import User, PatientFlow
 from schemas import LoginRequest
 
 app = FastAPI(title="Hospital AI API")
@@ -29,7 +29,6 @@ with open("hybrid_config.json", "r", encoding="utf-8") as f:
 HYBRID_LSTM_WEIGHT = float(hybrid_config.get("lstm_weight", 0.95))
 HYBRID_ARIMAX_WEIGHT = float(hybrid_config.get("arimax_weight", 0.05))
 
-
 FEATURE_NAMES = [
     "patients",
     "day_of_week",
@@ -37,6 +36,45 @@ FEATURE_NAMES = [
     "is_weekend",
     "holiday",
     "weather",
+]
+
+ADMIN_MESSAGE_TEMPLATES = [
+    {
+        "category": "emergency",
+        "title": "Emergency Surge Alert",
+        "message": "Emergency surge alert: all available staff should review current assignments and prepare for overflow response."
+    },
+    {
+        "category": "coverage",
+        "title": "Doctor Coverage Request",
+        "message": "Urgent coverage needed: an additional doctor is required to cover the current shift immediately."
+    },
+    {
+        "category": "coverage",
+        "title": "Nurse Coverage Request",
+        "message": "Urgent coverage needed: an additional nurse is required to support the active department."
+    },
+    {
+        "category": "shift",
+        "title": "Shift Change Notice",
+        "message": "Shift update notice: please review your latest assignment and acknowledge the change."
+    },
+    {
+        "category": "capacity",
+        "title": "Bed Shortage Warning",
+        "message": "Capacity warning: bed pressure is increasing. Review admissions and discharge flow immediately."
+    },
+]
+
+STAFF_QUICK_REPLIES = [
+    "تم",
+    "تم التنفيذ",
+    "وصل",
+    "جاري التنفيذ",
+    "نحتاج دعم دكاترة",
+    "نحتاج دعم تمريض",
+    "يوجد عجز",
+    "لا أستطيع التغطية الآن",
 ]
 
 
@@ -66,29 +104,17 @@ def validate_sequence_shape(arr: np.ndarray):
 
 
 def scale_sequence(sequence_array: np.ndarray):
-    """
-    Apply the same feature scaler used during training.
-    Input shape: (24, 6)
-    Output shape: (24, 6)
-    """
     flat = sequence_array.reshape(-1, sequence_array.shape[-1])
     scaled_flat = x_scaler.transform(flat)
     return scaled_flat.reshape(sequence_array.shape).astype(np.float32)
 
 
 def inverse_scale_target(pred_scaled: float):
-    """
-    Convert scaled target prediction back to original patient-count scale.
-    """
     value = np.array([[pred_scaled]], dtype=np.float32)
     return float(y_scaler.inverse_transform(value)[0][0])
 
 
 def get_next_exog_from_sequence(sequence_array: np.ndarray):
-    """
-    ARIMAX expects exogenous values in original scale, not scaled.
-    We use the last row's non-target exogenous features.
-    """
     last_row = sequence_array[-1]
     exog = np.array(
         [[last_row[1], last_row[2], last_row[3], last_row[4], last_row[5]]],
@@ -98,9 +124,6 @@ def get_next_exog_from_sequence(sequence_array: np.ndarray):
 
 
 def predict_lstm(sequence_array: np.ndarray):
-    """
-    sequence_array must be original-scale raw input shape (24, 6)
-    """
     scaled_sequence = scale_sequence(sequence_array)
     x_input = np.array([scaled_sequence], dtype=np.float32)
 
@@ -110,9 +133,6 @@ def predict_lstm(sequence_array: np.ndarray):
 
 
 def predict_arimax(sequence_array: np.ndarray):
-    """
-    ARIMAX trained on original-scale target and original-scale exogenous variables.
-    """
     next_exog = get_next_exog_from_sequence(sequence_array)
     forecast = arimax_model.forecast(steps=1, exog=next_exog)
     return float(forecast.iloc[0] if hasattr(forecast, "iloc") else forecast[0])
@@ -175,9 +195,6 @@ def allocate_beds(predicted_patients: int, available_beds: int):
 
 
 def explain_feature_importance(sequence_array: np.ndarray):
-    """
-    Simple perturbation-based explanation.
-    """
     base_result = predict_hybrid(sequence_array)
     base_pred = float(base_result["hybrid_prediction"])
 
@@ -228,6 +245,14 @@ def system_status():
             "lstm": HYBRID_LSTM_WEIGHT,
             "arimax": HYBRID_ARIMAX_WEIGHT,
         },
+    }
+
+
+@app.get("/message_templates")
+def get_message_templates():
+    return {
+        "admin_templates": ADMIN_MESSAGE_TEMPLATES,
+        "staff_quick_replies": STAFF_QUICK_REPLIES,
     }
 
 
@@ -317,3 +342,31 @@ def get_users(db: Session = Depends(get_db)):
         }
         for u in users
     ]
+
+
+@app.get("/patient_flow/latest")
+def get_latest_patient_flow(db: Session = Depends(get_db)):
+    rows = (
+        db.query(PatientFlow)
+        .order_by(PatientFlow.id.desc())
+        .limit(24)
+        .all()
+    )
+
+    if len(rows) < 24:
+        raise HTTPException(status_code=404, detail="Not enough patient flow rows found")
+
+    rows = list(reversed(rows))
+
+    sequence = []
+    for r in rows:
+        sequence.append([
+            r.patients,
+            r.day_of_week,
+            r.month,
+            r.is_weekend,
+            r.holiday,
+            r.weather,
+        ])
+
+    return {"sequence": sequence}
