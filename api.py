@@ -112,7 +112,10 @@ def predict_hybrid(sequence_array: np.ndarray):
     lstm_pred = predict_lstm(sequence_array)
     arimax_pred = predict_arimax(sequence_array)
 
-    hybrid_pred = (HYBRID_LSTM_WEIGHT * lstm_pred) + (HYBRID_ARIMAX_WEIGHT * arimax_pred)
+    LSTM_WEIGHT = 0.65
+    ARIMAX_WEIGHT = 0.35
+
+    hybrid_prediction = (LSTM_WEIGHT * lstm_pred) + (ARIMAX_WEIGHT * arimax_pred)
 
     return {
         "lstm_prediction": lstm_pred,
