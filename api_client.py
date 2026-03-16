@@ -164,7 +164,6 @@ def send_message_api(
 
 def send_quick_reply_api(message_id, reply_text, replied_by):
     url = f"{API_BASE_URL}/messages/reply"
-
     payload = {
         "message_id": message_id,
         "reply_text": reply_text,
@@ -178,28 +177,3 @@ def send_quick_reply_api(message_id, reply_text, replied_by):
     except requests.exceptions.RequestException as e:
         print("Quick reply API error:", e)
         return None
-
-
-def generate_recommendations(department_data):
-    recommendations = []
-
-    for _, dept in department_data.iterrows():
-        if dept["bed_shortage"] > 0:
-            recommendations.append(
-                f"Allocate additional beds to {dept['department']} "
-                f"(shortage = {int(dept['bed_shortage'])})."
-            )
-
-        if dept["doctor_shortage"] > 0:
-            recommendations.append(
-                f"Assign backup doctors to {dept['department']} "
-                f"(shortage = {int(dept['doctor_shortage'])})."
-            )
-
-        if dept["nurse_shortage"] > 0:
-            recommendations.append(
-                f"Allocate additional nurses to {dept['department']} "
-                f"(shortage = {int(dept['nurse_shortage'])})."
-            )
-
-    return recommendations

@@ -558,7 +558,7 @@ elif role == "doctor":
         st.markdown("---")
         show_staff_message_center(
             user_name=name,
-            user_role=role,
+            role=role,
             department=department
         )
         st.markdown("---")
@@ -604,7 +604,7 @@ elif role == "nurse":
         st.markdown("---")
         show_staff_message_center(
             user_name=name,
-            user_role=role,
+            role=role,
             department=department
         )
         st.markdown("---")

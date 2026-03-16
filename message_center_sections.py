@@ -7,7 +7,6 @@ from api_client import (
     send_quick_reply_api,
 )
 
-
 TARGET_ROLE_OPTIONS = ["doctor", "nurse", "all"]
 TARGET_DEPARTMENT_OPTIONS = [
     "All Departments",
@@ -33,7 +32,6 @@ def _priority_badge(priority: str):
 
 def _safe_templates_response():
     response = get_message_templates()
-
     if not response:
         return {"admin_templates": [], "staff_quick_replies": []}
 
@@ -45,7 +43,6 @@ def _safe_templates_response():
 
 def _safe_messages_response(role=None, department=None, limit=50):
     response = get_messages(role=role, department=department, limit=limit)
-
     if not response:
         return {"messages": [], "quick_replies": []}
 
@@ -98,9 +95,16 @@ def show_admin_message_center(sender_name: str, sender_role: str):
             title = template.get("title", "Untitled Template")
             message = template.get("message", "")
             category = template.get("category", "general")
+            template_target_role = template.get("target_role", "all")
+            template_target_department = template.get("target_department", "All Departments")
+            template_priority = template.get("priority", selected_priority)
 
             st.markdown(f"**{title}**")
-            st.caption(f"Category: {category}")
+            st.caption(
+                f"Category: {category} | "
+                f"Default Role: {template_target_role} | "
+                f"Default Department: {template_target_department}"
+            )
             st.write(message)
 
             if st.button(f"Send Template {idx + 1}", key=f"send_template_{idx}"):
@@ -112,7 +116,7 @@ def show_admin_message_center(sender_name: str, sender_role: str):
                     category=category,
                     title=title,
                     message=message,
-                    priority=selected_priority,
+                    priority=template_priority if selected_priority == "normal" else selected_priority,
                 )
 
                 if result and result.get("status") == "sent":
@@ -241,7 +245,7 @@ def show_staff_message_center(user_name: str, role: str, department: str):
                                 replied_by=user_name,
                             )
 
-                            if result and result.get("status") in ["updated", "success"]:
+                            if result and result.get("status") == "updated":
                                 st.success("Reply sent successfully.")
                                 st.rerun()
                             else:
@@ -262,7 +266,7 @@ def show_staff_message_center(user_name: str, role: str, department: str):
                         replied_by=user_name,
                     )
 
-                    if result and result.get("status") in ["updated", "success"]:
+                    if result and result.get("status") == "updated":
                         st.success("Custom reply sent successfully.")
                         st.rerun()
                     else:
