@@ -4,7 +4,87 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-from api_client import get_prediction, simulate, explain_prediction
+from api_client import get_prediction, simulate, explain_prediction, get_optimization
+
+
+def show_resource_optimization_panel(prediction):
+    st.markdown("## 🧩 Advanced Resource Optimization Center")
+
+    optimization = get_optimization(prediction)
+
+    if optimization is None:
+        st.warning("Optimization service unavailable.")
+        return
+
+    summary = optimization.get("summary", {})
+    allocations = optimization.get("department_allocations", [])
+    recommendations = optimization.get("recommendations", [])
+
+    if not allocations:
+        st.info("No optimization data available.")
+        return
+
+    alloc_df = pd.DataFrame(allocations)
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Beds Needed Total", int(summary.get("beds_needed_total", 0)))
+    c2.metric("Doctors Needed Total", int(summary.get("doctors_needed_total", 0)))
+    c3.metric("Nurses Needed Total", int(summary.get("nurses_needed_total", 0)))
+    c4.metric("Top Priority Dept", str(summary.get("top_priority_department", "-")))
+
+    st.write("### Department Allocation Table")
+    cols_to_show = [
+        "department",
+        "predicted_patients",
+        "beds_capacity",
+        "beds_required",
+        "bed_shortage",
+        "doctors_capacity",
+        "doctors_required",
+        "doctor_shortage",
+        "nurses_capacity",
+        "nurses_required",
+        "nurse_shortage",
+        "status",
+        "priority_score",
+    ]
+    existing_cols = [c for c in cols_to_show if c in alloc_df.columns]
+
+    st.dataframe(
+        alloc_df[existing_cols],
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    st.write("### Department Priority Ranking")
+    fig_priority = px.bar(
+        alloc_df,
+        x="department",
+        y="priority_score",
+        color="status",
+        title="Priority Score by Department"
+    )
+    fig_priority.update_layout(height=400)
+    st.plotly_chart(fig_priority, use_container_width=True)
+
+    st.write("### Bed / Doctor / Nurse Shortages")
+    shortage_df = alloc_df[
+        ["department", "bed_shortage", "doctor_shortage", "nurse_shortage"]
+    ].copy()
+
+    fig_shortage = px.bar(
+        shortage_df,
+        x="department",
+        y=["bed_shortage", "doctor_shortage", "nurse_shortage"],
+        barmode="group",
+        title="Shortage Overview by Department"
+    )
+    fig_shortage.update_layout(height=420)
+    st.plotly_chart(fig_shortage, use_container_width=True)
+
+    st.write("### Optimization Recommendations")
+    for rec in recommendations:
+        st.info(rec)
 
 
 def show_top_kpis(current_patients, prediction, peak, emergency_level, beds, doctors):

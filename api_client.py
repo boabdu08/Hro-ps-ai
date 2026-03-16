@@ -8,7 +8,7 @@ def get_prediction(sequence):
     payload = {"sequence": sequence.tolist()}
 
     try:
-        response = requests.post(url, json=payload, timeout=10)
+        response = requests.post(url, json=payload, timeout=15)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
@@ -27,7 +27,7 @@ def simulate(predicted_patients, beds_available, doctors_available, demand_incre
     }
 
     try:
-        response = requests.post(url, json=payload, timeout=10)
+        response = requests.post(url, json=payload, timeout=15)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
@@ -40,7 +40,7 @@ def explain_prediction(sequence):
     payload = {"sequence": sequence.tolist()}
 
     try:
-        response = requests.post(url, json=payload, timeout=10)
+        response = requests.post(url, json=payload, timeout=15)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
@@ -86,4 +86,94 @@ def get_latest_sequence():
         return data.get("sequence")
     except requests.exceptions.RequestException as e:
         print("Latest sequence API error:", e)
+        return None
+
+
+def get_optimization(predicted_patients):
+    url = f"{API_BASE_URL}/optimize_resources/{predicted_patients}"
+
+    try:
+        response = requests.get(url, timeout=15)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print("Optimization API error:", e)
+        return None
+
+
+def get_message_templates():
+    url = f"{API_BASE_URL}/message_templates"
+
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print("Message templates API error:", e)
+        return None
+
+
+def get_messages(role=None, department=None, limit=50):
+    url = f"{API_BASE_URL}/messages"
+    params = {"limit": limit}
+
+    if role:
+        params["role"] = role
+    if department:
+        params["department"] = department
+
+    try:
+        response = requests.get(url, params=params, timeout=15)
+        response.raise_for_status()
+        return response.json().get("messages", [])
+    except requests.exceptions.RequestException as e:
+        print("Get messages API error:", e)
+        return []
+
+
+def send_message_api(
+    sender_role,
+    sender_name,
+    title,
+    message,
+    target_role="all",
+    target_department="All Departments",
+    priority="normal",
+    category="general",
+):
+    url = f"{API_BASE_URL}/messages/send"
+    payload = {
+        "sender_role": sender_role,
+        "sender_name": sender_name,
+        "target_role": target_role,
+        "target_department": target_department,
+        "priority": priority,
+        "category": category,
+        "title": title,
+        "message": message,
+    }
+
+    try:
+        response = requests.post(url, json=payload, timeout=15)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print("Send message API error:", e)
+        return None
+
+
+def reply_to_message_api(message_id, reply, reply_by):
+    url = f"{API_BASE_URL}/messages/reply"
+    payload = {
+        "message_id": message_id,
+        "reply": reply,
+        "reply_by": reply_by,
+    }
+
+    try:
+        response = requests.post(url, json=payload, timeout=15)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print("Reply message API error:", e)
         return None

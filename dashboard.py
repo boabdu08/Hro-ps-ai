@@ -16,6 +16,7 @@ from dashboard_sections import (
     show_heatmap,
     show_explainability_panel,
     show_hybrid_model_panel,
+    show_resource_optimization_panel,
 )
 
 from staff_sections import (
@@ -29,9 +30,15 @@ from staff_sections import (
 from approval_sections import show_admin_approval_panel
 
 from notification_sections import (
+    show_alert_center,
     show_staff_decision_feed,
     show_admin_decision_history,
     show_department_notice_board,
+)
+
+from message_center_sections import (
+    show_admin_message_center,
+    show_staff_message_center,
 )
 
 from audit_sections import (
@@ -118,7 +125,7 @@ st.markdown(
         <h1>🏥 Hospital AI Command Center</h1>
         <p style="margin:0; font-size:1rem;">
             AI-powered forecasting, hospital capacity monitoring, digital twin simulation,
-            operational planning, approvals, execution, and staff communication.
+            operational planning, approvals, execution, staff communication, and alert management.
         </p>
     </div>
     """,
@@ -147,7 +154,7 @@ st.info(
 )
 
 # =========================
-# LOAD HISTORICAL DATA (temporary fallback for charts)
+# LOAD HISTORICAL DATA (fallback for charts)
 # =========================
 try:
     df = pd.read_csv("clean_data.csv")
@@ -398,6 +405,9 @@ if role == "admin":
         tab12,
         tab13,
         tab14,
+        tab15,
+        tab16,
+        tab17,
     ) = st.tabs([
         "📊 Overview",
         "📈 Forecast",
@@ -405,12 +415,15 @@ if role == "admin":
         "📏 Evaluation",
         "🧠 Simulation",
         "⚙️ Operations",
+        "🧩 Optimization",
         "🏥 Departments",
         "🔬 Explainability",
         "🕒 Shifts",
         "🏥 OR Bookings",
         "📅 Appointments",
         "✅ Approvals",
+        "🚨 Alerts",
+        "💬 Message Center",
         "📢 Decision Feed",
         "🧾 Audit",
     ])
@@ -443,28 +456,32 @@ if role == "admin":
         show_operations_panel(prediction)
 
     with tab7:
+        st.subheader("Advanced Resource Optimization")
+        show_resource_optimization_panel(prediction)
+
+    with tab8:
         st.subheader("Department Capacity & Status")
         show_hospital_map_panel(prediction)
         if selected_department != "All Departments":
             st.info(f"Focused department view selected: {selected_department}")
 
-    with tab8:
+    with tab9:
         st.subheader("AI Explainability for Doctors")
         show_explainability_panel(last_sequence)
 
-    with tab9:
+    with tab10:
         st.subheader("Shift Management")
         show_all_shifts()
 
-    with tab10:
+    with tab11:
         st.subheader("Operating Room Booking Management")
         show_or_bookings(role="admin")
 
-    with tab11:
+    with tab12:
         st.subheader("Appointments Overview")
         show_admin_appointments_overview()
 
-    with tab12:
+    with tab13:
         st.subheader("Manager Approval Workflow")
         show_admin_approval_panel(
             peak=peak,
@@ -474,13 +491,21 @@ if role == "admin":
             approver_name=name,
         )
 
-    with tab13:
+    with tab14:
+        st.subheader("Operational Alert Center")
+        show_alert_center(role=role, department=department)
+
+    with tab15:
+        st.subheader("Admin Messaging Hub")
+        show_admin_message_center(sender_name=name, sender_role=role)
+
+    with tab16:
         st.subheader("Approved Decisions & History")
         show_staff_decision_feed(role=role, department=department)
         st.markdown("---")
         show_admin_decision_history()
 
-    with tab14:
+    with tab17:
         st.subheader("Decision Audit & Execution Trace")
         show_audit_summary()
         st.markdown("---")
@@ -529,6 +554,14 @@ elif role == "doctor":
 
     with tab6:
         st.subheader("Doctor Notification Feed")
+        show_alert_center(role=role, department=department)
+        st.markdown("---")
+        show_staff_message_center(
+            user_name=name,
+            user_role=role,
+            department=department
+        )
+        st.markdown("---")
         show_staff_decision_feed(role=role, department=department)
         st.markdown("---")
         show_department_notice_board(department)
@@ -567,6 +600,14 @@ elif role == "nurse":
 
     with tab5:
         st.subheader("Nursing Notification Feed")
+        show_alert_center(role=role, department=department)
+        st.markdown("---")
+        show_staff_message_center(
+            user_name=name,
+            user_role=role,
+            department=department
+        )
+        st.markdown("---")
         show_staff_decision_feed(role=role, department=department)
         st.markdown("---")
         show_department_notice_board(department)

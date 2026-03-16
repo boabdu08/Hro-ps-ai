@@ -2,6 +2,8 @@ import os
 import pandas as pd
 import streamlit as st
 
+from api_client import get_messages
+
 LOG_FILE = "recommendation_log.csv"
 
 EXPECTED_COLS = [
@@ -28,6 +30,63 @@ def load_decisions():
             df[col] = ""
 
     return df[EXPECTED_COLS].copy()
+
+
+def show_alert_center(role=None, department=None):
+    st.markdown("## 🚨 Alert Center")
+
+    messages = get_messages(role=role, department=department, limit=50)
+
+    if not messages:
+        st.info("No active alerts or messages.")
+        return
+
+    alert_messages = [
+        msg for msg in messages
+        if str(msg.get("priority", "")).lower() in ["critical", "high"]
+    ]
+
+    if not alert_messages:
+        st.success("No high-priority alerts at the moment.")
+        return
+
+    critical_count = sum(
+        1 for msg in alert_messages
+        if str(msg.get("priority", "")).lower() == "critical"
+    )
+    high_count = sum(
+        1 for msg in alert_messages
+        if str(msg.get("priority", "")).lower() == "high"
+    )
+
+    c1, c2 = st.columns(2)
+    c1.metric("Critical Alerts", critical_count)
+    c2.metric("High Alerts", high_count)
+
+    st.write("### Active Alerts")
+
+    for msg in alert_messages:
+        priority = str(msg.get("priority", "")).lower()
+        title = msg.get("title", "Untitled Alert")
+        message = msg.get("message", "")
+        sender = msg.get("sender_name", "-")
+        timestamp = msg.get("timestamp", "-")
+
+        if priority == "critical":
+            st.error(f"🚨 {title} — {message}")
+        else:
+            st.warning(f"⚠️ {title} — {message}")
+
+        st.caption(f"From: {sender} | Time: {timestamp}")
+
+        if str(msg.get("reply", "")).strip():
+            st.caption(
+                f"Reply: {msg.get('reply', '')} | "
+                f"By: {msg.get('reply_by', '-')} | "
+                f"At: {msg.get('reply_timestamp', '-')}"
+            )
+
+        st.markdown("---")
 
 
 def show_staff_decision_feed(role, department=None):
@@ -122,9 +181,7 @@ def show_department_notice_board(department):
 
     for _, row in filtered.iterrows():
         st.info(row["message"])
-
         if str(row.get("execution_note", "")).strip():
             st.caption(f"Execution Note: {row['execution_note']}")
-
         st.caption(f"Approved by: {row['approved_by']} | {row['timestamp']}")
         st.markdown("---")

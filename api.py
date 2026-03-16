@@ -1,8 +1,11 @@
-from typing import List
+from typing import List, Optional
 import json
+import os
+from datetime import datetime
 
 import joblib
 import numpy as np
+import pandas as pd
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -11,9 +14,67 @@ from tensorflow.keras.models import load_model
 from database import get_db
 from models import User, PatientFlow
 from schemas import LoginRequest
+from resource_optimizer import optimize_resources as advanced_optimize_resources
 
 app = FastAPI(title="Hospital AI API")
 
+MESSAGES_LOG_FILE = "messages_log.csv"
+
+MESSAGE_COLUMNS = [
+    "message_id",
+    "timestamp",
+    "sender_name",
+    "sender_role",
+    "target_role",
+    "target_department",
+    "message_type",
+    "title",
+    "message",
+    "priority",
+    "status",
+    "reply_text",
+    "replied_by",
+    "replied_at",
+]
+
+ADMIN_MESSAGE_TEMPLATES = [
+    {
+        "category": "emergency",
+        "title": "Emergency Surge Alert",
+        "message": "Emergency surge alert: all available staff should review current assignments and prepare for overflow response.",
+    },
+    {
+        "category": "coverage",
+        "title": "Doctor Coverage Request",
+        "message": "Urgent coverage needed: an additional doctor is required to cover the current shift immediately.",
+    },
+    {
+        "category": "coverage",
+        "title": "Nurse Coverage Request",
+        "message": "Urgent coverage needed: an additional nurse is required to support the active department.",
+    },
+    {
+        "category": "shift",
+        "title": "Shift Change Notice",
+        "message": "Shift update notice: please review your latest assignment and acknowledge the change.",
+    },
+    {
+        "category": "capacity",
+        "title": "Bed Shortage Warning",
+        "message": "Capacity warning: bed pressure is increasing. Review admissions and discharge flow immediately.",
+    },
+]
+
+STAFF_QUICK_REPLIES = [
+    "تم",
+    "تم التنفيذ",
+    "وصلت",
+    "جاري التنفيذ",
+    "نحتاج دعم دكاترة",
+    "نحتاج دعم تمريض",
+    "يوجد عجز",
+    "لا أستطيع التغطية الآن",
+]
 
 # ========================================
 # LOAD MODELS + ARTIFACTS
@@ -38,46 +99,6 @@ FEATURE_NAMES = [
     "weather",
 ]
 
-ADMIN_MESSAGE_TEMPLATES = [
-    {
-        "category": "emergency",
-        "title": "Emergency Surge Alert",
-        "message": "Emergency surge alert: all available staff should review current assignments and prepare for overflow response."
-    },
-    {
-        "category": "coverage",
-        "title": "Doctor Coverage Request",
-        "message": "Urgent coverage needed: an additional doctor is required to cover the current shift immediately."
-    },
-    {
-        "category": "coverage",
-        "title": "Nurse Coverage Request",
-        "message": "Urgent coverage needed: an additional nurse is required to support the active department."
-    },
-    {
-        "category": "shift",
-        "title": "Shift Change Notice",
-        "message": "Shift update notice: please review your latest assignment and acknowledge the change."
-    },
-    {
-        "category": "capacity",
-        "title": "Bed Shortage Warning",
-        "message": "Capacity warning: bed pressure is increasing. Review admissions and discharge flow immediately."
-    },
-]
-
-STAFF_QUICK_REPLIES = [
-    "تم",
-    "تم التنفيذ",
-    "وصل",
-    "جاري التنفيذ",
-    "نحتاج دعم دكاترة",
-    "نحتاج دعم تمريض",
-    "يوجد عجز",
-    "لا أستطيع التغطية الآن",
-]
-
-
 # ========================================
 # REQUEST MODELS
 # ========================================
@@ -96,8 +117,51 @@ class ExplainRequest(BaseModel):
     sequence: List[List[float]]
 
 
+class MessageSendRequest(BaseModel):
+    sender_name: str
+    sender_role: str
+    target_role: str
+    target_department: str
+    message_type: str
+    title: str
+    message: str
+    priority: str
+
+
+class MessageReplyRequest(BaseModel):
+    message_id: str
+    reply_text: str
+    replied_by: str
+
+
 # ========================================
-# HELPERS
+# MESSAGE HELPERS
+# ========================================
+def ensure_messages_file():
+    if not os.path.exists(MESSAGES_LOG_FILE):
+        pd.DataFrame(columns=MESSAGE_COLUMNS).to_csv(MESSAGES_LOG_FILE, index=False)
+
+
+def load_messages_df() -> pd.DataFrame:
+    ensure_messages_file()
+    df = pd.read_csv(MESSAGES_LOG_FILE)
+
+    for col in MESSAGE_COLUMNS:
+        if col not in df.columns:
+            df[col] = ""
+
+    return df[MESSAGE_COLUMNS].copy()
+
+
+def save_messages_df(df: pd.DataFrame):
+    for col in MESSAGE_COLUMNS:
+        if col not in df.columns:
+            df[col] = ""
+    df[MESSAGE_COLUMNS].to_csv(MESSAGES_LOG_FILE, index=False)
+
+
+# ========================================
+# FORECAST HELPERS
 # ========================================
 def validate_sequence_shape(arr: np.ndarray):
     return arr.shape == (24, 6)
@@ -118,7 +182,7 @@ def get_next_exog_from_sequence(sequence_array: np.ndarray):
     last_row = sequence_array[-1]
     exog = np.array(
         [[last_row[1], last_row[2], last_row[3], last_row[4], last_row[5]]],
-        dtype=float
+        dtype=float,
     )
     return exog
 
@@ -156,7 +220,7 @@ def predict_hybrid(sequence_array: np.ndarray):
     }
 
 
-def optimize_resources(predicted_patients: float):
+def summarize_resources(predicted_patients: float):
     beds_needed = int(np.ceil(predicted_patients * 1.1))
     doctors_needed = max(1, int(np.ceil(predicted_patients / 8)))
     nurses_needed = max(1, int(np.ceil(predicted_patients / 4)))
@@ -256,6 +320,97 @@ def get_message_templates():
     }
 
 
+@app.post("/messages/send")
+def send_message(payload: MessageSendRequest):
+    df = load_messages_df()
+
+    message_id = f"MSG-{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+
+    new_row = {
+        "message_id": message_id,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "sender_name": payload.sender_name,
+        "sender_role": payload.sender_role,
+        "target_role": payload.target_role,
+        "target_department": payload.target_department,
+        "message_type": payload.message_type,
+        "title": payload.title,
+        "message": payload.message,
+        "priority": payload.priority,
+        "status": "sent",
+        "reply_text": "",
+        "replied_by": "",
+        "replied_at": "",
+    }
+
+    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    save_messages_df(df)
+
+    return {
+        "status": "sent",
+        "message_id": message_id,
+    }
+
+
+@app.get("/messages")
+def get_messages(role: str, department: Optional[str] = None, limit: Optional[int] = None):
+    df = load_messages_df()
+
+    if df.empty:
+        return {
+            "messages": [],
+            "quick_replies": STAFF_QUICK_REPLIES,
+        }
+
+    role = str(role).strip().lower()
+
+    if role == "all":
+        filtered = df.copy()
+    else:
+        filtered = df[
+            (df["target_role"].astype(str).str.lower() == role) |
+            (df["target_role"].astype(str).str.lower() == "all")
+        ].copy()
+
+        if department:
+            filtered = filtered[
+                (filtered["target_department"].astype(str) == department) |
+                (filtered["target_department"].astype(str) == "All Departments")
+            ].copy()
+
+    filtered = filtered.sort_values(by="timestamp", ascending=False)
+
+    if limit is not None:
+        filtered = filtered.head(int(limit))
+
+    return {
+        "messages": filtered.to_dict(orient="records"),
+        "quick_replies": STAFF_QUICK_REPLIES,
+    }
+
+
+@app.post("/messages/reply")
+def reply_to_message(payload: MessageReplyRequest):
+    df = load_messages_df()
+
+    row_mask = df["message_id"].astype(str) == str(payload.message_id)
+
+    if not row_mask.any():
+        raise HTTPException(status_code=404, detail="Message not found")
+
+    df.loc[row_mask, "reply_text"] = payload.reply_text
+    df.loc[row_mask, "replied_by"] = payload.replied_by
+    df.loc[row_mask, "replied_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    df.loc[row_mask, "status"] = "replied"
+
+    save_messages_df(df)
+
+    return {
+        "status": "updated",
+        "message_id": payload.message_id,
+    }
+
+
 @app.post("/predict")
 def predict(data: PredictRequest):
     arr = np.array(data.sequence, dtype=float)
@@ -266,7 +421,8 @@ def predict(data: PredictRequest):
     pred_result = predict_hybrid(arr)
     hybrid_pred = float(pred_result["hybrid_prediction"])
 
-    resources = optimize_resources(hybrid_pred)
+    optimization_result = advanced_optimize_resources(hybrid_pred)
+    summary = optimization_result["summary"]
     emergency = predict_emergency_load(hybrid_pred)
 
     return {
@@ -279,7 +435,14 @@ def predict(data: PredictRequest):
             "arimax": pred_result["arimax_weight"],
         },
         "emergency_level": emergency,
-        "recommended_resources": resources,
+        "recommended_resources": {
+            "beds_needed": summary["beds_needed_total"],
+            "doctors_needed": summary["doctors_needed_total"],
+            "nurses_needed": summary["nurses_needed_total"],
+        },
+        "optimization_summary": summary,
+        "department_allocations": optimization_result["department_allocations"],
+        "optimization_recommendations": optimization_result["recommendations"],
     }
 
 
@@ -289,7 +452,7 @@ def simulate(data: SimulateRequest):
         1 + data.demand_increase_percent / 100
     )
 
-    resources = optimize_resources(simulated_patients)
+    resources = summarize_resources(simulated_patients)
     bed_result = allocate_beds(int(np.ceil(simulated_patients)), data.beds_available)
     emergency = predict_emergency_load(simulated_patients)
 
@@ -370,3 +533,8 @@ def get_latest_patient_flow(db: Session = Depends(get_db)):
         ])
 
     return {"sequence": sequence}
+
+
+@app.get("/optimize_resources/{predicted_patients}")
+def optimize_resources_endpoint(predicted_patients: float):
+    return advanced_optimize_resources(predicted_patients)
