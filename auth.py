@@ -1,23 +1,5 @@
-import pandas as pd
 import streamlit as st
-
-
-def load_users():
-    return pd.read_csv("users.csv")
-
-
-def authenticate_user(username, password):
-    users = load_users()
-
-    user = users[
-        (users["username"] == username) &
-        (users["password"].astype(str) == str(password))
-    ]
-
-    if len(user) == 1:
-        return user.iloc[0].to_dict()
-
-    return None
+from api_client import login_user_api
 
 
 def login_form():
@@ -26,10 +8,8 @@ def login_form():
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
 
-    login_clicked = st.button("Login")
-
-    if login_clicked:
-        user = authenticate_user(username, password)
+    if st.button("Login"):
+        user = login_user_api(username, password)
 
         if user:
             st.session_state["logged_in"] = True

@@ -1,0 +1,22 @@
+{
+  "sequence_length": 24,
+  "feature_columns": [
+    "patients",
+    "day_of_week",
+    "month",
+    "is_weekend",
+    "holiday",
+    "weather"
+  ],
+  "target_column": "patients",
+  "train_ratio": 0.7,
+  "val_ratio": 0.15,
+  "test_ratio": 0.15,
+  "total_rows_after_cleaning": 3000,
+  "total_sequences": 2976,
+  "train_sequences": 2083,
+  "val_sequences": 446,
+  "test_sequences": 447,
+  "train_end_sequence_index": 2083,
+  "val_end_sequence_index": 2529
+}

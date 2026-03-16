@@ -9,10 +9,10 @@ def get_prediction(sequence):
 
     try:
         response = requests.post(url, json=payload, timeout=10)
-        if response.status_code == 200:
-            return response.json()
-        return None
-    except requests.exceptions.RequestException:
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print("Prediction API error:", e)
         return None
 
 
@@ -23,15 +23,15 @@ def simulate(predicted_patients, beds_available, doctors_available, demand_incre
         "predicted_patients": float(predicted_patients),
         "beds_available": int(beds_available),
         "doctors_available": int(doctors_available),
-        "demand_increase_percent": float(demand_increase)
+        "demand_increase_percent": float(demand_increase),
     }
 
     try:
         response = requests.post(url, json=payload, timeout=10)
-        if response.status_code == 200:
-            return response.json()
-        return None
-    except requests.exceptions.RequestException:
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print("Simulation API error:", e)
         return None
 
 
@@ -41,10 +41,10 @@ def explain_prediction(sequence):
 
     try:
         response = requests.post(url, json=payload, timeout=10)
-        if response.status_code == 200:
-            return response.json()
-        return None
-    except requests.exceptions.RequestException:
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print("Explain API error:", e)
         return None
 
 
@@ -53,8 +53,24 @@ def get_system_status():
 
     try:
         response = requests.get(url, timeout=10)
-        if response.status_code == 200:
-            return response.json()
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print("Status API error:", e)
         return None
-    except requests.exceptions.RequestException:
+
+
+def login_user_api(username, password):
+    url = f"{API_BASE_URL}/auth/login"
+
+    try:
+        response = requests.post(
+            url,
+            json={"username": username, "password": password},
+            timeout=10,
+        )
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print("Login API error:", e)
         return None

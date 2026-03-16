@@ -1,0 +1,15 @@
+{
+  "hybrid_strategy": "validation_optimized_weighted_average",
+  "lstm_weight": 0.9500000000000001,
+  "arimax_weight": 0.04999999999999993,
+  "validation": {
+    "mae": 18.473294321838512,
+    "rmse": 21.126296443889668,
+    "mape": 45.26933443707003
+  },
+  "test": {
+    "mae": 17.146757125854492,
+    "rmse": 19.805376282401202,
+    "mape": 39.516073320507076
+  }
+}

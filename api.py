@@ -1,23 +1,34 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
 from typing import List
-import numpy as np
+import json
+
 import joblib
-from tensorflow.keras.models import load_model
+import numpy as np
 from fastapi import FastAPI, HTTPException, Depends
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from tensorflow.keras.models import load_model
 
 from database import get_db
-from models import User, PatientFlow, Appointment, ORBooking, StaffShift, RecommendationLog
+from models import User
 from schemas import LoginRequest
 
 app = FastAPI(title="Hospital AI API")
 
+
 # ========================================
-# LOAD MODELS
+# LOAD MODELS + ARTIFACTS
 # ========================================
 lstm_model = load_model("hospital_forecast_model.keras", compile=False)
 arimax_model = joblib.load("arimax_model.pkl")
+x_scaler = joblib.load("x_scaler.pkl")
+y_scaler = joblib.load("y_scaler.pkl")
+
+with open("hybrid_config.json", "r", encoding="utf-8") as f:
+    hybrid_config = json.load(f)
+
+HYBRID_LSTM_WEIGHT = float(hybrid_config.get("lstm_weight", 0.95))
+HYBRID_ARIMAX_WEIGHT = float(hybrid_config.get("arimax_weight", 0.05))
+
 
 FEATURE_NAMES = [
     "patients",
@@ -25,11 +36,8 @@ FEATURE_NAMES = [
     "month",
     "is_weekend",
     "holiday",
-    "weather"
+    "weather",
 ]
-
-HYBRID_LSTM_WEIGHT = 0.6
-HYBRID_ARIMAX_WEIGHT = 0.4
 
 
 # ========================================
@@ -53,62 +61,58 @@ class ExplainRequest(BaseModel):
 # ========================================
 # HELPERS
 # ========================================
-def optimize_resources(predicted_patients: float):
-    beds_needed = int(predicted_patients * 1.1)
-    doctors_needed = max(1, int(predicted_patients / 8))
-    nurses_needed = max(1, int(predicted_patients / 4))
-
-    return {
-        "beds_needed": beds_needed,
-        "doctors_needed": doctors_needed,
-        "nurses_needed": nurses_needed
-    }
-
-
-def predict_emergency_load(predicted_patients: float):
-    if predicted_patients < 80:
-        return "LOW"
-    elif predicted_patients < 120:
-        return "MEDIUM"
-    else:
-        return "HIGH"
-
-
-def allocate_beds(predicted_patients: int, available_beds: int):
-    if predicted_patients <= available_beds:
-        return {
-            "status": "OK",
-            "beds_used": predicted_patients,
-            "beds_remaining": available_beds - predicted_patients,
-            "shortage": 0
-        }
-    else:
-        shortage = predicted_patients - available_beds
-        return {
-            "status": "SHORTAGE",
-            "beds_used": available_beds,
-            "beds_remaining": 0,
-            "shortage": shortage
-        }
-
-
 def validate_sequence_shape(arr: np.ndarray):
     return arr.shape == (24, 6)
 
 
+def scale_sequence(sequence_array: np.ndarray):
+    """
+    Apply the same feature scaler used during training.
+    Input shape: (24, 6)
+    Output shape: (24, 6)
+    """
+    flat = sequence_array.reshape(-1, sequence_array.shape[-1])
+    scaled_flat = x_scaler.transform(flat)
+    return scaled_flat.reshape(sequence_array.shape).astype(np.float32)
+
+
+def inverse_scale_target(pred_scaled: float):
+    """
+    Convert scaled target prediction back to original patient-count scale.
+    """
+    value = np.array([[pred_scaled]], dtype=np.float32)
+    return float(y_scaler.inverse_transform(value)[0][0])
+
+
 def get_next_exog_from_sequence(sequence_array: np.ndarray):
+    """
+    ARIMAX expects exogenous values in original scale, not scaled.
+    We use the last row's non-target exogenous features.
+    """
     last_row = sequence_array[-1]
-    exog = np.array([[last_row[1], last_row[2], last_row[3], last_row[4], last_row[5]]], dtype=float)
+    exog = np.array(
+        [[last_row[1], last_row[2], last_row[3], last_row[4], last_row[5]]],
+        dtype=float
+    )
     return exog
 
 
 def predict_lstm(sequence_array: np.ndarray):
-    X = np.array([sequence_array], dtype=float)
-    pred = float(lstm_model.predict(X, verbose=0)[0][0])
-    return pred
+    """
+    sequence_array must be original-scale raw input shape (24, 6)
+    """
+    scaled_sequence = scale_sequence(sequence_array)
+    x_input = np.array([scaled_sequence], dtype=np.float32)
+
+    pred_scaled = float(lstm_model.predict(x_input, verbose=0)[0][0])
+    pred_original = inverse_scale_target(pred_scaled)
+    return pred_original
 
 
 def predict_arimax(sequence_array: np.ndarray):
+    """
+    ARIMAX trained on original-scale target and original-scale exogenous variables.
+    """
     next_exog = get_next_exog_from_sequence(sequence_array)
     forecast = arimax_model.forecast(steps=1, exog=next_exog)
     return float(forecast.iloc[0] if hasattr(forecast, "iloc") else forecast[0])
@@ -118,19 +122,62 @@ def predict_hybrid(sequence_array: np.ndarray):
     lstm_pred = predict_lstm(sequence_array)
     arimax_pred = predict_arimax(sequence_array)
 
-    LSTM_WEIGHT = 0.65
-    ARIMAX_WEIGHT = 0.35
-
-    hybrid_prediction = (LSTM_WEIGHT * lstm_pred) + (ARIMAX_WEIGHT * arimax_pred)
+    hybrid_prediction = (
+        HYBRID_LSTM_WEIGHT * lstm_pred
+        + HYBRID_ARIMAX_WEIGHT * arimax_pred
+    )
 
     return {
         "lstm_prediction": lstm_pred,
         "arimax_prediction": arimax_pred,
-        "hybrid_prediction": hybrid_pred
+        "hybrid_prediction": hybrid_prediction,
+        "lstm_weight": HYBRID_LSTM_WEIGHT,
+        "arimax_weight": HYBRID_ARIMAX_WEIGHT,
+    }
+
+
+def optimize_resources(predicted_patients: float):
+    beds_needed = int(np.ceil(predicted_patients * 1.1))
+    doctors_needed = max(1, int(np.ceil(predicted_patients / 8)))
+    nurses_needed = max(1, int(np.ceil(predicted_patients / 4)))
+
+    return {
+        "beds_needed": beds_needed,
+        "doctors_needed": doctors_needed,
+        "nurses_needed": nurses_needed,
+    }
+
+
+def predict_emergency_load(predicted_patients: float):
+    if predicted_patients < 80:
+        return "LOW"
+    elif predicted_patients < 120:
+        return "MEDIUM"
+    return "HIGH"
+
+
+def allocate_beds(predicted_patients: int, available_beds: int):
+    if predicted_patients <= available_beds:
+        return {
+            "status": "OK",
+            "beds_used": predicted_patients,
+            "beds_remaining": available_beds - predicted_patients,
+            "shortage": 0,
+        }
+
+    shortage = predicted_patients - available_beds
+    return {
+        "status": "SHORTAGE",
+        "beds_used": available_beds,
+        "beds_remaining": 0,
+        "shortage": shortage,
     }
 
 
 def explain_feature_importance(sequence_array: np.ndarray):
+    """
+    Simple perturbation-based explanation.
+    """
     base_result = predict_hybrid(sequence_array)
     base_pred = float(base_result["hybrid_prediction"])
 
@@ -152,14 +199,14 @@ def explain_feature_importance(sequence_array: np.ndarray):
 
         impacts.append({
             "feature": feature_name,
-            "impact": impact
+            "impact": impact,
         })
 
     impacts = sorted(impacts, key=lambda x: abs(x["impact"]), reverse=True)
 
     return {
         "base_prediction": base_pred,
-        "feature_impacts": impacts
+        "feature_impacts": impacts,
     }
 
 
@@ -176,7 +223,11 @@ def system_status():
     return {
         "system": "Hospital AI",
         "model": "Hybrid Forecast (LSTM + ARIMAX)",
-        "status": "running"
+        "status": "running",
+        "hybrid_weights": {
+            "lstm": HYBRID_LSTM_WEIGHT,
+            "arimax": HYBRID_ARIMAX_WEIGHT,
+        },
     }
 
 
@@ -185,7 +236,7 @@ def predict(data: PredictRequest):
     arr = np.array(data.sequence, dtype=float)
 
     if not validate_sequence_shape(arr):
-        return {"error": "Input must be shape (24, 6)"}
+        raise HTTPException(status_code=400, detail="Input must be shape (24, 6)")
 
     pred_result = predict_hybrid(arr)
     hybrid_pred = float(pred_result["hybrid_prediction"])
@@ -198,17 +249,23 @@ def predict(data: PredictRequest):
         "lstm_prediction": pred_result["lstm_prediction"],
         "arimax_prediction": pred_result["arimax_prediction"],
         "hybrid_prediction": hybrid_pred,
+        "hybrid_weights": {
+            "lstm": pred_result["lstm_weight"],
+            "arimax": pred_result["arimax_weight"],
+        },
         "emergency_level": emergency,
-        "recommended_resources": resources
+        "recommended_resources": resources,
     }
 
 
 @app.post("/simulate")
 def simulate(data: SimulateRequest):
-    simulated_patients = data.predicted_patients * (1 + data.demand_increase_percent / 100)
+    simulated_patients = data.predicted_patients * (
+        1 + data.demand_increase_percent / 100
+    )
 
     resources = optimize_resources(simulated_patients)
-    bed_result = allocate_beds(int(simulated_patients), data.beds_available)
+    bed_result = allocate_beds(int(np.ceil(simulated_patients)), data.beds_available)
     emergency = predict_emergency_load(simulated_patients)
 
     doctor_shortage = max(0, resources["doctors_needed"] - data.doctors_available)
@@ -218,7 +275,7 @@ def simulate(data: SimulateRequest):
         "emergency_level": emergency,
         "bed_allocation": bed_result,
         "recommended_resources": resources,
-        "doctor_shortage": doctor_shortage
+        "doctor_shortage": doctor_shortage,
     }
 
 
@@ -227,37 +284,36 @@ def explain(data: ExplainRequest):
     arr = np.array(data.sequence, dtype=float)
 
     if not validate_sequence_shape(arr):
-        return {"error": "Input must be shape (24, 6)"}
+        raise HTTPException(status_code=400, detail="Input must be shape (24, 6)")
 
-    result = explain_feature_importance(arr)
-    return result
+    return explain_feature_importance(arr)
+
 
 @app.post("/auth/login")
 def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == payload.username).first()
 
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid username or password")
-
-    if user.password != payload.password:
+    if not user or user.password != payload.password:
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
     return {
         "username": user.username,
         "name": user.name,
         "role": user.role,
-        "department": user.department
+        "department": user.department,
     }
+
 
 @app.get("/users")
 def get_users(db: Session = Depends(get_db)):
     users = db.query(User).all()
+
     return [
         {
             "username": u.username,
             "name": u.name,
             "role": u.role,
-            "department": u.department
+            "department": u.department,
         }
         for u in users
     ]
