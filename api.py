@@ -2,6 +2,7 @@ from typing import List, Optional
 import json
 import os
 from datetime import datetime
+import traceback
 
 import joblib
 import numpy as np
@@ -90,11 +91,7 @@ def load_feature_columns() -> List[str]:
 
     df = pd.read_csv(ENGINEERED_FILE)
 
-    exclude_cols = {
-        "datetime",
-        "date",
-        "timestamp",
-    }
+    exclude_cols = {"datetime", "date", "timestamp"}
 
     numeric_cols = []
     for col in df.columns:
@@ -116,7 +113,6 @@ def load_feature_columns() -> List[str]:
 
 FEATURE_COLUMNS = load_feature_columns()
 FEATURE_COUNT = len(FEATURE_COLUMNS)
-
 FEATURE_NAMES = FEATURE_COLUMNS.copy()
 
 
@@ -256,8 +252,13 @@ def get_next_exog_from_sequence(sequence_array: np.ndarray):
         raise ValueError("Not enough features available for ARIMAX exogenous forecast.")
 
     last_row = sequence_array[-1]
-    exog = np.array([last_row[1:]], dtype=float)
-    return exog
+    exog_values = last_row[1:]
+
+    # مهم: نحافظ على أسماء الأعمدة لو ARIMAX اتدرّب بـ DataFrame
+    exog_cols = FEATURE_COLUMNS[1:]
+    exog_df = pd.DataFrame([exog_values], columns=exog_cols)
+
+    return exog_df
 
 
 def predict_lstm(sequence_array: np.ndarray):
@@ -382,6 +383,17 @@ def get_feature_config():
     }
 
 
+@app.get("/debug/predict_info")
+def debug_predict_info():
+    return {
+        "sequence_length": SEQUENCE_LENGTH,
+        "feature_count": FEATURE_COUNT,
+        "feature_columns": FEATURE_COLUMNS,
+        "x_scaler_n_features_in": int(getattr(x_scaler, "n_features_in_", -1)),
+        "arimax_exog_feature_count": max(0, FEATURE_COUNT - 1),
+    }
+
+
 @app.get("/message_templates")
 def get_message_templates():
     return {
@@ -479,40 +491,49 @@ def optimize_resources_endpoint(predicted_patients: float):
 
 @app.post("/predict")
 def predict(data: PredictRequest):
-    arr = np.array(data.sequence, dtype=float)
+    try:
+        arr = np.array(data.sequence, dtype=float)
 
-    if not validate_sequence_shape(arr):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Input must be shape ({SEQUENCE_LENGTH}, {FEATURE_COUNT})"
-        )
+        if not validate_sequence_shape(arr):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Input must be shape ({SEQUENCE_LENGTH}, {FEATURE_COUNT})"
+            )
 
-    pred_result = predict_hybrid(arr)
-    hybrid_pred = float(pred_result["hybrid_prediction"])
+        pred_result = predict_hybrid(arr)
+        hybrid_pred = float(pred_result["hybrid_prediction"])
 
-    optimization_result = optimize_resources(hybrid_pred)
-    summary = optimization_result["summary"]
-    emergency = predict_emergency_load(hybrid_pred)
+        optimization_result = optimize_resources(hybrid_pred)
+        summary = optimization_result["summary"]
+        emergency = predict_emergency_load(hybrid_pred)
 
-    return {
-        "predicted_patients_next_hour": hybrid_pred,
-        "lstm_prediction": pred_result["lstm_prediction"],
-        "arimax_prediction": pred_result["arimax_prediction"],
-        "hybrid_prediction": hybrid_pred,
-        "hybrid_weights": {
-            "lstm": pred_result["lstm_weight"],
-            "arimax": pred_result["arimax_weight"],
-        },
-        "emergency_level": emergency,
-        "recommended_resources": {
-            "beds_needed": summary["beds_needed_total"],
-            "doctors_needed": summary["doctors_needed_total"],
-            "nurses_needed": summary["nurses_needed_total"],
-        },
-        "optimization_summary": summary,
-        "department_allocations": optimization_result["department_allocations"],
-        "optimization_recommendations": optimization_result["recommendations"],
-    }
+        return {
+            "predicted_patients_next_hour": hybrid_pred,
+            "lstm_prediction": pred_result["lstm_prediction"],
+            "arimax_prediction": pred_result["arimax_prediction"],
+            "hybrid_prediction": hybrid_pred,
+            "hybrid_weights": {
+                "lstm": pred_result["lstm_weight"],
+                "arimax": pred_result["arimax_weight"],
+            },
+            "emergency_level": emergency,
+            "recommended_resources": {
+                "beds_needed": summary["beds_needed_total"],
+                "doctors_needed": summary["doctors_needed_total"],
+                "nurses_needed": summary["nurses_needed_total"],
+            },
+            "optimization_summary": summary,
+            "department_allocations": optimization_result["department_allocations"],
+            "optimization_recommendations": optimization_result["recommendations"],
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("\n====== /predict INTERNAL ERROR ======")
+        traceback.print_exc()
+        print("====================================\n")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/simulate")
