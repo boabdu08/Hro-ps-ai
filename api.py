@@ -60,44 +60,47 @@ HYBRID_LSTM_WEIGHT = float(hybrid_config.get("lstm_weight", 0.90))
 HYBRID_ARIMAX_WEIGHT = float(hybrid_config.get("arimax_weight", 0.10))
 
 
-# ========================================
-# FIXED FEATURE SET
-# IMPORTANT:
-# This MUST exactly match the feature order used in prepare_sequences_v2.py
-# and the scaler training. Do not auto-read from engineered_data.csv here.
-# ========================================
-def load_feature_columns() -> List[str]:
-    return [
-        "patients",
-        "day_of_week",
-        "month",
-        "is_weekend",
-        "holiday",
-        "weather",
-        "hour_sin",
-        "hour_cos",
-        "time_index",
-        "patients_lag_1",
-        "patients_lag_2",
-        "patients_lag_3",
-        "patients_lag_6",
-        "patients_lag_12",
-        "patients_lag_24",
-        "patients_roll_mean_3",
-        "patients_roll_std_3",
-        "patients_roll_mean_6",
-        "patients_roll_std_6",
-        "patients_roll_mean_12",
-        "patients_roll_std_12",
-        "patients_roll_mean_24",
-        "patients_roll_std_24",
-        "patients_diff_1",
-        "patients_diff_24",
-        "trend_feature",
-    ]
+FEATURE_COLUMNS = [
+    "patients",
+    "day_of_week",
+    "month",
+    "is_weekend",
+    "holiday",
+    "weather",
+    "hour",
+    "hour_sin",
+    "hour_cos",
+    "patients_lag_1",
+    "patients_lag_2",
+    "patients_lag_3",
+    "patients_lag_6",
+    "patients_lag_12",
+    "patients_lag_24",
+    "patients_roll_mean_3",
+    "patients_roll_std_3",
+    "patients_roll_mean_6",
+    "patients_roll_std_6",
+    "patients_roll_mean_12",
+    "patients_roll_std_12",
+    "patients_roll_mean_24",
+    "patients_roll_std_24",
+    "patients_diff_1",
+    "patients_diff_24",
+    "trend_feature",
+]
 
+ARIMAX_EXOG_COLUMNS = [
+    "day_of_week",
+    "month",
+    "is_weekend",
+    "holiday",
+    "weather",
+    "hour",
+    "hour_sin",
+    "hour_cos",
+    "trend_feature",
+]
 
-FEATURE_COLUMNS = load_feature_columns()
 FEATURE_COUNT = len(FEATURE_COLUMNS)
 FEATURE_NAMES = FEATURE_COLUMNS.copy()
 SCALER_EXPECTED_FEATURES = int(getattr(x_scaler, "n_features_in_", FEATURE_COUNT))
@@ -154,13 +157,10 @@ STAFF_QUICK_REPLIES = [
     "نحتاج دعم دكاترة",
     "نحتاج دعم تمريض",
     "يوجد عجز",
-    "لا أتطيع التغطية الآن",
+    "لا أستطيع التغطية الآن",
 ]
 
 
-# ========================================
-# REQUEST MODELS
-# ========================================
 class PredictRequest(BaseModel):
     sequence: List[List[float]]
 
@@ -193,9 +193,6 @@ class ReplyMessageRequest(BaseModel):
     reply_by: str
 
 
-# ========================================
-# HELPERS
-# ========================================
 def ensure_messages_file():
     if not os.path.exists(MESSAGES_FILE):
         pd.DataFrame(columns=MESSAGE_COLS).to_csv(MESSAGES_FILE, index=False)
@@ -241,15 +238,26 @@ def inverse_scale_target(pred_scaled: float):
     return float(y_scaler.inverse_transform(value)[0][0])
 
 
+def get_feature_index_map():
+    return {name: idx for idx, name in enumerate(FEATURE_COLUMNS)}
+
+
+FEATURE_INDEX = get_feature_index_map()
+
+
 def get_next_exog_from_sequence(sequence_array: np.ndarray):
-    # ARIMAX exogenous variables here are aligned with:
-    # day_of_week, month, is_weekend, holiday, weather
     last_row = sequence_array[-1]
     exog = np.array(
-        [[last_row[1], last_row[2], last_row[3], last_row[4], last_row[5]]],
+        [[last_row[FEATURE_INDEX[col]] for col in ARIMAX_EXOG_COLUMNS]],
         dtype=float,
     )
     return exog
+
+
+def sanitize_prediction(value: float) -> float:
+    if value is None or np.isnan(value) or np.isinf(value):
+        return 0.0
+    return max(0.0, float(value))
 
 
 def predict_lstm(sequence_array: np.ndarray):
@@ -258,13 +266,14 @@ def predict_lstm(sequence_array: np.ndarray):
 
     pred_scaled = float(lstm_model.predict(x_input, verbose=0)[0][0])
     pred_original = inverse_scale_target(pred_scaled)
-    return pred_original
+    return sanitize_prediction(pred_original)
 
 
 def predict_arimax(sequence_array: np.ndarray):
     next_exog = get_next_exog_from_sequence(sequence_array)
     forecast = arimax_model.forecast(steps=1, exog=next_exog)
-    return float(forecast.iloc[0] if hasattr(forecast, "iloc") else forecast[0])
+    pred = float(forecast.iloc[0] if hasattr(forecast, "iloc") else forecast[0])
+    return sanitize_prediction(pred)
 
 
 def predict_hybrid(sequence_array: np.ndarray):
@@ -276,6 +285,8 @@ def predict_hybrid(sequence_array: np.ndarray):
         + HYBRID_ARIMAX_WEIGHT * arimax_pred
     )
 
+    hybrid_prediction = sanitize_prediction(hybrid_prediction)
+
     return {
         "lstm_prediction": lstm_pred,
         "arimax_prediction": arimax_pred,
@@ -286,6 +297,8 @@ def predict_hybrid(sequence_array: np.ndarray):
 
 
 def predict_emergency_load(predicted_patients: float):
+    predicted_patients = sanitize_prediction(predicted_patients)
+
     if predicted_patients < 80:
         return "LOW"
     if predicted_patients < 120:
@@ -294,6 +307,9 @@ def predict_emergency_load(predicted_patients: float):
 
 
 def allocate_beds(predicted_patients: int, available_beds: int):
+    predicted_patients = max(0, int(predicted_patients))
+    available_beds = max(0, int(available_beds))
+
     if predicted_patients <= available_beds:
         return {
             "status": "OK",
@@ -322,7 +338,7 @@ def explain_feature_importance(sequence_array: np.ndarray):
 
         if feature_name == "patients":
             modified[-1, i] = modified[-1, i] * 1.10
-        elif feature_name in ["day_of_week", "month", "weather"]:
+        elif feature_name in ["day_of_week", "month", "weather", "hour", "trend_feature"]:
             modified[-1, i] = modified[-1, i] + 1
         elif feature_name in ["is_weekend", "holiday"]:
             modified[-1, i] = 1 - modified[-1, i]
@@ -346,9 +362,58 @@ def explain_feature_importance(sequence_array: np.ndarray):
     }
 
 
-# ========================================
-# ROUTES
-# ========================================
+def build_engineered_sequence_from_patient_flow(rows: List[PatientFlow]) -> List[List[float]]:
+    base_df = pd.DataFrame([
+        {
+            "patients": float(r.patients),
+            "day_of_week": float(r.day_of_week),
+            "month": float(r.month),
+            "is_weekend": float(r.is_weekend),
+            "holiday": float(r.holiday),
+            "weather": float(r.weather),
+        }
+        for r in rows
+    ])
+
+    base_df = base_df.reset_index(drop=True)
+    base_df["hour"] = base_df.index % 24
+    base_df["hour_sin"] = np.sin(2 * np.pi * base_df["hour"] / 24.0)
+    base_df["hour_cos"] = np.cos(2 * np.pi * base_df["hour"] / 24.0)
+
+    patients = base_df["patients"]
+
+    base_df["patients_lag_1"] = patients.shift(1)
+    base_df["patients_lag_2"] = patients.shift(2)
+    base_df["patients_lag_3"] = patients.shift(3)
+    base_df["patients_lag_6"] = patients.shift(6)
+    base_df["patients_lag_12"] = patients.shift(12)
+    base_df["patients_lag_24"] = patients.shift(24)
+
+    base_df["patients_roll_mean_3"] = patients.rolling(3).mean()
+    base_df["patients_roll_std_3"] = patients.rolling(3).std()
+    base_df["patients_roll_mean_6"] = patients.rolling(6).mean()
+    base_df["patients_roll_std_6"] = patients.rolling(6).std()
+    base_df["patients_roll_mean_12"] = patients.rolling(12).mean()
+    base_df["patients_roll_std_12"] = patients.rolling(12).std()
+    base_df["patients_roll_mean_24"] = patients.rolling(24).mean()
+    base_df["patients_roll_std_24"] = patients.rolling(24).std()
+
+    base_df["patients_diff_1"] = patients.diff(1)
+    base_df["patients_diff_24"] = patients.diff(24)
+    base_df["trend_feature"] = np.arange(len(base_df), dtype=float)
+
+    base_df = base_df.bfill().ffill().fillna(0.0)
+
+    sequence_df = base_df[FEATURE_COLUMNS].tail(SEQUENCE_LENGTH).copy()
+
+    if len(sequence_df) != SEQUENCE_LENGTH:
+        raise ValueError(
+            f"Could not build latest sequence. Need {SEQUENCE_LENGTH} rows, got {len(sequence_df)}."
+        )
+
+    return sequence_df.astype(float).values.tolist()
+
+
 @app.get("/")
 def home():
     return {"message": "Hospital AI API is running"}
@@ -368,12 +433,14 @@ def system_status():
         "sequence_length": SEQUENCE_LENGTH,
     }
 
+
 @app.get("/feature_config")
 def get_feature_config():
     return {
         "feature_count": FEATURE_COUNT,
         "sequence_length": SEQUENCE_LENGTH,
         "feature_columns": FEATURE_COLUMNS,
+        "arimax_exog_columns": ARIMAX_EXOG_COLUMNS,
     }
 
 
@@ -383,6 +450,7 @@ def debug_predict_info():
         "feature_count": FEATURE_COUNT,
         "sequence_length": SEQUENCE_LENGTH,
         "feature_columns": FEATURE_COLUMNS,
+        "arimax_exog_columns": ARIMAX_EXOG_COLUMNS,
         "scaler_expected_features": SCALER_EXPECTED_FEATURES,
     }
 
@@ -483,6 +551,7 @@ def reply_to_message(payload: ReplyMessageRequest):
 
 @app.get("/optimize_resources/{predicted_patients}")
 def optimize_resources_endpoint(predicted_patients: float):
+    predicted_patients = sanitize_prediction(predicted_patients)
     return optimize_resources(predicted_patients)
 
 
@@ -498,7 +567,7 @@ def predict(data: PredictRequest):
             )
 
         pred_result = predict_hybrid(arr)
-        hybrid_pred = float(pred_result["hybrid_prediction"])
+        hybrid_pred = sanitize_prediction(pred_result["hybrid_prediction"])
 
         optimization_result = optimize_resources(hybrid_pred)
         summary = optimization_result["summary"]
@@ -506,8 +575,8 @@ def predict(data: PredictRequest):
 
         return {
             "predicted_patients_next_hour": hybrid_pred,
-            "lstm_prediction": pred_result["lstm_prediction"],
-            "arimax_prediction": pred_result["arimax_prediction"],
+            "lstm_prediction": sanitize_prediction(pred_result["lstm_prediction"]),
+            "arimax_prediction": sanitize_prediction(pred_result["arimax_prediction"]),
             "hybrid_prediction": hybrid_pred,
             "hybrid_weights": {
                 "lstm": pred_result["lstm_weight"],
@@ -515,9 +584,9 @@ def predict(data: PredictRequest):
             },
             "emergency_level": emergency,
             "recommended_resources": {
-                "beds_needed": summary["beds_needed_total"],
-                "doctors_needed": summary["doctors_needed_total"],
-                "nurses_needed": summary["nurses_needed_total"],
+                "beds_needed": max(0, int(summary["beds_needed_total"])),
+                "doctors_needed": max(0, int(summary["doctors_needed_total"])),
+                "nurses_needed": max(0, int(summary["nurses_needed_total"])),
             },
             "optimization_summary": summary,
             "department_allocations": optimization_result["department_allocations"],
@@ -536,8 +605,8 @@ def predict(data: PredictRequest):
 
 @app.post("/simulate")
 def simulate(data: SimulateRequest):
-    simulated_patients = data.predicted_patients * (
-        1 + data.demand_increase_percent / 100
+    simulated_patients = sanitize_prediction(
+        data.predicted_patients * (1 + data.demand_increase_percent / 100)
     )
 
     optimization_result = optimize_resources(simulated_patients)
@@ -559,9 +628,9 @@ def simulate(data: SimulateRequest):
         "emergency_level": emergency,
         "bed_allocation": bed_result,
         "recommended_resources": {
-            "beds_needed": summary["beds_needed_total"],
-            "doctors_needed": summary["doctors_needed_total"],
-            "nurses_needed": summary["nurses_needed_total"],
+            "beds_needed": max(0, int(summary["beds_needed_total"])),
+            "doctors_needed": max(0, int(summary["doctors_needed_total"])),
+            "nurses_needed": max(0, int(summary["nurses_needed_total"])),
         },
         "optimization_summary": summary,
         "department_allocations": optimization_result["department_allocations"],
@@ -629,52 +698,5 @@ def get_latest_patient_flow(db: Session = Depends(get_db)):
         )
 
     rows = list(reversed(rows))
-
-    sequence = []
-    for idx, r in enumerate(rows):
-        patients = float(r.patients)
-        day_of_week = float(r.day_of_week)
-        month = float(r.month)
-        is_weekend = float(r.is_weekend)
-        holiday = float(r.holiday)
-        weather = float(r.weather)
-
-        hour_proxy = float(idx % 24)
-        hour_sin = float(np.sin(2 * np.pi * hour_proxy / 24.0))
-        hour_cos = float(np.cos(2 * np.pi * hour_proxy / 24.0))
-        time_index = float(idx)
-
-        # Temporary consistent defaults for engineered features
-        # so API and dashboard can run without feature mismatch.
-        row = [
-            patients,          # patients
-            day_of_week,       # day_of_week
-            month,             # month
-            is_weekend,        # is_weekend
-            holiday,           # holiday
-            weather,           # weather
-            hour_sin,          # hour_sin
-            hour_cos,          # hour_cos
-            time_index,        # time_index
-            patients,          # patients_lag_1
-            patients,          # patients_lag_2
-            patients,          # patients_lag_3
-            patients,          # patients_lag_6
-            patients,          # patients_lag_12
-            patients,          # patients_lag_24
-            patients,          # patients_roll_mean_3
-            0.0,               # patients_roll_std_3
-            patients,          # patients_roll_mean_6
-            0.0,               # patients_roll_std_6
-            patients,          # patients_roll_mean_12
-            0.0,               # patients_roll_std_12
-            patients,          # patients_roll_mean_24
-            0.0,               # patients_roll_std_24
-            0.0,               # patients_diff_1
-            0.0,               # patients_diff_24
-            float(idx),        # trend_feature
-        ]
-
-        sequence.append(row)
-
+    sequence = build_engineered_sequence_from_patient_flow(rows)
     return {"sequence": sequence}
