@@ -141,3 +141,15 @@ def send_quick_reply_api(message_id, reply_text, replied_by):
         reply=reply_text,
         reply_by=replied_by,
     )
+
+def evaluate_model(actual, lstm, arimax, hybrid):
+    response = requests.post(
+        f"{BASE_URL}/evaluate",
+        json={
+            "actual": actual,
+            "lstm": lstm,
+            "arimax": arimax,
+            "hybrid": hybrid
+        }
+    )
+    return response.json()

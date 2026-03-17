@@ -2,19 +2,33 @@ from typing import List, Optional
 import json
 import os
 from datetime import datetime
-
+from forecast_runtime import hybrid_predict
 import joblib
 import numpy as np
 import pandas as pd
+import logging
 from fastapi import FastAPI, HTTPException, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from tensorflow.keras.models import load_model
-
+from evaluation_service import compare_models
 from database import get_db, Base, engine
 from models import User, PatientFlow, MessageLog
 from resource_optimizer import optimize_resources
 from schemas import LoginRequest
+from fastapi import UploadFile, File
+from etl_pipeline import (
+    ingest_patient_flow,
+    ingest_appointments,
+    ingest_or
+)
+from auth import verify_password, create_token
+from database import SessionLocal
+from models import User
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPBearer
+from auth import decode_token
+
 
 Base.metadata.create_all(bind=engine)
 
@@ -790,3 +804,121 @@ def explain(payload: ExplainRequest):
         )
 
     return explain_feature_importance(sequence_array)
+
+
+
+
+@app.post("/predict")
+def predict(data: dict):
+    sequence = data["sequence"]
+
+    result = hybrid_predict(sequence)
+
+    return {
+        "lstm_prediction": result["lstm"],
+        "arimax_prediction": result["arimax"],
+        "hybrid_prediction": result["hybrid"]
+    }
+
+
+
+
+
+@app.post("/evaluate")
+def evaluate(data: dict):
+    actual = data["actual"]
+    lstm = data["lstm"]
+    arimax = data["arimax"]
+    hybrid = data["hybrid"]
+
+    return compare_models(actual, lstm, arimax, hybrid)
+
+
+
+
+@app.post("/upload/patient_flow")
+def upload_patient_flow(file: UploadFile = File(...)):
+    ingest_patient_flow(file.file)
+    return {"status": "patient flow uploaded"}
+
+
+@app.post("/upload/appointments")
+def upload_appointments(file: UploadFile = File(...)):
+    ingest_appointments(file.file)
+    return {"status": "appointments uploaded"}
+
+
+@app.post("/upload/or")
+def upload_or(file: UploadFile = File(...)):
+    ingest_or(file.file)
+    return {"status": "or bookings uploaded"}
+
+@app.post("/retrain")
+def retrain():
+    import subprocess
+
+    subprocess.run(["python", "train_lstm_v2.py"])
+    subprocess.run(["python", "train_arimax_v2.py"])
+
+    return {"status": "models retrained"}
+
+
+
+@app.post("/auth/login")
+def login(data: dict):
+    db = SessionLocal()
+
+    user = db.query(User).filter(User.username == data["username"]).first()
+
+    if not user or not verify_password(data["password"], user.password):
+        return {"error": "invalid credentials"}
+
+    token = create_token({
+        "username": user.username,
+        "role": user.role
+    })
+
+    return {"token": token}
+
+
+security = HTTPBearer()
+
+
+def get_current_user(token=Depends(security)):
+    try:
+        payload = decode_token(token.credentials)
+        return payload
+    except:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+@app.get("/secure-data")
+def secure(user=Depends(get_current_user)):
+    return {"user": user}
+
+def require_role(role):
+    def wrapper(user=Depends(get_current_user)):
+        if user["role"] != role:
+            raise HTTPException(status_code=403, detail="Forbidden")
+        return user
+    return wrapper
+
+@app.get("/admin-only")
+def admin_route(user=Depends(require_role("admin"))):
+    return {"msg": "admin access"}
+
+
+
+logging.basicConfig(level=logging.INFO)
+
+@app.middleware("http")
+async def log_requests(request, call_next):
+    logging.info(f"{request.method} {request.url}")
+
+    response = await call_next(request)
+
+    return response
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}

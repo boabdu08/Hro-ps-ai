@@ -284,3 +284,10 @@ def show_staff_message_center(user_name: str, role: str, department: str):
 
         if idx < len(messages) - 1:
             st.markdown("---")
+
+if message["priority"] == "critical":
+    st.error(message["title"])
+elif message["priority"] == "high":
+    st.warning(message["title"])
+else:
+    st.info(message["title"])

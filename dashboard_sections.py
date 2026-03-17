@@ -5,9 +5,18 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-from api_client import get_prediction, simulate, explain_prediction, get_optimization
+from api_client import evaluate_model
+from api_client import get_prediction, simulate, explain_prediction, get_optimization, get_latest_sequence, get_feature_config, login_user_api, get_message_templates, get_messages, send_message_api, send_quick_reply_api, get_system_status, evaluate_model, compare_models
 from forecast_runtime import generate_multistep_forecast
 from evaluation_service import build_metrics_dataframe, build_detailed_predictions_dataframe
+
+def show_kpi_cards(data):
+    col1, col2, col3, col4 = st.columns(4)
+
+    col1.metric("Total Patients", data.get("patients", 0))
+    col2.metric("Beds Needed", data.get("beds", 0))
+    col3.metric("Doctors Needed", data.get("doctors", 0))
+    col4.metric("Nurses Needed", data.get("nurses", 0))
 
 
 def show_resource_optimization_panel(prediction):
@@ -523,3 +532,49 @@ def show_forecast_evaluation_panel():
         st.dataframe(compare_df.tail(50), use_container_width=True, hide_index=True)
     else:
         st.warning("Detailed evaluation outputs are not available yet.")
+
+
+
+
+
+def show_evaluation_panel(actual, lstm, arimax, hybrid):
+    st.markdown("## 📊 Model Evaluation")
+
+    metrics = evaluate_model(actual, lstm, arimax, hybrid)
+
+    col1, col2, col3 = st.columns(3)
+
+    for i, model in enumerate(metrics):
+        col = [col1, col2, col3][i]
+        col.metric(f"{model} MAE", metrics[model]["MAE"])
+        col.metric(f"{model} RMSE", metrics[model]["RMSE"])
+        col.metric(f"{model} MAPE", metrics[model]["MAPE"])
+
+    # graph
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(y=actual, name="Actual"))
+    fig.add_trace(go.Scatter(y=lstm, name="LSTM"))
+    fig.add_trace(go.Scatter(y=arimax, name="ARIMAX"))
+    fig.add_trace(go.Scatter(y=hybrid, name="Hybrid"))
+
+    st.plotly_chart(fig, use_container_width=True)
+
+def dynamic_weight(lstm_error, arimax_error):
+    total = lstm_error + arimax_error
+    return arimax_error / total
+
+def show_optimization_v2(opt):
+    st.markdown("## 🧠 Advanced Optimization")
+    opt = optimize_resources(prediction)
+
+    show_optimization_v2(opt)
+    st.write("### 🔥 Pressure Score")
+    for d, p in opt["pressure"].items():
+        st.metric(d, round(p, 2))
+
+    st.write("### ⚙️ Actions")
+    for act in opt["actions"]:
+        st.warning(f"{act['type'].upper()} → {act['action']}")
+
+
