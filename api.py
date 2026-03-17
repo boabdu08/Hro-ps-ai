@@ -25,7 +25,6 @@ app = FastAPI(title="Hospital AI API")
 # ========================================
 MESSAGES_FILE = "messages_log.csv"
 ENGINEERED_FILE = "engineered_data.csv"
-FEATURE_METADATA_FILE = "feature_engineering_metadata.json"
 
 MESSAGE_COLS = [
     "message_id",
@@ -57,8 +56,8 @@ y_scaler = joblib.load("y_scaler.pkl")
 with open("hybrid_config.json", "r", encoding="utf-8") as f:
     hybrid_config = json.load(f)
 
-HYBRID_LSTM_WEIGHT = float(hybrid_config.get("lstm_weight", 0.95))
-HYBRID_ARIMAX_WEIGHT = float(hybrid_config.get("arimax_weight", 0.05))
+HYBRID_LSTM_WEIGHT = float(hybrid_config.get("lstm_weight", 0.9))
+HYBRID_ARIMAX_WEIGHT = float(hybrid_config.get("arimax_weight", 0.1))
 SEQUENCE_LENGTH = 24
 
 
@@ -66,49 +65,45 @@ SEQUENCE_LENGTH = 24
 # FEATURE CONFIG
 # ========================================
 def load_feature_columns() -> List[str]:
-    if os.path.exists(FEATURE_METADATA_FILE):
-        try:
-            with open(FEATURE_METADATA_FILE, "r", encoding="utf-8") as f:
-                meta = json.load(f)
+    """
+    المصدر الصحيح للـ feature columns هو x_scaler نفسه
+    لأنه اتدرّب على نفس الأعمدة والترتيب الصحيح.
+    """
+    if hasattr(x_scaler, "feature_names_in_"):
+        cols = list(x_scaler.feature_names_in_)
+        if len(cols) > 0:
+            return cols
 
-            for key in [
-                "feature_columns",
-                "model_features",
-                "input_features",
-                "sequence_features",
-                "features",
-            ]:
-                value = meta.get(key)
-                if isinstance(value, list) and len(value) > 0:
-                    return value
-        except Exception:
-            pass
+    # fallback فقط لو scaler محفوظ بدون أسماء
+    if os.path.exists(ENGINEERED_FILE):
+        df = pd.read_csv(ENGINEERED_FILE)
 
-    if not os.path.exists(ENGINEERED_FILE):
-        raise FileNotFoundError(
-            f"{ENGINEERED_FILE} not found and no valid {FEATURE_METADATA_FILE} found."
-        )
+        excluded = {
+            "datetime",
+            "date",
+            "timestamp",
+            "target",
+            "y",
+            "split",
+            "set",
+        }
 
-    df = pd.read_csv(ENGINEERED_FILE)
+        numeric_cols = []
+        for col in df.columns:
+            if col in excluded:
+                continue
 
-    exclude_cols = {"datetime", "date", "timestamp"}
+            series = pd.to_numeric(df[col], errors="coerce")
+            if series.notna().sum() > 0:
+                numeric_cols.append(col)
 
-    numeric_cols = []
-    for col in df.columns:
-        if col in exclude_cols:
-            continue
+        expected_n = int(getattr(x_scaler, "n_features_in_", 0))
+        if expected_n > 0:
+            if "patients" in numeric_cols:
+                numeric_cols = ["patients"] + [c for c in numeric_cols if c != "patients"]
+            return numeric_cols[:expected_n]
 
-        series = pd.to_numeric(df[col], errors="coerce")
-        if series.notna().sum() > 0:
-            numeric_cols.append(col)
-
-    if "patients" in numeric_cols:
-        numeric_cols = ["patients"] + [c for c in numeric_cols if c != "patients"]
-
-    if len(numeric_cols) == 0:
-        raise ValueError("No usable numeric feature columns found in engineered_data.csv")
-
-    return numeric_cols
+    raise ValueError("Could not determine exact feature columns used by scaler.")
 
 
 FEATURE_COLUMNS = load_feature_columns()
@@ -207,7 +202,7 @@ class ReplyMessageRequest(BaseModel):
 
 
 # ========================================
-# HELPERS
+# MESSAGE HELPERS
 # ========================================
 def ensure_messages_file():
     if not os.path.exists(MESSAGES_FILE):
@@ -232,6 +227,9 @@ def save_messages_df(df: pd.DataFrame):
     df[MESSAGE_COLS].to_csv(MESSAGES_FILE, index=False)
 
 
+# ========================================
+# MODEL HELPERS
+# ========================================
 def validate_sequence_shape(arr: np.ndarray):
     return arr.shape == (SEQUENCE_LENGTH, FEATURE_COUNT)
 
@@ -252,12 +250,10 @@ def get_next_exog_from_sequence(sequence_array: np.ndarray):
         raise ValueError("Not enough features available for ARIMAX exogenous forecast.")
 
     last_row = sequence_array[-1]
+    exog_cols = FEATURE_COLUMNS[1:]
     exog_values = last_row[1:]
 
-    # مهم: نحافظ على أسماء الأعمدة لو ARIMAX اتدرّب بـ DataFrame
-    exog_cols = FEATURE_COLUMNS[1:]
     exog_df = pd.DataFrame([exog_values], columns=exog_cols)
-
     return exog_df
 
 
@@ -629,10 +625,12 @@ def get_latest_patient_flow():
             detail=f"Missing feature columns in engineered data: {missing}"
         )
 
+    df = df[FEATURE_COLUMNS].copy()
+
     for col in FEATURE_COLUMNS:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    df = df.dropna(subset=FEATURE_COLUMNS).reset_index(drop=True)
+    df = df.dropna().reset_index(drop=True)
 
     if len(df) < SEQUENCE_LENGTH:
         raise HTTPException(
@@ -640,7 +638,7 @@ def get_latest_patient_flow():
             detail=f"Not enough rows found in {ENGINEERED_FILE}"
         )
 
-    rows = df[FEATURE_COLUMNS].tail(SEQUENCE_LENGTH)
+    rows = df.tail(SEQUENCE_LENGTH)
     sequence = rows.values.astype(float).tolist()
 
     return {"sequence": sequence}
