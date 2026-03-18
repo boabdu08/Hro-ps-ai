@@ -10,7 +10,6 @@ from api_client import (
     get_latest_sequence,
     get_optimization,
     get_prediction,
-    get_system_status,
     simulate,
 )
 from evaluation_service import build_detailed_predictions_dataframe, build_metrics_dataframe
@@ -49,6 +48,7 @@ def _load_runtime_sequence(df: pd.DataFrame):
     df = df.copy()
     for col in feature_columns:
         df[col] = pd.to_numeric(df[col], errors="coerce")
+
     df = df.dropna(subset=feature_columns).reset_index(drop=True)
 
     if len(df) < sequence_length:
@@ -62,17 +62,30 @@ def get_live_context():
     last_sequence, feature_columns, sequence_length = _load_runtime_sequence(df)
 
     if last_sequence is None:
-        return {"ready": False, "reason": "Latest model input sequence could not be loaded.", "df": df}
+        return {
+            "ready": False,
+            "reason": "Latest model input sequence could not be loaded.",
+            "df": df,
+        }
 
     result = get_prediction(last_sequence)
     if not result:
-        return {"ready": False, "reason": "Prediction API is not reachable.", "df": df}
+        return {
+            "ready": False,
+            "reason": "Prediction API is not reachable.",
+            "df": df,
+        }
 
     patients_idx = feature_columns.index("patients") if "patients" in feature_columns else 0
     current_patients = int(last_sequence[-1][patients_idx])
+
     prediction = float(result["predicted_patients_next_hour"])
     optimization = get_optimization(prediction) or {}
-    forecast_values = generate_multistep_forecast(last_sequence=last_sequence, predict_fn=get_prediction, steps=24)
+    forecast_values = generate_multistep_forecast(
+        last_sequence=last_sequence,
+        predict_fn=get_prediction,
+        steps=24,
+    )
     peak = float(max(forecast_values)) if forecast_values else prediction
 
     return {
@@ -91,7 +104,11 @@ def get_live_context():
 
 
 def show_overview():
-    section_header("🏥 Hospital Overview", "Live system summary, pressure status, and AI forecast snapshot.")
+    section_header(
+        "🏥 Hospital Overview",
+        "Live system summary, pressure status, and AI forecast snapshot.",
+    )
+
     ctx = get_live_context()
     if not ctx["ready"]:
         empty_state(ctx["reason"])
@@ -119,11 +136,20 @@ def show_overview():
 
     emergency_level = result.get("emergency_level", "LOW")
     if emergency_level == "HIGH":
-        alert_box("🚨 Critical alert: high emergency load expected. Immediate capacity review recommended.", "critical")
+        alert_box(
+            "🚨 Critical alert: high emergency load expected. Immediate capacity review recommended.",
+            "critical",
+        )
     elif emergency_level == "MEDIUM":
-        alert_box("⚠️ Moderate emergency pressure detected. Monitor staffing and bed usage closely.", "warning")
+        alert_box(
+            "⚠️ Moderate emergency pressure detected. Monitor staffing and bed usage closely.",
+            "warning",
+        )
     else:
-        alert_box("✅ System stable. No major emergency pressure detected.", "success")
+        alert_box(
+            "✅ System stable. No major emergency pressure detected.",
+            "success",
+        )
 
     st.markdown("### Resource Snapshot")
     s1, s2, s3 = st.columns(3)
@@ -135,12 +161,19 @@ def show_overview():
     if allocations:
         st.markdown("### Top Priority Departments")
         alloc_df = pd.DataFrame(allocations).head(5)
-        show_cols = [c for c in ["department", "predicted_patients", "status", "priority_score"] if c in alloc_df.columns]
+        show_cols = [
+            c for c in ["department", "predicted_patients", "status", "priority_score"]
+            if c in alloc_df.columns
+        ]
         modern_table(alloc_df[show_cols])
 
 
 def show_forecast():
-    section_header("📈 Forecast & Demand Analysis", "Historical flow, 24-hour AI forecast, and actual vs predicted view.")
+    section_header(
+        "📈 Forecast & Demand Analysis",
+        "Historical flow, 24-hour AI forecast, and actual vs predicted view.",
+    )
+
     ctx = get_live_context()
     if not ctx["ready"]:
         empty_state(ctx["reason"])
@@ -148,44 +181,84 @@ def show_forecast():
 
     df = ctx["df"]
     predictions = ctx["forecast_values"]
+
     if len(predictions) == 0:
         empty_state("Forecast unavailable.")
         return
 
-    forecast_df = pd.DataFrame({"hour": range(1, len(predictions) + 1), "forecast": predictions})
+    forecast_df = pd.DataFrame({
+        "hour": range(1, len(predictions) + 1),
+        "forecast": predictions,
+    })
 
     col1, col2 = st.columns(2)
+
     with col1:
         if not df.empty:
             hist_df = df.copy().reset_index(drop=True)
             hist_df["time_index"] = hist_df.index
-            fig_hist = px.line(hist_df, x="time_index", y="patients", title="Historical Patients")
-            fig_hist.update_layout(height=350, xaxis_title="Time Index", yaxis_title="Patients")
+
+            fig_hist = px.line(
+                hist_df,
+                x="time_index",
+                y="patients",
+                title="Historical Patients",
+            )
+            fig_hist.update_layout(
+                height=350,
+                xaxis_title="Time Index",
+                yaxis_title="Patients",
+            )
             st.plotly_chart(fig_hist, use_container_width=True)
         else:
             empty_state("Historical data unavailable.")
 
     with col2:
-        fig_forecast = px.line(forecast_df, x="hour", y="forecast", markers=True, title="24-Hour AI Forecast")
-        fig_forecast.update_layout(height=350, xaxis_title="Next Hours", yaxis_title="Predicted Patients")
+        fig_forecast = px.line(
+            forecast_df,
+            x="hour",
+            y="forecast",
+            markers=True,
+            title="24-Hour AI Forecast",
+        )
+        fig_forecast.update_layout(
+            height=350,
+            xaxis_title="Next Hours",
+            yaxis_title="Predicted Patients",
+        )
         st.plotly_chart(fig_forecast, use_container_width=True)
 
     if not df.empty:
         actual = df["patients"].tail(len(predictions)).values.astype(float)
         forecast_vals = np.array(predictions, dtype=float)
+
         min_len = min(len(actual), len(forecast_vals))
         compare_df = pd.DataFrame({
             "time_index": list(range(min_len)),
             "Actual": actual[:min_len],
             "Forecast": forecast_vals[:min_len],
         })
-        fig_compare = px.line(compare_df, x="time_index", y=["Actual", "Forecast"], title="Actual vs Forecast")
-        fig_compare.update_layout(height=350, xaxis_title="Time Window", yaxis_title="Patients")
+
+        fig_compare = px.line(
+            compare_df,
+            x="time_index",
+            y=["Actual", "Forecast"],
+            title="Actual vs Forecast",
+        )
+        fig_compare.update_layout(
+            height=350,
+            xaxis_title="Time Window",
+            yaxis_title="Patients",
+        )
         st.plotly_chart(fig_compare, use_container_width=True)
 
 
 def show_optimization():
-    section_header("🧩 Advanced Resource Optimization Center", "Department allocations, shortage ranking, and AI-generated recommendations.")
+    section_header(
+        "🧩 Advanced Resource Optimization Center",
+        "Department allocations, shortage ranking, and AI-generated recommendations.",
+    )
+
     ctx = get_live_context()
     if not ctx["ready"]:
         empty_state(ctx["reason"])
@@ -248,13 +321,18 @@ def show_optimization():
 
 
 def show_operations_center():
-    section_header("⚙️ Operations Center", "Operational planning, simulation, and department capacity views.")
+    section_header(
+        "⚙️ Operations Center",
+        "Operational planning, simulation, and department capacity views.",
+    )
+
     ctx = get_live_context()
     if not ctx["ready"]:
         empty_state(ctx["reason"])
         return
 
     prediction = ctx["prediction"]
+
     c1, c2, c3 = st.columns(3)
     demand = c1.slider("Demand Increase %", 0, 100, 20, key="ops_demand")
     beds = c2.slider("Available Beds", 50, 300, 120, key="ops_beds")
@@ -289,6 +367,7 @@ def show_operations_center():
     hospital_map["Available"] = hospital_map["Capacity"] - hospital_map["Occupied"]
 
     modern_table(hospital_map)
+
     fig_dept = px.bar(
         hospital_map,
         x="Department",
@@ -303,7 +382,13 @@ def show_operations_center():
 def show_evaluation_panel():
     section_header("📏 Forecast Evaluation Panel", "Model comparison using saved v2 outputs.")
 
-    split = st.radio("Evaluation Split", ["test", "validation"], horizontal=True, key="eval_split_selector")
+    split = st.radio(
+        "Evaluation Split",
+        ["test", "validation"],
+        horizontal=True,
+        key="eval_split_selector",
+    )
+
     eval_df = build_metrics_dataframe(split=split)
     detailed_df = build_detailed_predictions_dataframe(split=split)
 
@@ -334,8 +419,10 @@ def show_evaluation_panel():
     required_cols = ["time_index", "actual", "lstm_pred", "arimax_pred", "hybrid_pred"]
     if not detailed_df.empty and all(col in detailed_df.columns for col in required_cols):
         clean_df = detailed_df[required_cols].copy()
+
         for col in required_cols:
             clean_df[col] = pd.to_numeric(clean_df[col], errors="coerce")
+
         clean_df = clean_df.dropna(subset=["actual", "lstm_pred", "arimax_pred", "hybrid_pred"])
 
         if clean_df.empty:
@@ -366,6 +453,7 @@ def show_evaluation_panel():
 
 def show_explainability_panel():
     section_header("🔬 Explainable AI Panel")
+
     ctx = get_live_context()
     if not ctx["ready"]:
         empty_state(ctx["reason"])
@@ -380,16 +468,23 @@ def show_explainability_panel():
     impacts = explanation["feature_impacts"]
 
     st.metric("Base Prediction", int(base_prediction))
-    impact_df = pd.DataFrame(impacts)
 
+    impact_df = pd.DataFrame(impacts)
     if impact_df.empty:
         empty_state("No explainability impacts available.")
         return
 
     impact_df["abs_impact"] = impact_df["impact"].abs()
-    fig = px.bar(impact_df, x="feature", y="impact", title="Feature Impact on Prediction")
+
+    fig = px.bar(
+        impact_df,
+        x="feature",
+        y="impact",
+        title="Feature Impact on Prediction",
+    )
     fig.update_layout(height=420)
     st.plotly_chart(fig, use_container_width=True)
+
     modern_table(impact_df.sort_values(by="abs_impact", ascending=False))
 
 

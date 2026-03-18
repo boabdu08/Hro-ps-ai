@@ -8,6 +8,7 @@ from audit_sections import show_audit_summary, show_audit_table, show_execution_
 from dashboard_sections import (
     get_live_context,
     show_department_status,
+    show_digital_twin,
     show_evaluation_panel,
     show_explainability_panel,
     show_forecast,
@@ -15,11 +16,16 @@ from dashboard_sections import (
     show_optimization,
     show_overview,
     show_simulation,
-    show_digital_twin,
 )
 from message_center_sections import show_message_center
 from notification_sections import show_notifications_panel
-from staff_sections import show_appointments, show_my_shifts, show_or_bookings, show_all_shifts, show_admin_appointments_overview
+from staff_sections import (
+    show_admin_appointments_overview,
+    show_all_shifts,
+    show_appointments,
+    show_my_shifts,
+    show_or_bookings,
+)
 from ui_components import inject_base_styles, sidebar_status_card
 
 st.set_page_config(page_title="HRO Command Center", layout="wide")
@@ -32,6 +38,7 @@ if "user" not in st.session_state:
 def login_view():
     st.title("🏥 HRO — AI Hospital System")
     st.caption("AI-powered hospital operations, forecasting, approvals, and staff coordination.")
+
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
 
@@ -104,6 +111,7 @@ def sidebar_navigation(role):
 
 def show_sidebar_context(user):
     ctx = get_live_context()
+
     sidebar_status_card(
         "User Session",
         [
@@ -143,28 +151,40 @@ def main_app():
     if role == "admin":
         if page == "Command Center":
             show_overview()
+
         elif page == "Forecast":
             show_forecast()
+
         elif page == "Optimization":
             show_optimization()
+
         elif page == "Operations":
             show_operations_center()
+
         elif page == "Simulation":
             show_simulation()
+
         elif page == "Digital Twin":
             show_digital_twin()
+
         elif page == "Department Status":
             show_department_status()
+
         elif page == "Shifts":
             show_all_shifts()
+
         elif page == "Appointments":
             show_admin_appointments_overview()
+
         elif page == "OR Bookings":
             show_or_bookings("admin")
+
         elif page == "Notifications":
             show_notifications_panel(user)
+
         elif page == "Messages":
             show_message_center(user)
+
         elif page == "Approvals":
             ctx = get_live_context()
             if not ctx["ready"]:
@@ -178,42 +198,55 @@ def main_app():
                     emergency_level=result.get("emergency_level", "LOW"),
                     approver_name=user.get("name", "Admin"),
                 )
+
         elif page == "Evaluation":
             show_evaluation_panel()
+
         elif page == "Explainability":
             show_explainability_panel()
+
         elif page == "Audit":
             show_audit_summary()
             st.markdown("---")
             show_audit_table()
             st.markdown("---")
             show_execution_trace()
+
         elif page == "Admin Panel":
             show_overview()
 
     elif role == "doctor":
         if page == "Overview":
             show_overview()
+
         elif page == "Forecast":
             show_forecast()
+
         elif page == "My Shifts":
             show_my_shifts(user["username"], "doctor")
+
         elif page == "Appointments":
             show_appointments("doctor", doctor_name=user.get("name"))
+
         elif page == "OR Bookings":
             show_or_bookings("doctor", doctor_name=user.get("name"))
+
         elif page == "Notifications":
             show_notifications_panel(user)
 
     else:
         if page == "Overview":
             show_overview()
+
         elif page == "My Shifts":
             show_my_shifts(user["username"], "nurse")
+
         elif page == "Appointments":
             show_appointments("nurse", department=user.get("department"))
+
         elif page == "Department":
             show_department_status()
+
         elif page == "Notifications":
             show_notifications_panel(user)
 
