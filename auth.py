@@ -1,39 +1,35 @@
-import streamlit as st
+from datetime import datetime, timedelta
+from jose import jwt, JWTError
+from passlib.context import CryptContext
 
-from api_client import login_user_api
+SECRET_KEY = "hro_super_secret_key_change_later"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-
-def login_form():
-    st.markdown("## 🔐 Staff Login")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-
-    if st.button("Login"):
-        if not username.strip() or not password.strip():
-            st.warning("Please enter both username and password.")
-            return
-
-        user = login_user_api(username.strip(), password)
-        if user:
-            st.session_state["logged_in"] = True
-            st.session_state["user"] = user
-            st.success(f"Welcome, {user.get('name', user.get('username', 'User'))}")
-            st.rerun()
-        else:
-            st.error("Invalid username or password")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-def logout_button():
-    if st.sidebar.button("Logout"):
-        st.session_state["logged_in"] = False
-        st.session_state["user"] = None
-        st.rerun()
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
 
 
-def require_login():
-    if "logged_in" not in st.session_state:
-        st.session_state["logged_in"] = False
-    if "user" not in st.session_state:
-        st.session_state["user"] = None
-    return st.session_state["logged_in"]
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    try:
+        return pwd_context.verify(plain_password, hashed_password)
+    except Exception:
+        return plain_password == hashed_password
 
+
+def create_token(data: dict, expires_minutes: int = ACCESS_TOKEN_EXPIRE_MINUTES) -> str:
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=expires_minutes)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def decode_token(token: str) -> dict:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError as e:
+        raise ValueError("Invalid token") from e

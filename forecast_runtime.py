@@ -89,4 +89,3 @@ def generate_multistep_forecast(last_sequence: np.ndarray, predict_fn, steps: in
         sequence = roll_sequence_forward(sequence, pred)
 
     return predictions
-

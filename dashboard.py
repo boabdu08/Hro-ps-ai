@@ -7,16 +7,19 @@ from approval_sections import show_admin_approval_panel
 from audit_sections import show_audit_summary, show_audit_table, show_execution_trace
 from dashboard_sections import (
     get_live_context,
+    show_department_status,
     show_evaluation_panel,
     show_explainability_panel,
     show_forecast,
     show_operations_center,
     show_optimization,
     show_overview,
+    show_simulation,
+    show_digital_twin,
 )
 from message_center_sections import show_message_center
 from notification_sections import show_notifications_panel
-from staff_sections import show_appointments, show_my_shifts, show_or_bookings
+from staff_sections import show_appointments, show_my_shifts, show_or_bookings, show_all_shifts, show_admin_appointments_overview
 from ui_components import inject_base_styles, sidebar_status_card
 
 st.set_page_config(page_title="HRO Command Center", layout="wide")
@@ -31,6 +34,7 @@ def login_view():
     st.caption("AI-powered hospital operations, forecasting, approvals, and staff coordination.")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
+
     if st.button("Login"):
         user = login_user_api(username.strip(), password.strip()) if username.strip() and password.strip() else None
         if user:
@@ -56,21 +60,45 @@ def show_header(user):
 
 def sidebar_navigation(role):
     st.sidebar.title("🧭 Navigation")
+
     if role == "admin":
         pages = [
             "Command Center",
-            "Operations",
+            "Forecast",
             "Optimization",
-            "Approvals",
+            "Operations",
+            "Simulation",
+            "Digital Twin",
+            "Department Status",
+            "Shifts",
+            "Appointments",
+            "OR Bookings",
+            "Notifications",
             "Messages",
+            "Approvals",
             "Evaluation",
             "Explainability",
             "Audit",
+            "Admin Panel",
         ]
     elif role == "doctor":
-        pages = ["Overview", "My Shifts", "Appointments", "OR Bookings", "Forecast", "Notifications"]
+        pages = [
+            "Overview",
+            "Forecast",
+            "My Shifts",
+            "Appointments",
+            "OR Bookings",
+            "Notifications",
+        ]
     else:
-        pages = ["Overview", "My Shifts", "Appointments", "Department", "Notifications"]
+        pages = [
+            "Overview",
+            "My Shifts",
+            "Appointments",
+            "Department",
+            "Notifications",
+        ]
+
     return st.sidebar.radio("Go to", pages)
 
 
@@ -84,6 +112,7 @@ def show_sidebar_context(user):
             f"<b>Department:</b> {user.get('department', '-')}",
         ],
     )
+
     if ctx.get("ready"):
         result = ctx["prediction_result"]
         sidebar_status_card(
@@ -114,10 +143,28 @@ def main_app():
     if role == "admin":
         if page == "Command Center":
             show_overview()
-        elif page == "Operations":
-            show_operations_center()
+        elif page == "Forecast":
+            show_forecast()
         elif page == "Optimization":
             show_optimization()
+        elif page == "Operations":
+            show_operations_center()
+        elif page == "Simulation":
+            show_simulation()
+        elif page == "Digital Twin":
+            show_digital_twin()
+        elif page == "Department Status":
+            show_department_status()
+        elif page == "Shifts":
+            show_all_shifts()
+        elif page == "Appointments":
+            show_admin_appointments_overview()
+        elif page == "OR Bookings":
+            show_or_bookings("admin")
+        elif page == "Notifications":
+            show_notifications_panel(user)
+        elif page == "Messages":
+            show_message_center(user)
         elif page == "Approvals":
             ctx = get_live_context()
             if not ctx["ready"]:
@@ -131,8 +178,6 @@ def main_app():
                     emergency_level=result.get("emergency_level", "LOW"),
                     approver_name=user.get("name", "Admin"),
                 )
-        elif page == "Messages":
-            show_message_center(user)
         elif page == "Evaluation":
             show_evaluation_panel()
         elif page == "Explainability":
@@ -143,18 +188,20 @@ def main_app():
             show_audit_table()
             st.markdown("---")
             show_execution_trace()
+        elif page == "Admin Panel":
+            show_overview()
 
     elif role == "doctor":
         if page == "Overview":
             show_overview()
+        elif page == "Forecast":
+            show_forecast()
         elif page == "My Shifts":
             show_my_shifts(user["username"], "doctor")
         elif page == "Appointments":
             show_appointments("doctor", doctor_name=user.get("name"))
         elif page == "OR Bookings":
             show_or_bookings("doctor", doctor_name=user.get("name"))
-        elif page == "Forecast":
-            show_forecast()
         elif page == "Notifications":
             show_notifications_panel(user)
 
@@ -166,7 +213,7 @@ def main_app():
         elif page == "Appointments":
             show_appointments("nurse", department=user.get("department"))
         elif page == "Department":
-            show_operations_center()
+            show_department_status()
         elif page == "Notifications":
             show_notifications_panel(user)
 
@@ -175,4 +222,3 @@ if st.session_state.user is None:
     login_view()
 else:
     main_app()
-

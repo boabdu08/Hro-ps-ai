@@ -2,43 +2,29 @@ from typing import List, Optional
 import json
 import os
 from datetime import datetime
-from forecast_runtime import hybrid_predict
+import logging
+
 import joblib
 import numpy as np
 import pandas as pd
-import logging
-from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi import FastAPI, HTTPException, Depends, Query, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from tensorflow.keras.models import load_model
+
 from evaluation_service import compare_models
 from database import get_db, Base, engine
 from models import User, PatientFlow, MessageLog
 from resource_optimizer import optimize_resources
 from schemas import LoginRequest
-from fastapi import UploadFile, File
-from etl_pipeline import (
-    ingest_patient_flow,
-    ingest_appointments,
-    ingest_or
-)
-from auth import verify_password, create_token
-from database import SessionLocal
-from models import User
-from fastapi import Depends, HTTPException
-from fastapi.security import HTTPBearer
-from auth import decode_token
-
+from etl_pipeline import ingest_patient_flow, ingest_appointments, ingest_or
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Hospital AI API")
+logging.basicConfig(level=logging.INFO)
 
-# ========================================
-# LEGACY FILES (bootstrapping only)
-# ========================================
 LEGACY_MESSAGES_FILE = "messages_log.csv"
-
 LEGACY_MESSAGE_COLS = [
     "message_id",
     "timestamp",
@@ -55,13 +41,11 @@ LEGACY_MESSAGE_COLS = [
     "reply_by",
     "reply_timestamp",
     "acknowledged",
+    "archived",
 ]
 
 SEQUENCE_LENGTH = 24
 
-# ========================================
-# LOAD MODELS + ARTIFACTS
-# ========================================
 lstm_model = load_model("hospital_forecast_model.keras", compile=False)
 arimax_model = joblib.load("arimax_model.pkl")
 x_scaler = joblib.load("x_scaler.pkl")
@@ -73,10 +57,6 @@ with open("hybrid_config.json", "r", encoding="utf-8") as f:
 HYBRID_LSTM_WEIGHT = float(hybrid_config.get("lstm_weight", 0.90))
 HYBRID_ARIMAX_WEIGHT = float(hybrid_config.get("arimax_weight", 0.10))
 
-# ========================================
-# FIXED FEATURE SET
-# MUST MATCH prepare_sequences_v2.py EXACTLY
-# ========================================
 FEATURE_COLUMNS = [
     "patients",
     "day_of_week",
@@ -106,7 +86,6 @@ FEATURE_COLUMNS = [
     "trend_feature",
 ]
 
-# MUST MATCH train_arimax_v2.py EXACTLY
 ARIMAX_EXOG_COLUMNS = [
     "day_of_week",
     "month",
@@ -120,7 +99,7 @@ ARIMAX_EXOG_COLUMNS = [
 ]
 
 FEATURE_COUNT = len(FEATURE_COLUMNS)
-FEATURE_NAMES = FEATURE_COLUMNS.copy()
+FEATURE_INDEX = {name: idx for idx, name in enumerate(FEATURE_COLUMNS)}
 SCALER_EXPECTED_FEATURES = int(getattr(x_scaler, "n_features_in_", FEATURE_COUNT))
 
 ADMIN_MESSAGE_TEMPLATES = [
@@ -177,9 +156,7 @@ STAFF_QUICK_REPLIES = [
     "لا أستطيع التغطية الآن",
 ]
 
-# ========================================
-# REQUEST MODELS
-# ========================================
+
 class PredictRequest(BaseModel):
     sequence: List[List[float]]
 
@@ -212,14 +189,40 @@ class ReplyMessageRequest(BaseModel):
     reply_by: str
 
 
-# ========================================
-# HELPERS
-# ========================================
+class MessageActionRequest(BaseModel):
+    message_id: str
+
+
+class EvaluateRequest(BaseModel):
+    actual: List[float]
+    lstm: List[float]
+    arimax: List[float]
+    hybrid: List[float]
+
+
 def normalize_text(value, default: str = "") -> str:
     if value is None:
         return default
+    if isinstance(value, float) and np.isnan(value):
+        return default
     text = str(value).strip()
+    if text.lower() == "nan":
+        return default
     return text if text else default
+
+
+def normalize_bool(value, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+
+    text = str(value).strip().lower()
+    if text in ["true", "1", "yes", "y"]:
+        return True
+    if text in ["false", "0", "no", "n", ""]:
+        return False
+    return default
 
 
 def parse_datetime_now() -> str:
@@ -232,13 +235,11 @@ def validate_sequence_shape(arr: np.ndarray):
 
 def scale_sequence(sequence_array: np.ndarray):
     flat = sequence_array.reshape(-1, sequence_array.shape[-1])
-
     if flat.shape[1] != SCALER_EXPECTED_FEATURES:
         raise ValueError(
             f"X has {flat.shape[1]} features, but MinMaxScaler is expecting "
             f"{SCALER_EXPECTED_FEATURES} features as input."
         )
-
     scaled_flat = x_scaler.transform(flat)
     return scaled_flat.reshape(sequence_array.shape).astype(np.float32)
 
@@ -248,29 +249,16 @@ def inverse_scale_target(pred_scaled: float):
     return float(y_scaler.inverse_transform(value)[0][0])
 
 
-def get_feature_index_map():
-    return {name: idx for idx, name in enumerate(FEATURE_COLUMNS)}
-
-
-FEATURE_INDEX = get_feature_index_map()
-
-
 def get_next_exog_from_sequence(sequence_array: np.ndarray):
     last_row = sequence_array[-1]
-    exog = np.array(
-        [[last_row[FEATURE_INDEX[col]] for col in ARIMAX_EXOG_COLUMNS]],
-        dtype=float,
-    )
-    return exog
+    return np.array([[last_row[FEATURE_INDEX[col]] for col in ARIMAX_EXOG_COLUMNS]], dtype=float)
 
 
 def predict_lstm(sequence_array: np.ndarray):
     scaled_sequence = scale_sequence(sequence_array)
     x_input = np.array([scaled_sequence], dtype=np.float32)
-
     pred_scaled = float(lstm_model.predict(x_input, verbose=0)[0][0])
-    pred_original = inverse_scale_target(pred_scaled)
-    return pred_original
+    return inverse_scale_target(pred_scaled)
 
 
 def predict_arimax(sequence_array: np.ndarray):
@@ -282,12 +270,7 @@ def predict_arimax(sequence_array: np.ndarray):
 def predict_hybrid(sequence_array: np.ndarray):
     lstm_pred = predict_lstm(sequence_array)
     arimax_pred = predict_arimax(sequence_array)
-
-    hybrid_prediction = (
-        HYBRID_LSTM_WEIGHT * lstm_pred
-        + HYBRID_ARIMAX_WEIGHT * arimax_pred
-    )
-
+    hybrid_prediction = HYBRID_LSTM_WEIGHT * lstm_pred + HYBRID_ARIMAX_WEIGHT * arimax_pred
     return {
         "lstm_prediction": float(lstm_pred),
         "arimax_prediction": float(arimax_pred),
@@ -324,25 +307,19 @@ def allocate_beds(predicted_patients: int, available_beds: int):
 
 
 def calculate_recommended_resources(predicted_patients: float):
-    predicted_patients = float(predicted_patients)
-    beds_needed = int(np.ceil(predicted_patients * 1.15))
-    doctors_needed = max(1, int(np.ceil(predicted_patients / 6.0)))
-    nurses_needed = max(1, int(np.ceil(predicted_patients / 3.5)))
-
     return {
-        "beds_needed": beds_needed,
-        "doctors_needed": doctors_needed,
-        "nurses_needed": nurses_needed,
+        "beds_needed": int(np.ceil(predicted_patients * 1.15)),
+        "doctors_needed": max(1, int(np.ceil(predicted_patients / 6.0))),
+        "nurses_needed": max(1, int(np.ceil(predicted_patients / 3.5))),
     }
 
 
 def explain_feature_importance(sequence_array: np.ndarray):
     base_result = predict_hybrid(sequence_array)
     base_pred = float(base_result["hybrid_prediction"])
-
     impacts = []
 
-    for i, feature_name in enumerate(FEATURE_NAMES):
+    for i, feature_name in enumerate(FEATURE_COLUMNS):
         modified = sequence_array.copy()
 
         if feature_name == "patients":
@@ -354,32 +331,22 @@ def explain_feature_importance(sequence_array: np.ndarray):
         else:
             modified[-1, i] = modified[-1, i] * 1.05
 
-        new_result = predict_hybrid(modified)
-        new_pred = float(new_result["hybrid_prediction"])
-        impact = new_pred - base_pred
-
-        impacts.append({
-            "feature": feature_name,
-            "impact": float(impact),
-        })
+        new_pred = float(predict_hybrid(modified)["hybrid_prediction"])
+        impacts.append({"feature": feature_name, "impact": float(new_pred - base_pred)})
 
     impacts = sorted(impacts, key=lambda x: abs(x["impact"]), reverse=True)
-
-    return {
-        "base_prediction": float(base_pred),
-        "feature_impacts": impacts,
-    }
+    return {"base_prediction": float(base_pred), "feature_impacts": impacts}
 
 
 def build_engineered_sequence_from_patient_flow(rows: List[PatientFlow]) -> List[List[float]]:
     base_df = pd.DataFrame([
         {
             "patients": float(r.patients),
-            "day_of_week": float(r.day_of_week),
-            "month": float(r.month),
-            "is_weekend": float(r.is_weekend),
-            "holiday": float(r.holiday),
-            "weather": float(r.weather),
+            "day_of_week": float(r.day_of_week or 0),
+            "month": float(r.month or 0),
+            "is_weekend": float(r.is_weekend or 0),
+            "holiday": float(r.holiday or 0),
+            "weather": float(r.weather or 0),
         }
         for r in rows
     ])
@@ -390,7 +357,6 @@ def build_engineered_sequence_from_patient_flow(rows: List[PatientFlow]) -> List
     base_df["hour_cos"] = np.cos(2 * np.pi * base_df["hour"] / 24.0)
 
     patients = base_df["patients"]
-
     base_df["patients_lag_1"] = patients.shift(1)
     base_df["patients_lag_2"] = patients.shift(2)
     base_df["patients_lag_3"] = patients.shift(3)
@@ -410,18 +376,15 @@ def build_engineered_sequence_from_patient_flow(rows: List[PatientFlow]) -> List
 
     base_df["patients_diff_1"] = patients.diff(1)
     base_df["patients_diff_24"] = patients.diff(24)
+    base_df["trend_feature"] = (
+        np.arange(len(base_df), dtype=float) / float(len(base_df) - 1)
+        if len(base_df) > 1 else 0.0
+    )
 
-    if len(base_df) > 1:
-        base_df["trend_feature"] = np.arange(len(base_df), dtype=float) / float(len(base_df) - 1)
-    else:
-        base_df["trend_feature"] = 0.0
-
-    std_cols = [c for c in base_df.columns if c.startswith("patients_roll_std_")]
-    for col in std_cols:
+    for col in [c for c in base_df.columns if c.startswith("patients_roll_std_")]:
         base_df[col] = base_df[col].fillna(0.0)
 
     base_df = base_df.bfill().ffill().fillna(0.0)
-
     sequence_df = base_df[FEATURE_COLUMNS].tail(SEQUENCE_LENGTH).copy()
 
     if len(sequence_df) != SEQUENCE_LENGTH:
@@ -449,15 +412,12 @@ def serialize_message_row(row: MessageLog) -> dict:
         "reply_by": normalize_text(row.reply_by),
         "reply_timestamp": normalize_text(row.reply_timestamp),
         "acknowledged": normalize_text(row.acknowledged, "no"),
+        "archived": bool(row.archived),
     }
 
 
 def bootstrap_messages_from_csv_if_needed(db: Session):
-    existing_count = db.query(MessageLog).count()
-    if existing_count > 0:
-        return
-
-    if not os.path.exists(LEGACY_MESSAGES_FILE):
+    if db.query(MessageLog).count() > 0 or not os.path.exists(LEGACY_MESSAGES_FILE):
         return
 
     try:
@@ -480,12 +440,7 @@ def bootstrap_messages_from_csv_if_needed(db: Session):
         if not message_id:
             continue
 
-        already_exists = (
-            db.query(MessageLog)
-            .filter(MessageLog.message_id == message_id)
-            .first()
-        )
-        if already_exists:
+        if db.query(MessageLog).filter(MessageLog.message_id == message_id).first():
             continue
 
         db.add(
@@ -505,20 +460,30 @@ def bootstrap_messages_from_csv_if_needed(db: Session):
                 reply_by=normalize_text(row.get("reply_by")),
                 reply_timestamp=normalize_text(row.get("reply_timestamp")),
                 acknowledged=normalize_text(row.get("acknowledged"), "no"),
+                archived=normalize_bool(row.get("archived"), False),
             )
         )
         rows_added += 1
 
-    if rows_added > 0:
+    if rows_added:
         db.commit()
 
 
-# ========================================
-# ROUTES
-# ========================================
+@app.middleware("http")
+async def log_requests(request, call_next):
+    logging.info("%s %s", request.method, request.url)
+    response = await call_next(request)
+    return response
+
+
 @app.get("/")
 def home():
     return {"message": "Hospital AI API is running"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 
 @app.get("/status")
@@ -527,10 +492,7 @@ def system_status():
         "system": "Hospital AI",
         "model": "Hybrid Forecast (LSTM + ARIMAX)",
         "status": "running",
-        "hybrid_weights": {
-            "lstm": HYBRID_LSTM_WEIGHT,
-            "arimax": HYBRID_ARIMAX_WEIGHT,
-        },
+        "hybrid_weights": {"lstm": HYBRID_LSTM_WEIGHT, "arimax": HYBRID_ARIMAX_WEIGHT},
         "feature_count": FEATURE_COUNT,
         "sequence_length": SEQUENCE_LENGTH,
     }
@@ -543,17 +505,6 @@ def get_feature_config():
         "sequence_length": SEQUENCE_LENGTH,
         "feature_columns": FEATURE_COLUMNS,
         "arimax_exog_columns": ARIMAX_EXOG_COLUMNS,
-    }
-
-
-@app.get("/debug/predict_info")
-def debug_predict_info():
-    return {
-        "feature_count": FEATURE_COUNT,
-        "sequence_length": SEQUENCE_LENGTH,
-        "feature_columns": FEATURE_COLUMNS,
-        "arimax_exog_columns": ARIMAX_EXOG_COLUMNS,
-        "scaler_expected_features": SCALER_EXPECTED_FEATURES,
     }
 
 
@@ -571,10 +522,11 @@ def get_messages(
     department: Optional[str] = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
     unread_only: bool = Query(default=False),
+    include_archived: bool = Query(default=False),
+    sender_name: Optional[str] = Query(default=None),
     db: Session = Depends(get_db),
 ):
     bootstrap_messages_from_csv_if_needed(db)
-
     query = db.query(MessageLog)
 
     if role:
@@ -592,15 +544,20 @@ def get_messages(
             | (MessageLog.target_department.ilike("all"))
         )
 
+    if sender_name:
+        query = query.filter(MessageLog.sender_name.ilike(normalize_text(sender_name)))
+
     if unread_only:
         query = query.filter(MessageLog.acknowledged.ilike("no"))
 
-    rows = (
-        query.order_by(MessageLog.id.desc())
-        .limit(limit)
-        .all()
-    )
+    if include_archived:
+        query = query.filter(MessageLog.archived.is_(True))
+    else:
+        query = query.filter(
+            (MessageLog.archived.is_(False)) | (MessageLog.archived.is_(None))
+        )
 
+    rows = query.order_by(MessageLog.id.desc()).limit(limit).all()
     return {
         "messages": [serialize_message_row(row) for row in rows],
         "quick_replies": STAFF_QUICK_REPLIES,
@@ -627,6 +584,7 @@ def send_message(payload: SendMessageRequest, db: Session = Depends(get_db)):
         reply_by="",
         reply_timestamp="",
         acknowledged="no",
+        archived=False,
     )
 
     db.add(row)
@@ -644,11 +602,9 @@ def send_message(payload: SendMessageRequest, db: Session = Depends(get_db)):
 def reply_to_message(payload: ReplyMessageRequest, db: Session = Depends(get_db)):
     bootstrap_messages_from_csv_if_needed(db)
 
-    row = (
-        db.query(MessageLog)
-        .filter(MessageLog.message_id == normalize_text(payload.message_id))
-        .first()
-    )
+    row = db.query(MessageLog).filter(
+        MessageLog.message_id == normalize_text(payload.message_id)
+    ).first()
 
     if row is None:
         raise HTTPException(status_code=404, detail="Message not found.")
@@ -669,21 +625,41 @@ def reply_to_message(payload: ReplyMessageRequest, db: Session = Depends(get_db)
     }
 
 
-@app.get("/users")
-def get_users(db: Session = Depends(get_db)):
-    users = db.query(User).all()
+@app.post("/messages/ack")
+def acknowledge_message(payload: MessageActionRequest, db: Session = Depends(get_db)):
+    bootstrap_messages_from_csv_if_needed(db)
 
-    return {
-        "users": [
-            {
-                "username": normalize_text(user.username),
-                "name": normalize_text(user.name),
-                "role": normalize_text(user.role),
-                "department": normalize_text(user.department),
-            }
-            for user in users
-        ]
-    }
+    row = db.query(MessageLog).filter(
+        MessageLog.message_id == normalize_text(payload.message_id)
+    ).first()
+
+    if row is None:
+        raise HTTPException(status_code=404, detail="Message not found.")
+
+    row.acknowledged = "yes"
+    db.commit()
+    db.refresh(row)
+
+    return {"status": "acknowledged", "data": serialize_message_row(row)}
+
+
+@app.post("/messages/archive")
+def archive_message(payload: MessageActionRequest, db: Session = Depends(get_db)):
+    bootstrap_messages_from_csv_if_needed(db)
+
+    row = db.query(MessageLog).filter(
+        MessageLog.message_id == normalize_text(payload.message_id)
+    ).first()
+
+    if row is None:
+        raise HTTPException(status_code=404, detail="Message not found.")
+
+    row.archived = True
+    row.acknowledged = "yes"
+    db.commit()
+    db.refresh(row)
+
+    return {"status": "archived", "data": serialize_message_row(row)}
 
 
 @app.post("/auth/login")
@@ -692,7 +668,6 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
     password = normalize_text(payload.password)
 
     user = db.query(User).filter(User.username == username).first()
-
     if user is None or normalize_text(user.password) != password:
         raise HTTPException(status_code=401, detail="Invalid username or password.")
 
@@ -704,15 +679,25 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
     }
 
 
+@app.get("/users")
+def get_users(db: Session = Depends(get_db)):
+    users = db.query(User).all()
+    return {
+        "users": [
+            {
+                "username": normalize_text(u.username),
+                "name": normalize_text(u.name),
+                "role": normalize_text(u.role),
+                "department": normalize_text(u.department),
+            }
+            for u in users
+        ]
+    }
+
+
 @app.get("/patient_flow/latest")
 def get_latest_patient_flow_sequence(db: Session = Depends(get_db)):
-    rows = (
-        db.query(PatientFlow)
-        .order_by(PatientFlow.id.desc())
-        .limit(SEQUENCE_LENGTH)
-        .all()
-    )
-
+    rows = db.query(PatientFlow).order_by(PatientFlow.id.desc()).limit(SEQUENCE_LENGTH).all()
     if len(rows) < SEQUENCE_LENGTH:
         raise HTTPException(
             status_code=400,
@@ -720,19 +705,16 @@ def get_latest_patient_flow_sequence(db: Session = Depends(get_db)):
         )
 
     rows = list(reversed(rows))
-    sequence = build_engineered_sequence_from_patient_flow(rows)
-
     return {
         "sequence_length": SEQUENCE_LENGTH,
         "feature_count": FEATURE_COUNT,
-        "sequence": sequence,
+        "sequence": build_engineered_sequence_from_patient_flow(rows),
     }
 
 
 @app.get("/optimize_resources/{predicted_patients}")
 def optimize_resources_endpoint(predicted_patients: float):
-    result = optimize_resources(predicted_patients)
-    return result
+    return optimize_resources(predicted_patients)
 
 
 @app.post("/predict")
@@ -755,26 +737,18 @@ def predict(payload: PredictRequest):
         "predicted_patients_next_hour": predicted_patients,
         "emergency_level": predict_emergency_load(predicted_patients),
         "recommended_resources": calculate_recommended_resources(predicted_patients),
-        "lstm_prediction": result["lstm_prediction"],
-        "arimax_prediction": result["arimax_prediction"],
-        "hybrid_prediction": result["hybrid_prediction"],
-        "lstm_weight": result["lstm_weight"],
-        "arimax_weight": result["arimax_weight"],
+        **result,
     }
 
 
 @app.post("/simulate")
 def simulate(payload: SimulateRequest):
     adjusted_patients = float(payload.predicted_patients) * (
-        1.0 + (float(payload.demand_increase_percent) / 100.0)
+        1.0 + float(payload.demand_increase_percent) / 100.0
     )
 
     recommended_resources = calculate_recommended_resources(adjusted_patients)
-    bed_allocation = allocate_beds(
-        predicted_patients=int(np.ceil(adjusted_patients)),
-        available_beds=int(payload.beds_available),
-    )
-
+    bed_allocation = allocate_beds(int(np.ceil(adjusted_patients)), int(payload.beds_available))
     doctor_shortage = max(
         0,
         int(recommended_resources["doctors_needed"]) - int(payload.doctors_available),
@@ -806,34 +780,14 @@ def explain(payload: ExplainRequest):
     return explain_feature_importance(sequence_array)
 
 
-
-
-@app.post("/predict")
-def predict(data: dict):
-    sequence = data["sequence"]
-
-    result = hybrid_predict(sequence)
-
-    return {
-        "lstm_prediction": result["lstm"],
-        "arimax_prediction": result["arimax"],
-        "hybrid_prediction": result["hybrid"]
-    }
-
-
-
-
-
 @app.post("/evaluate")
-def evaluate(data: dict):
-    actual = data["actual"]
-    lstm = data["lstm"]
-    arimax = data["arimax"]
-    hybrid = data["hybrid"]
-
-    return compare_models(actual, lstm, arimax, hybrid)
-
-
+def evaluate(payload: EvaluateRequest):
+    return compare_models(
+        actual=payload.actual,
+        lstm=payload.lstm,
+        arimax=payload.arimax,
+        hybrid=payload.hybrid,
+    )
 
 
 @app.post("/upload/patient_flow")
@@ -852,73 +806,3 @@ def upload_appointments(file: UploadFile = File(...)):
 def upload_or(file: UploadFile = File(...)):
     ingest_or(file.file)
     return {"status": "or bookings uploaded"}
-
-@app.post("/retrain")
-def retrain():
-    import subprocess
-
-    subprocess.run(["python", "train_lstm_v2.py"])
-    subprocess.run(["python", "train_arimax_v2.py"])
-
-    return {"status": "models retrained"}
-
-
-
-@app.post("/auth/login")
-def login(data: dict):
-    db = SessionLocal()
-
-    user = db.query(User).filter(User.username == data["username"]).first()
-
-    if not user or not verify_password(data["password"], user.password):
-        return {"error": "invalid credentials"}
-
-    token = create_token({
-        "username": user.username,
-        "role": user.role
-    })
-
-    return {"token": token}
-
-
-security = HTTPBearer()
-
-
-def get_current_user(token=Depends(security)):
-    try:
-        payload = decode_token(token.credentials)
-        return payload
-    except:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
-@app.get("/secure-data")
-def secure(user=Depends(get_current_user)):
-    return {"user": user}
-
-def require_role(role):
-    def wrapper(user=Depends(get_current_user)):
-        if user["role"] != role:
-            raise HTTPException(status_code=403, detail="Forbidden")
-        return user
-    return wrapper
-
-@app.get("/admin-only")
-def admin_route(user=Depends(require_role("admin"))):
-    return {"msg": "admin access"}
-
-
-
-logging.basicConfig(level=logging.INFO)
-
-@app.middleware("http")
-async def log_requests(request, call_next):
-    logging.info(f"{request.method} {request.url}")
-
-    response = await call_next(request)
-
-    return response
-
-
-@app.get("/health")
-def health():
-    return {"status": "ok"}

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Text
+from sqlalchemy import Boolean, Column, Float, Integer, String, Text
 from database import Base
 
 
@@ -91,6 +91,7 @@ class MessageLog(Base):
     reply_timestamp = Column(String, nullable=True)
 
     acknowledged = Column(String, nullable=False, default="no")
+    archived = Column(Boolean, nullable=False, default=False)
 
 
 class RecommendationRecord(Base):
