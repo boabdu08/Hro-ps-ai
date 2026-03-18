@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
+from feature_spec import FEATURE_COLUMNS, SEQUENCE_LENGTH
+
 
 INPUT_FILE = "engineered_data.csv"
 OUTPUT_FILE = "prepared_sequences_v2.npz"
@@ -14,37 +16,7 @@ Y_SCALER_FILE = "y_scaler.pkl"
 SPLIT_INFO_FILE = "split_info.json"
 FEATURE_INFO_FILE = "feature_columns.json"
 
-SEQUENCE_LENGTH = 24
 TARGET_COL = "patients"
-
-FEATURE_COLUMNS = [
-    "patients",
-    "day_of_week",
-    "month",
-    "is_weekend",
-    "holiday",
-    "weather",
-    "hour",
-    "hour_sin",
-    "hour_cos",
-    "patients_lag_1",
-    "patients_lag_2",
-    "patients_lag_3",
-    "patients_lag_6",
-    "patients_lag_12",
-    "patients_lag_24",
-    "patients_roll_mean_3",
-    "patients_roll_mean_6",
-    "patients_roll_mean_12",
-    "patients_roll_mean_24",
-    "patients_roll_std_3",
-    "patients_roll_std_6",
-    "patients_roll_std_12",
-    "patients_roll_std_24",
-    "patients_diff_1",
-    "patients_diff_24",
-    "trend_feature",
-]
 
 
 def load_data() -> pd.DataFrame:

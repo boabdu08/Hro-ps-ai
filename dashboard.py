@@ -73,10 +73,7 @@ def sidebar_navigation(role):
             "Command Center",
             "Forecast",
             "Optimization",
-            "Operations",
-            "Simulation",
-            "Digital Twin",
-            "Department Status",
+            "Operations Center",
             "Shifts",
             "Appointments",
             "OR Bookings",
@@ -86,7 +83,6 @@ def sidebar_navigation(role):
             "Evaluation",
             "Explainability",
             "Audit",
-            "Admin Panel",
         ]
     elif role == "doctor":
         pages = [
@@ -109,8 +105,13 @@ def sidebar_navigation(role):
     return st.sidebar.radio("Go to", pages)
 
 
+@st.cache_data(ttl=20, show_spinner=False)
+def _cached_live_context():
+    return get_live_context()
+
+
 def show_sidebar_context(user):
-    ctx = get_live_context()
+    ctx = _cached_live_context()
 
     sidebar_status_card(
         "User Session",
@@ -158,17 +159,19 @@ def main_app():
         elif page == "Optimization":
             show_optimization()
 
-        elif page == "Operations":
-            show_operations_center()
-
-        elif page == "Simulation":
-            show_simulation()
-
-        elif page == "Digital Twin":
-            show_digital_twin()
-
-        elif page == "Department Status":
-            show_department_status()
+        elif page == "Operations Center":
+            st.markdown("## ⚙️ Operations Center")
+            tab_ops, tab_sim, tab_twin, tab_dept = st.tabs(
+                ["Operations", "Simulation", "Digital Twin", "Department Status"]
+            )
+            with tab_ops:
+                show_operations_center()
+            with tab_sim:
+                show_simulation()
+            with tab_twin:
+                show_digital_twin()
+            with tab_dept:
+                show_department_status()
 
         elif page == "Shifts":
             show_all_shifts()
@@ -186,7 +189,7 @@ def main_app():
             show_message_center(user)
 
         elif page == "Approvals":
-            ctx = get_live_context()
+            ctx = _cached_live_context()
             if not ctx["ready"]:
                 st.error(ctx["reason"])
             else:
@@ -211,9 +214,6 @@ def main_app():
             show_audit_table()
             st.markdown("---")
             show_execution_trace()
-
-        elif page == "Admin Panel":
-            show_overview()
 
     elif role == "doctor":
         if page == "Overview":

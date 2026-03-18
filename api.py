@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Any, Dict, Tuple
 import json
 import os
 from datetime import datetime
@@ -11,7 +11,11 @@ from fastapi import FastAPI, HTTPException, Depends, Query, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from tensorflow.keras.models import load_model
+from sqlalchemy import text
+from functools import lru_cache
 
+from artifacts import artifact_diagnostics, get_artifact_paths, load_manifest
+from feature_spec import FEATURE_COLUMNS, ARIMAX_EXOG_COLUMNS, SEQUENCE_LENGTH
 from evaluation_service import compare_models
 from database import get_db, Base, engine
 from models import User, PatientFlow, MessageLog
@@ -19,10 +23,15 @@ from resource_optimizer import optimize_resources
 from schemas import LoginRequest
 from etl_pipeline import ingest_patient_flow, ingest_appointments, ingest_or
 
-Base.metadata.create_all(bind=engine)
-
 app = FastAPI(title="Hospital AI API")
 logging.basicConfig(level=logging.INFO)
+
+
+@app.on_event("startup")
+def _startup_create_tables():
+    # Safe default for this repo: ensure tables exist at runtime.
+    # For production, migrate to Alembic migrations and remove create_all.
+    Base.metadata.create_all(bind=engine)
 
 LEGACY_MESSAGES_FILE = "messages_log.csv"
 LEGACY_MESSAGE_COLS = [
@@ -44,63 +53,56 @@ LEGACY_MESSAGE_COLS = [
     "archived",
 ]
 
-SEQUENCE_LENGTH = 24
-
-lstm_model = load_model("hospital_forecast_model.keras", compile=False)
-arimax_model = joblib.load("arimax_model.pkl")
-x_scaler = joblib.load("x_scaler.pkl")
-y_scaler = joblib.load("y_scaler.pkl")
-
-with open("hybrid_config.json", "r", encoding="utf-8") as f:
-    hybrid_config = json.load(f)
-
-HYBRID_LSTM_WEIGHT = float(hybrid_config.get("lstm_weight", 0.90))
-HYBRID_ARIMAX_WEIGHT = float(hybrid_config.get("arimax_weight", 0.10))
-
-FEATURE_COLUMNS = [
-    "patients",
-    "day_of_week",
-    "month",
-    "is_weekend",
-    "holiday",
-    "weather",
-    "hour",
-    "hour_sin",
-    "hour_cos",
-    "patients_lag_1",
-    "patients_lag_2",
-    "patients_lag_3",
-    "patients_lag_6",
-    "patients_lag_12",
-    "patients_lag_24",
-    "patients_roll_mean_3",
-    "patients_roll_std_3",
-    "patients_roll_mean_6",
-    "patients_roll_std_6",
-    "patients_roll_mean_12",
-    "patients_roll_std_12",
-    "patients_roll_mean_24",
-    "patients_roll_std_24",
-    "patients_diff_1",
-    "patients_diff_24",
-    "trend_feature",
-]
-
-ARIMAX_EXOG_COLUMNS = [
-    "day_of_week",
-    "month",
-    "is_weekend",
-    "holiday",
-    "weather",
-    "hour",
-    "hour_sin",
-    "hour_cos",
-    "trend_feature",
-]
-
 FEATURE_COUNT = len(FEATURE_COLUMNS)
 FEATURE_INDEX = {name: idx for idx, name in enumerate(FEATURE_COLUMNS)}
-SCALER_EXPECTED_FEATURES = int(getattr(x_scaler, "n_features_in_", FEATURE_COUNT))
+
+
+def _load_hybrid_weights() -> Tuple[float, float]:
+    paths = get_artifact_paths()
+    try:
+        payload = json.loads(paths.hybrid_config.read_text(encoding="utf-8"))
+    except Exception as e:
+        raise RuntimeError(f"Failed to load hybrid_config.json from {paths.hybrid_config}") from e
+    lstm_w = float(payload.get("lstm_weight", 0.90))
+    arimax_w = float(payload.get("arimax_weight", 0.10))
+    return lstm_w, arimax_w
+
+
+@lru_cache(maxsize=1)
+def _load_forecast_assets() -> Dict[str, Any]:
+    diag = artifact_diagnostics()
+    if diag.get("missing"):
+        raise FileNotFoundError(
+            f"Missing required artifacts: {diag['missing']} (dir={diag.get('artifact_dir')})"
+        )
+
+    paths = get_artifact_paths()
+    lstm_model = load_model(str(paths.lstm_model), compile=False)
+    arimax_model = joblib.load(str(paths.arimax_model))
+    x_scaler = joblib.load(str(paths.x_scaler))
+    y_scaler = joblib.load(str(paths.y_scaler))
+    lstm_w, arimax_w = _load_hybrid_weights()
+
+    scaler_expected_features = int(getattr(x_scaler, "n_features_in_", FEATURE_COUNT))
+
+    return {
+        "lstm_model": lstm_model,
+        "arimax_model": arimax_model,
+        "x_scaler": x_scaler,
+        "y_scaler": y_scaler,
+        "lstm_weight": float(lstm_w),
+        "arimax_weight": float(arimax_w),
+        "scaler_expected_features": scaler_expected_features,
+    }
+
+
+def _get_assets_or_503() -> Dict[str, Any]:
+    try:
+        return _load_forecast_assets()
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Forecasting artifacts not ready: {e}")
 
 ADMIN_MESSAGE_TEMPLATES = [
     {
@@ -234,17 +236,23 @@ def validate_sequence_shape(arr: np.ndarray):
 
 
 def scale_sequence(sequence_array: np.ndarray):
+    assets = _get_assets_or_503()
+    x_scaler = assets["x_scaler"]
+    scaler_expected_features = int(assets["scaler_expected_features"])
+
     flat = sequence_array.reshape(-1, sequence_array.shape[-1])
-    if flat.shape[1] != SCALER_EXPECTED_FEATURES:
+    if flat.shape[1] != scaler_expected_features:
         raise ValueError(
             f"X has {flat.shape[1]} features, but MinMaxScaler is expecting "
-            f"{SCALER_EXPECTED_FEATURES} features as input."
+            f"{scaler_expected_features} features as input."
         )
     scaled_flat = x_scaler.transform(flat)
     return scaled_flat.reshape(sequence_array.shape).astype(np.float32)
 
 
 def inverse_scale_target(pred_scaled: float):
+    assets = _get_assets_or_503()
+    y_scaler = assets["y_scaler"]
     value = np.array([[pred_scaled]], dtype=np.float32)
     return float(y_scaler.inverse_transform(value)[0][0])
 
@@ -255,6 +263,8 @@ def get_next_exog_from_sequence(sequence_array: np.ndarray):
 
 
 def predict_lstm(sequence_array: np.ndarray):
+    assets = _get_assets_or_503()
+    lstm_model = assets["lstm_model"]
     scaled_sequence = scale_sequence(sequence_array)
     x_input = np.array([scaled_sequence], dtype=np.float32)
     pred_scaled = float(lstm_model.predict(x_input, verbose=0)[0][0])
@@ -262,21 +272,26 @@ def predict_lstm(sequence_array: np.ndarray):
 
 
 def predict_arimax(sequence_array: np.ndarray):
+    assets = _get_assets_or_503()
+    arimax_model = assets["arimax_model"]
     next_exog = get_next_exog_from_sequence(sequence_array)
     forecast = arimax_model.forecast(steps=1, exog=next_exog)
     return float(forecast.iloc[0] if hasattr(forecast, "iloc") else forecast[0])
 
 
 def predict_hybrid(sequence_array: np.ndarray):
+    assets = _get_assets_or_503()
     lstm_pred = predict_lstm(sequence_array)
     arimax_pred = predict_arimax(sequence_array)
-    hybrid_prediction = HYBRID_LSTM_WEIGHT * lstm_pred + HYBRID_ARIMAX_WEIGHT * arimax_pred
+    lstm_w = float(assets["lstm_weight"])
+    arimax_w = float(assets["arimax_weight"])
+    hybrid_prediction = lstm_w * lstm_pred + arimax_w * arimax_pred
     return {
         "lstm_prediction": float(lstm_pred),
         "arimax_prediction": float(arimax_pred),
         "hybrid_prediction": float(hybrid_prediction),
-        "lstm_weight": HYBRID_LSTM_WEIGHT,
-        "arimax_weight": HYBRID_ARIMAX_WEIGHT,
+        "lstm_weight": lstm_w,
+        "arimax_weight": arimax_w,
     }
 
 
@@ -486,15 +501,38 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/health/db")
+def health_db():
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return {"status": "ok"}
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"db_unhealthy: {e}")
+
+
 @app.get("/status")
 def system_status():
+    diag = artifact_diagnostics()
+    manifest = load_manifest()
+    weights = None
+
+    if not diag.get("missing"):
+        try:
+            lstm_w, arimax_w = _load_hybrid_weights()
+            weights = {"lstm": float(lstm_w), "arimax": float(arimax_w)}
+        except Exception:
+            weights = None
+
     return {
         "system": "Hospital AI",
         "model": "Hybrid Forecast (LSTM + ARIMAX)",
         "status": "running",
-        "hybrid_weights": {"lstm": HYBRID_LSTM_WEIGHT, "arimax": HYBRID_ARIMAX_WEIGHT},
+        "hybrid_weights": weights or {"lstm": None, "arimax": None},
         "feature_count": FEATURE_COUNT,
         "sequence_length": SEQUENCE_LENGTH,
+        "artifacts": diag,
+        "artifact_manifest": manifest,
     }
 
 
@@ -506,6 +544,11 @@ def get_feature_config():
         "feature_columns": FEATURE_COLUMNS,
         "arimax_exog_columns": ARIMAX_EXOG_COLUMNS,
     }
+
+
+@app.get("/artifacts/manifest")
+def get_artifacts_manifest():
+    return load_manifest()
 
 
 @app.get("/message_templates")
