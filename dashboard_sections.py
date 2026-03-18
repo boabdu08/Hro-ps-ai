@@ -1,42 +1,177 @@
 import os
-import streamlit as st
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import streamlit as st
 
-from api_client import evaluate_model
-from api_client import get_prediction, simulate, explain_prediction, get_optimization, get_latest_sequence, get_feature_config, login_user_api, get_message_templates, get_messages, send_message_api, send_quick_reply_api, get_system_status, evaluate_model, compare_models
+from api_client import explain_prediction, get_feature_config, get_latest_sequence, get_optimization, get_prediction, get_system_status, simulate
+from evaluation_service import build_detailed_predictions_dataframe, build_metrics_dataframe
 from forecast_runtime import generate_multistep_forecast
-from evaluation_service import build_metrics_dataframe, build_detailed_predictions_dataframe
-
-def show_kpi_cards(data):
-    col1, col2, col3, col4 = st.columns(4)
-
-    col1.metric("Total Patients", data.get("patients", 0))
-    col2.metric("Beds Needed", data.get("beds", 0))
-    col3.metric("Doctors Needed", data.get("doctors", 0))
-    col4.metric("Nurses Needed", data.get("nurses", 0))
+from ui_components import alert_box, empty_state, kpi_card, modern_table, section_header
 
 
-def show_resource_optimization_panel(prediction):
-    st.markdown("## 🧩 Advanced Resource Optimization Center")
+def _load_runtime_dataframe():
+    for path in ["engineered_data.csv", "clean_data.csv"]:
+        if os.path.exists(path):
+            df = pd.read_csv(path)
+            if "patients" in df.columns:
+                return df
+    return pd.DataFrame()
 
-    optimization = get_optimization(prediction)
 
-    if optimization is None:
-        st.warning("Optimization service unavailable.")
+def _load_runtime_sequence(df: pd.DataFrame):
+    latest_sequence = get_latest_sequence()
+    feature_config = get_feature_config() or {}
+    feature_columns = feature_config.get("feature_columns", [])
+    sequence_length = int(feature_config.get("sequence_length", 24))
+
+    if latest_sequence is not None:
+        arr = np.array(latest_sequence, dtype=float)
+        expected_shape = (sequence_length, len(feature_columns))
+        if arr.shape == expected_shape:
+            return arr, feature_columns, sequence_length
+
+    if df.empty or not feature_columns:
+        return None, feature_columns, sequence_length
+
+    missing = [c for c in feature_columns if c not in df.columns]
+    if missing:
+        return None, feature_columns, sequence_length
+
+    df = df.copy()
+    for col in feature_columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    df = df.dropna(subset=feature_columns).reset_index(drop=True)
+    if len(df) < sequence_length:
+        return None, feature_columns, sequence_length
+    return df[feature_columns].tail(sequence_length).values.astype(float), feature_columns, sequence_length
+
+
+def get_live_context():
+    df = _load_runtime_dataframe()
+    last_sequence, feature_columns, sequence_length = _load_runtime_sequence(df)
+    if last_sequence is None:
+        return {"ready": False, "reason": "Latest model input sequence could not be loaded.", "df": df}
+    result = get_prediction(last_sequence)
+    if not result:
+        return {"ready": False, "reason": "Prediction API is not reachable.", "df": df}
+
+    patients_idx = feature_columns.index("patients") if "patients" in feature_columns else 0
+    current_patients = int(last_sequence[-1][patients_idx])
+    prediction = float(result["predicted_patients_next_hour"])
+    optimization = get_optimization(prediction) or {}
+    forecast_values = generate_multistep_forecast(last_sequence=last_sequence, predict_fn=get_prediction, steps=24)
+    peak = float(max(forecast_values)) if forecast_values else prediction
+
+    return {
+        "ready": True,
+        "df": df,
+        "last_sequence": last_sequence,
+        "feature_columns": feature_columns,
+        "sequence_length": sequence_length,
+        "prediction_result": result,
+        "prediction": prediction,
+        "current_patients": current_patients,
+        "optimization": optimization,
+        "peak": peak,
+        "forecast_values": forecast_values,
+    }
+
+
+def show_overview():
+    section_header("🏥 Hospital Overview", "Live system summary, pressure status, and AI forecast snapshot.")
+    ctx = get_live_context()
+    if not ctx["ready"]:
+        empty_state(ctx["reason"])
         return
 
+    result = ctx["prediction_result"]
+    optimization = ctx["optimization"]
+    summary = optimization.get("summary", {})
+
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        kpi_card("Current Patients", ctx["current_patients"], status="normal")
+    with c2:
+        kpi_card("Next Hour Forecast", int(ctx["prediction"]), status="normal")
+    with c3:
+        kpi_card("Beds Needed", int(summary.get("beds_needed_total", result["recommended_resources"]["beds_needed"])), status="warning")
+    with c4:
+        emergency_level = result.get("emergency_level", "LOW")
+        status = "critical" if emergency_level == "HIGH" else "warning" if emergency_level == "MEDIUM" else "normal"
+        kpi_card("Emergency Level", emergency_level, status=status)
+
+    if emergency_level == "HIGH":
+        alert_box("🚨 Critical alert: high emergency load expected. Immediate capacity review recommended.", "critical")
+    elif emergency_level == "MEDIUM":
+        alert_box("⚠️ Moderate emergency pressure detected. Monitor staffing and bed usage closely.", "warning")
+    else:
+        alert_box("✅ System stable. No major emergency pressure detected.", "success")
+
+    st.markdown("### Resource Snapshot")
+    s1, s2, s3 = st.columns(3)
+    s1.metric("Beds Needed", int(result["recommended_resources"]["beds_needed"]))
+    s2.metric("Doctors Needed", int(result["recommended_resources"]["doctors_needed"]))
+    s3.metric("Nurses Needed", int(result["recommended_resources"].get("nurses_needed", 0)))
+
+    allocations = optimization.get("department_allocations", [])
+    if allocations:
+        st.markdown("### Top Priority Departments")
+        alloc_df = pd.DataFrame(allocations).head(5)
+        modern_table(alloc_df[[c for c in ["department", "predicted_patients", "status", "priority_score"] if c in alloc_df.columns]])
+
+
+def show_forecast():
+    section_header("📈 Forecast & Demand Analysis", "Historical flow, 24-hour AI forecast, and actual vs predicted view.")
+    ctx = get_live_context()
+    if not ctx["ready"]:
+        empty_state(ctx["reason"])
+        return
+
+    df = ctx["df"]
+    predictions = ctx["forecast_values"]
+    if len(predictions) == 0:
+        empty_state("Forecast unavailable.")
+        return
+
+    forecast_df = pd.DataFrame({"hour": range(1, len(predictions) + 1), "forecast": predictions})
+    col1, col2 = st.columns(2)
+    with col1:
+        if not df.empty:
+            hist_df = df.copy().reset_index(drop=True)
+            hist_df["time_index"] = hist_df.index
+            fig_hist = px.line(hist_df, x="time_index", y="patients", title="Historical Patients")
+            fig_hist.update_layout(height=350, xaxis_title="Time Index", yaxis_title="Patients")
+            st.plotly_chart(fig_hist, use_container_width=True)
+        else:
+            empty_state("Historical data unavailable.")
+    with col2:
+        fig_forecast = px.line(forecast_df, x="hour", y="forecast", markers=True, title="24-Hour AI Forecast")
+        fig_forecast.update_layout(height=350, xaxis_title="Next Hours", yaxis_title="Predicted Patients")
+        st.plotly_chart(fig_forecast, use_container_width=True)
+
+    if not df.empty:
+        actual = df["patients"].tail(len(predictions)).values.astype(float)
+        forecast_vals = np.array(predictions, dtype=float)
+        min_len = min(len(actual), len(forecast_vals))
+        compare_df = pd.DataFrame({"Actual": actual[:min_len], "Forecast": forecast_vals[:min_len]})
+        fig_compare = px.line(compare_df, title="Actual vs Forecast")
+        fig_compare.update_layout(height=350, xaxis_title="Time Window", yaxis_title="Patients")
+        st.plotly_chart(fig_compare, use_container_width=True)
+
+
+def show_optimization():
+    section_header("🧩 Advanced Resource Optimization Center", "Department allocations, shortage ranking, and AI-generated recommendations.")
+    ctx = get_live_context()
+    if not ctx["ready"]:
+        empty_state(ctx["reason"])
+        return
+    optimization = ctx["optimization"]
     summary = optimization.get("summary", {})
     allocations = optimization.get("department_allocations", [])
     recommendations = optimization.get("recommendations", [])
-
-    if not allocations:
-        st.info("No optimization data available.")
-        return
-
-    alloc_df = pd.DataFrame(allocations)
+    actions = optimization.get("actions", [])
 
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Beds Needed Total", int(summary.get("beds_needed_total", 0)))
@@ -44,537 +179,113 @@ def show_resource_optimization_panel(prediction):
     c3.metric("Nurses Needed Total", int(summary.get("nurses_needed_total", 0)))
     c4.metric("Top Priority Dept", str(summary.get("top_priority_department", "-")))
 
-    st.write("### Department Allocation Table")
-    cols_to_show = [
-        "department",
-        "predicted_patients",
-        "beds_capacity",
-        "beds_required",
-        "bed_shortage",
-        "doctors_capacity",
-        "doctors_required",
-        "doctor_shortage",
-        "nurses_capacity",
-        "nurses_required",
-        "nurse_shortage",
-        "status",
-        "priority_score",
-    ]
-    existing_cols = [c for c in cols_to_show if c in alloc_df.columns]
+    if allocations:
+        alloc_df = pd.DataFrame(allocations)
+        modern_table(alloc_df)
+        fig_priority = px.bar(alloc_df, x="department", y="priority_score", color="status", title="Priority Score by Department")
+        fig_priority.update_layout(height=400)
+        st.plotly_chart(fig_priority, use_container_width=True)
+        shortage_df = alloc_df[["department", "bed_shortage", "doctor_shortage", "nurse_shortage"]].copy()
+        fig_shortage = px.bar(shortage_df, x="department", y=["bed_shortage", "doctor_shortage", "nurse_shortage"], barmode="group", title="Shortage Overview by Department")
+        fig_shortage.update_layout(height=420)
+        st.plotly_chart(fig_shortage, use_container_width=True)
+    else:
+        empty_state("No optimization data available.")
 
-    st.dataframe(
-        alloc_df[existing_cols],
-        use_container_width=True,
-        hide_index=True,
-    )
+    st.markdown("### Recommendations")
+    if recommendations:
+        for rec in recommendations:
+            st.info(rec)
+    else:
+        empty_state("No recommendations available.")
 
-    st.write("### Department Priority Ranking")
-    fig_priority = px.bar(
-        alloc_df,
-        x="department",
-        y="priority_score",
-        color="status",
-        title="Priority Score by Department",
-    )
-    fig_priority.update_layout(height=400)
-    st.plotly_chart(fig_priority, use_container_width=True)
-
-    st.write("### Bed / Doctor / Nurse Shortages")
-    shortage_df = alloc_df[
-        ["department", "bed_shortage", "doctor_shortage", "nurse_shortage"]
-    ].copy()
-
-    fig_shortage = px.bar(
-        shortage_df,
-        x="department",
-        y=["bed_shortage", "doctor_shortage", "nurse_shortage"],
-        barmode="group",
-        title="Shortage Overview by Department",
-    )
-    fig_shortage.update_layout(height=420)
-    st.plotly_chart(fig_shortage, use_container_width=True)
-
-    st.write("### Optimization Recommendations")
-    for rec in recommendations:
-        st.info(rec)
+    st.markdown("### Suggested Actions")
+    if actions:
+        modern_table(pd.DataFrame(actions))
+    else:
+        empty_state("No explicit actions generated.")
 
 
-def show_top_kpis(current_patients, prediction, peak, emergency_level, beds, doctors):
-    st.markdown("## 🏥 System Overview")
+def show_operations_center():
+    section_header("⚙️ Operations Center", "Operational planning, simulation, and department capacity views.")
+    ctx = get_live_context()
+    if not ctx["ready"]:
+        empty_state(ctx["reason"])
+        return
 
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
-    c1.metric("Current Patients", int(current_patients))
-    c2.metric("Next Hour", int(prediction))
-    c3.metric("Peak Load", int(peak))
-    c4.metric("Emergency Level", emergency_level)
-    c5.metric("Beds Needed", int(beds))
-    c6.metric("Doctors Needed", int(doctors))
-
-
-def show_forecast_panel(df, last_sequence):
-    st.markdown("## 📈 Forecast & Demand Analysis")
-
-    predictions = generate_multistep_forecast(
-        last_sequence=last_sequence,
-        predict_fn=get_prediction,
-        steps=24,
-    )
-
-    if len(predictions) == 0:
-        st.warning("Forecast unavailable")
-        return None, []
-
-    forecast_df = pd.DataFrame({
-        "hour": range(1, len(predictions) + 1),
-        "forecast": predictions,
-    })
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.write("### Historical Patient Flow")
-        hist_df = df.copy().reset_index(drop=True)
-        hist_df["time_index"] = hist_df.index
-
-        fig_hist = px.line(
-            hist_df,
-            x="time_index",
-            y="patients",
-            title="Historical Patients",
-        )
-        fig_hist.update_layout(
-            height=350,
-            xaxis_title="Time Index",
-            yaxis_title="Patients",
-            margin=dict(l=20, r=20, t=50, b=20),
-        )
-        st.plotly_chart(fig_hist, use_container_width=True)
-
-    with col2:
-        st.write("### 24-Hour AI Forecast")
-        fig_forecast = px.line(
-            forecast_df,
-            x="hour",
-            y="forecast",
-            markers=True,
-            title="Predicted Patient Demand",
-        )
-        fig_forecast.update_layout(
-            height=350,
-            xaxis_title="Next Hours",
-            yaxis_title="Predicted Patients",
-            margin=dict(l=20, r=20, t=50, b=20),
-        )
-        st.plotly_chart(fig_forecast, use_container_width=True)
-
-    st.write("### Actual vs Forecast Comparison (Recent Window)")
-
-    actual = df["patients"].tail(len(predictions)).values.astype(float)
-    forecast_vals = np.array(predictions, dtype=float)
-
-    min_len = min(len(actual), len(forecast_vals))
-    actual = actual[:min_len]
-    forecast_vals = forecast_vals[:min_len]
-
-    compare_df = pd.DataFrame({
-        "Actual": actual,
-        "Forecast": forecast_vals,
-    })
-
-    fig_compare = px.line(compare_df, title="Actual vs Forecast")
-    fig_compare.update_layout(
-        height=350,
-        xaxis_title="Time Window",
-        yaxis_title="Patients",
-        margin=dict(l=20, r=20, t=50, b=20),
-    )
-    st.plotly_chart(fig_compare, use_container_width=True)
-
-    return forecast_df, predictions
-
-
-def show_capacity_panel(resources, emergency_level):
-    st.markdown("## 🚨 Capacity & Alerts")
-
-    col1, col2 = st.columns([1, 1])
-
-    with col1:
-        beds_needed = int(resources.get("beds_needed", 0))
-        doctors_needed = int(resources.get("doctors_needed", 0))
-        nurses_needed = int(resources.get("nurses_needed", 0))
-
-        capacity = 120
-        occupancy = (beds_needed / capacity) * 100 if capacity > 0 else 0
-
-        fig = go.Figure(go.Indicator(
-            mode="gauge+number",
-            value=occupancy,
-            title={"text": "Bed Occupancy %"},
-            gauge={
-                "axis": {"range": [0, 100]},
-                "bar": {"thickness": 0.25},
-                "steps": [
-                    {"range": [0, 60], "color": "#d9f2d9"},
-                    {"range": [60, 80], "color": "#fff3cd"},
-                    {"range": [80, 100], "color": "#f8d7da"},
-                ],
-                "threshold": {
-                    "line": {"width": 4},
-                    "thickness": 0.75,
-                    "value": 85,
-                },
-            },
-        ))
-
-        fig.update_layout(height=350, margin=dict(l=20, r=20, t=60, b=20))
-        st.plotly_chart(fig, use_container_width=True)
-
-        mini1, mini2, mini3 = st.columns(3)
-        mini1.metric("Beds", beds_needed)
-        mini2.metric("Doctors", doctors_needed)
-        mini3.metric("Nurses", nurses_needed)
-
-    with col2:
-        st.write("### Capacity Alert Center")
-
-        if emergency_level == "HIGH":
-            st.error("High emergency load detected")
-        elif emergency_level == "MEDIUM":
-            st.warning("Moderate emergency pressure")
-        else:
-            st.success("Emergency load is stable")
-
-        if beds_needed > 120:
-            st.error("Expected bed shortage")
-        else:
-            st.success("Bed capacity is sufficient")
-
-        if doctors_needed > 15:
-            st.warning("Doctor shortage expected")
-        else:
-            st.success("Doctor capacity is sufficient")
-
-        if nurses_needed > 25:
-            st.warning("Nurse shortage expected")
-        else:
-            st.success("Nurse capacity is sufficient")
-
-
-def show_digital_twin_panel(prediction):
-    st.markdown("## 🧠 Digital Twin Simulation")
-
+    prediction = ctx["prediction"]
     c1, c2, c3 = st.columns(3)
-
-    demand = c1.slider("Demand Increase %", 0, 100, 20, key="dt_demand")
-    beds = c2.slider("Available Beds", 50, 300, 120, key="dt_beds")
-    doctors = c3.slider("Available Doctors", 5, 50, 15, key="dt_doctors")
-
+    demand = c1.slider("Demand Increase %", 0, 100, 20, key="ops_demand")
+    beds = c2.slider("Available Beds", 50, 300, 120, key="ops_beds")
+    doctors = c3.slider("Available Doctors", 5, 50, 15, key="ops_doctors")
     sim = simulate(prediction, beds, doctors, demand)
-
     if sim:
-        st.write("### Scenario Simulation Results")
-
         s1, s2, s3 = st.columns(3)
         s1.metric("Simulated Patients", int(sim["simulated_patients"]))
         s2.metric("Emergency Level", sim["emergency_level"])
         s3.metric("Doctor Shortage", int(sim["doctor_shortage"]))
-
         left, right = st.columns(2)
-
         with left:
             st.write("#### Bed Allocation")
             st.json(sim["bed_allocation"])
-
         with right:
             st.write("#### Recommended Resources")
             st.json(sim["recommended_resources"])
-    else:
-        st.warning("Simulation API unavailable.")
-
-
-def show_operations_panel(prediction):
-    st.markdown("## ⚙️ Operations Center")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.write("### Operating Room Scheduling")
-
-        surgeries = st.slider("Expected Surgeries", 0, 100, 20, key="ops_surgeries")
-        rooms = st.slider("Operating Rooms", 1, 10, 4, key="ops_rooms")
-
-        schedule = pd.DataFrame({
-            "Room": [f"OR-{i+1}" for i in range(rooms)],
-            "Surgeries": [
-                surgeries // rooms + (1 if i < surgeries % rooms else 0)
-                for i in range(rooms)
-            ],
-        })
-
-        st.dataframe(schedule, use_container_width=True, hide_index=True)
-
-    with col2:
-        st.write("### Resource Optimizer")
-
-        doctors = max(1, int(np.ceil(prediction / 8)))
-        nurses = max(1, int(np.ceil(prediction / 4)))
-        beds = int(np.ceil(prediction * 1.1))
-
-        opt_df = pd.DataFrame({
-            "Resource": ["Doctors", "Nurses", "Beds"],
-            "Recommended": [doctors, nurses, beds],
-        })
-
-        fig_bar = px.bar(
-            opt_df,
-            x="Resource",
-            y="Recommended",
-            title="Recommended Resources",
-        )
-        fig_bar.update_layout(height=350, margin=dict(l=20, r=20, t=50, b=20))
-        st.plotly_chart(fig_bar, use_container_width=True)
-
-
-def show_hospital_map_panel(prediction):
-    st.markdown("## 🏥 Department Status")
 
     hospital_map = pd.DataFrame({
         "Department": ["ER", "ICU", "General Ward", "Surgery", "Radiology"],
         "Capacity": [30, 20, 80, 10, 15],
-        "Occupied": [
-            int(prediction * 0.30),
-            int(prediction * 0.10),
-            int(prediction * 0.45),
-            int(prediction * 0.10),
-            int(prediction * 0.05),
-        ],
+        "Occupied": [int(prediction * 0.30), int(prediction * 0.10), int(prediction * 0.45), int(prediction * 0.10), int(prediction * 0.05)],
     })
-
     hospital_map["Available"] = hospital_map["Capacity"] - hospital_map["Occupied"]
-
-    st.dataframe(hospital_map, use_container_width=True, hide_index=True)
-
-    fig_dept = px.bar(
-        hospital_map,
-        x="Department",
-        y=["Capacity", "Occupied", "Available"],
-        barmode="group",
-        title="Department Capacity Overview",
-    )
-    fig_dept.update_layout(height=400, margin=dict(l=20, r=20, t=50, b=20))
+    modern_table(hospital_map)
+    fig_dept = px.bar(hospital_map, x="Department", y=["Capacity", "Occupied", "Available"], barmode="group", title="Department Capacity Overview")
+    fig_dept.update_layout(height=400)
     st.plotly_chart(fig_dept, use_container_width=True)
 
 
-def show_heatmap(df):
-    st.markdown("## 🔥 Weekly Patient Heatmap")
-
-    heatmap_data = pd.pivot_table(
-        df,
-        values="patients",
-        index="day_of_week",
-        columns="month",
-        aggfunc="mean",
-    )
-
-    day_labels = {
-        0: "Mon",
-        1: "Tue",
-        2: "Wed",
-        3: "Thu",
-        4: "Fri",
-        5: "Sat",
-        6: "Sun",
-    }
-
-    heatmap_data = heatmap_data.rename(index=day_labels)
-
-    fig = px.imshow(
-        heatmap_data,
-        labels=dict(x="Month", y="Day of Week", color="Patient Load"),
-        aspect="auto",
-        title="Patient Load by Day and Month",
-        color_continuous_scale=[
-            [0.0, "green"],
-            [0.5, "yellow"],
-            [1.0, "red"],
-        ],
-    )
-
-    fig.update_layout(
-        height=450,
-        margin=dict(l=20, r=20, t=50, b=20),
-        coloraxis_colorbar=dict(title="Load"),
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-    st.caption("Green = Stable load • Yellow = Warning level • Red = High pressure")
-
-
-def show_explainability_panel(last_sequence):
-    st.markdown("## 🔬 Explainable AI Panel")
-
-    explanation = explain_prediction(last_sequence)
-
-    if explanation is None or "feature_impacts" not in explanation:
-        st.warning("Explainability service unavailable.")
-        return
-
-    base_prediction = explanation["base_prediction"]
-    impacts = explanation["feature_impacts"]
-
-    st.metric("Base Prediction", int(base_prediction))
-
-    impact_df = pd.DataFrame(impacts)
-    impact_df["abs_impact"] = impact_df["impact"].abs()
-
-    fig = px.bar(
-        impact_df,
-        x="feature",
-        y="impact",
-        title="Feature Impact on Prediction",
-    )
-    fig.update_layout(height=420, margin=dict(l=20, r=20, t=50, b=20))
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.write("### Ranked Feature Impacts")
-    st.dataframe(
-        impact_df.sort_values(by="abs_impact", ascending=False),
-        use_container_width=True,
-        hide_index=True,
-    )
-
-
-def show_hybrid_model_panel(last_sequence):
-    st.markdown("## 🤖 Hybrid Forecast Breakdown")
-
-    result = get_prediction(last_sequence)
-
-    if not result:
-        st.warning("Prediction API unavailable.")
-        return
-
-    c1, c2, c3 = st.columns(3)
-    c1.metric("LSTM Prediction", round(float(result.get("lstm_prediction", 0)), 2))
-    c2.metric("ARIMAX Prediction", round(float(result.get("arimax_prediction", 0)), 2))
-    c3.metric("Hybrid Prediction", round(float(result.get("hybrid_prediction", 0)), 2))
-
-    weight_df = pd.DataFrame({
-        "Model": ["LSTM", "ARIMAX"],
-        "Weight": [
-            float(result.get("lstm_weight", 0)),
-            float(result.get("arimax_weight", 0)),
-        ],
-    })
-
-    fig = px.bar(
-        weight_df,
-        x="Model",
-        y="Weight",
-        title="Hybrid Weight Distribution",
-    )
-    fig.update_layout(height=350, margin=dict(l=20, r=20, t=50, b=20))
-    st.plotly_chart(fig, use_container_width=True)
-
-
-def show_forecast_evaluation_panel():
-    st.markdown("## 📏 Forecast Evaluation Panel")
-
-    split = st.radio(
-        "Evaluation Split",
-        ["test", "validation"],
-        horizontal=True,
-        key="eval_split_selector",
-    )
-
+def show_evaluation_panel():
+    section_header("📏 Forecast Evaluation Panel", "Model comparison using saved v2 outputs.")
+    split = st.radio("Evaluation Split", ["test", "validation"], horizontal=True, key="eval_split_selector")
     eval_df = build_metrics_dataframe(split=split)
     detailed_df = build_detailed_predictions_dataframe(split=split)
-
     if eval_df.empty:
-        st.warning("Evaluation files not found. Run the v2 training pipeline first.")
+        empty_state("Evaluation files not found. Run the v2 training pipeline first.")
         return
-
-    st.write("### Model Performance Comparison")
-    st.dataframe(eval_df.round(4), use_container_width=True, hide_index=True)
-
+    modern_table(eval_df.round(4))
     best_model_row = eval_df.sort_values("RMSE", ascending=True).iloc[0]
     st.success(
-        f"Best model currently: **{best_model_row['Model']}** "
-        f"(RMSE = {best_model_row['RMSE']:.4f}, "
-        f"MAE = {best_model_row['MAE']:.4f}, "
-        f"MAPE = {best_model_row['MAPE']:.2f}%)"
+        f"Best model currently: {best_model_row['Model']} | RMSE = {best_model_row['RMSE']:.4f}, "
+        f"MAE = {best_model_row['MAE']:.4f}, MAPE = {best_model_row['MAPE']:.2f}%"
     )
-
-    fig_metrics = px.bar(
-        eval_df,
-        x="Model",
-        y=["MAE", "RMSE", "MAPE"],
-        barmode="group",
-        title="Forecast Error Metrics",
-    )
-    fig_metrics.update_layout(height=420, margin=dict(l=20, r=20, t=50, b=20))
+    fig_metrics = px.bar(eval_df, x="Model", y=["MAE", "RMSE", "MAPE"], barmode="group", title="Forecast Error Metrics")
+    fig_metrics.update_layout(height=420)
     st.plotly_chart(fig_metrics, use_container_width=True)
-
     required_cols = ["time_index", "actual", "lstm_pred", "arimax_pred", "hybrid_pred"]
     if not detailed_df.empty and all(col in detailed_df.columns for col in required_cols):
-        st.write("### Actual vs Predicted")
-        compare_df = detailed_df[required_cols].copy()
-
-        fig_compare = px.line(
-            compare_df,
-            x="time_index",
-            y=["actual", "lstm_pred", "arimax_pred", "hybrid_pred"],
-            title="Actual vs Forecasted Patient Flow",
-        )
-        fig_compare.update_layout(height=450, margin=dict(l=20, r=20, t=50, b=20))
+        fig_compare = px.line(detailed_df[required_cols], x="time_index", y=["actual", "lstm_pred", "arimax_pred", "hybrid_pred"], title="Actual vs Forecasted Patient Flow")
+        fig_compare.update_layout(height=450)
         st.plotly_chart(fig_compare, use_container_width=True)
-
-        st.write("### Detailed Predictions")
-        st.dataframe(compare_df.tail(50), use_container_width=True, hide_index=True)
+        modern_table(detailed_df[required_cols].tail(50))
     else:
-        st.warning("Detailed evaluation outputs are not available yet.")
+        empty_state("Detailed evaluation outputs are not available yet.")
 
 
-
-
-
-def show_evaluation_panel(actual, lstm, arimax, hybrid):
-    st.markdown("## 📊 Model Evaluation")
-
-    metrics = evaluate_model(actual, lstm, arimax, hybrid)
-
-    col1, col2, col3 = st.columns(3)
-
-    for i, model in enumerate(metrics):
-        col = [col1, col2, col3][i]
-        col.metric(f"{model} MAE", metrics[model]["MAE"])
-        col.metric(f"{model} RMSE", metrics[model]["RMSE"])
-        col.metric(f"{model} MAPE", metrics[model]["MAPE"])
-
-    # graph
-    fig = go.Figure()
-
-    fig.add_trace(go.Scatter(y=actual, name="Actual"))
-    fig.add_trace(go.Scatter(y=lstm, name="LSTM"))
-    fig.add_trace(go.Scatter(y=arimax, name="ARIMAX"))
-    fig.add_trace(go.Scatter(y=hybrid, name="Hybrid"))
-
+def show_explainability_panel():
+    section_header("🔬 Explainable AI Panel")
+    ctx = get_live_context()
+    if not ctx["ready"]:
+        empty_state(ctx["reason"])
+        return
+    explanation = explain_prediction(ctx["last_sequence"])
+    if explanation is None or "feature_impacts" not in explanation:
+        empty_state("Explainability service unavailable.")
+        return
+    st.metric("Base Prediction", int(explanation["base_prediction"]))
+    impact_df = pd.DataFrame(explanation["feature_impacts"])
+    impact_df["abs_impact"] = impact_df["impact"].abs()
+    fig = px.bar(impact_df, x="feature", y="impact", title="Feature Impact on Prediction")
+    fig.update_layout(height=420)
     st.plotly_chart(fig, use_container_width=True)
-
-def dynamic_weight(lstm_error, arimax_error):
-    total = lstm_error + arimax_error
-    return arimax_error / total
-
-def show_optimization_v2(opt):
-    st.markdown("## 🧠 Advanced Optimization")
-    opt = optimize_resources(prediction)
-
-    show_optimization_v2(opt)
-    st.write("### 🔥 Pressure Score")
-    for d, p in opt["pressure"].items():
-        st.metric(d, round(p, 2))
-
-    st.write("### ⚙️ Actions")
-    for act in opt["actions"]:
-        st.warning(f"{act['type'].upper()} → {act['action']}")
-
+    modern_table(impact_df.sort_values(by="abs_impact", ascending=False))
 

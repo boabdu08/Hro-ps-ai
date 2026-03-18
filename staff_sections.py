@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from database import SessionLocal
 from models import Appointment, ORBooking, StaffShift
+from ui_components import empty_state, modern_table, section_header
 
 
 def _normalize(value, default=""):
@@ -17,8 +18,6 @@ def _normalize(value, default=""):
 
 def _safe_int(value, default=0):
     try:
-        if value is None:
-            return default
         return int(value)
     except Exception:
         return default
@@ -27,122 +26,79 @@ def _safe_int(value, default=0):
 def _bootstrap_shifts_from_csv_if_needed(db: Session):
     if db.query(StaffShift).count() > 0:
         return
-
     path = "shifts.csv"
     if not os.path.exists(path):
         return
-
     df = pd.read_csv(path)
     if df.empty:
         return
-
-    required_cols = [
-        "staff_username",
-        "name",
-        "role",
-        "department",
-        "shift_date",
-        "shift_type",
-        "status",
-    ]
+    required_cols = ["staff_username", "name", "role", "department", "shift_date", "shift_type", "status"]
     for col in required_cols:
         if col not in df.columns:
             df[col] = ""
-
     for _, row in df.iterrows():
-        db.add(
-            StaffShift(
-                staff_username=_normalize(row.get("staff_username")),
-                name=_normalize(row.get("name")),
-                role=_normalize(row.get("role")),
-                department=_normalize(row.get("department")),
-                shift_date=_normalize(row.get("shift_date")),
-                shift_type=_normalize(row.get("shift_type")),
-                status=_normalize(row.get("status")),
-            )
-        )
+        db.add(StaffShift(
+            staff_username=_normalize(row.get("staff_username")),
+            name=_normalize(row.get("name")),
+            role=_normalize(row.get("role")),
+            department=_normalize(row.get("department")),
+            shift_date=_normalize(row.get("shift_date")),
+            shift_type=_normalize(row.get("shift_type")),
+            status=_normalize(row.get("status")),
+        ))
     db.commit()
 
 
 def _bootstrap_or_from_csv_if_needed(db: Session):
     if db.query(ORBooking).count() > 0:
         return
-
     path = "or_bookings.csv"
     if not os.path.exists(path):
         return
-
     df = pd.read_csv(path)
     if df.empty:
         return
-
-    required_cols = [
-        "booking_id",
-        "room",
-        "doctor",
-        "department",
-        "date",
-        "time_slot",
-        "procedure",
-        "status",
-    ]
+    required_cols = ["booking_id", "room", "doctor", "department", "date", "time_slot", "procedure", "status"]
     for col in required_cols:
         if col not in df.columns:
             df[col] = ""
-
     for _, row in df.iterrows():
-        db.add(
-            ORBooking(
-                booking_id=_normalize(row.get("booking_id")),
-                room=_normalize(row.get("room")),
-                doctor=_normalize(row.get("doctor")),
-                department=_normalize(row.get("department")),
-                date=_normalize(row.get("date")),
-                time_slot=_normalize(row.get("time_slot")),
-                procedure=_normalize(row.get("procedure")),
-                status=_normalize(row.get("status")),
-            )
-        )
+        db.add(ORBooking(
+            booking_id=_normalize(row.get("booking_id")),
+            room=_normalize(row.get("room")),
+            doctor=_normalize(row.get("doctor")),
+            department=_normalize(row.get("department")),
+            date=_normalize(row.get("date")),
+            time_slot=_normalize(row.get("time_slot")),
+            procedure=_normalize(row.get("procedure")),
+            status=_normalize(row.get("status")),
+        ))
     db.commit()
 
 
 def _bootstrap_appointments_from_csv_if_needed(db: Session):
     if db.query(Appointment).count() > 0:
         return
-
     path = "appointments.csv"
     if not os.path.exists(path):
         return
-
     df = pd.read_csv(path)
     if df.empty:
         return
-
-    required_cols = [
-        "appointment_id",
-        "department",
-        "doctor",
-        "date",
-        "time_slot",
-        "patient_count",
-        "status",
-    ]
+    required_cols = ["appointment_id", "department", "doctor", "date", "time_slot", "patient_count", "status"]
     for col in required_cols:
         if col not in df.columns:
             df[col] = ""
-
     for _, row in df.iterrows():
-        db.add(
-            Appointment(
-                appointment_id=_normalize(row.get("appointment_id")),
-                department=_normalize(row.get("department")),
-                doctor=_normalize(row.get("doctor")),
-                date=_normalize(row.get("date")),
-                time_slot=_normalize(row.get("time_slot")),
-                patient_count=_safe_int(row.get("patient_count"), 0),
-                status=_normalize(row.get("status")),
-            )
-        )
+        db.add(Appointment(
+            appointment_id=_normalize(row.get("appointment_id")),
+            department=_normalize(row.get("department")),
+            doctor=_normalize(row.get("doctor")),
+            date=_normalize(row.get("date")),
+            time_slot=_normalize(row.get("time_slot")),
+            patient_count=_safe_int(row.get("patient_count"), 0),
+            status=_normalize(row.get("status")),
+        ))
     db.commit()
 
 
@@ -150,9 +106,8 @@ def _load_shifts_df() -> pd.DataFrame:
     db = SessionLocal()
     try:
         _bootstrap_shifts_from_csv_if_needed(db)
-
         rows = db.query(StaffShift).all()
-        data = [
+        return pd.DataFrame([
             {
                 "staff_username": _normalize(row.staff_username),
                 "name": _normalize(row.name),
@@ -163,8 +118,7 @@ def _load_shifts_df() -> pd.DataFrame:
                 "status": _normalize(row.status),
             }
             for row in rows
-        ]
-        return pd.DataFrame(data)
+        ])
     finally:
         db.close()
 
@@ -173,9 +127,8 @@ def _load_or_df() -> pd.DataFrame:
     db = SessionLocal()
     try:
         _bootstrap_or_from_csv_if_needed(db)
-
         rows = db.query(ORBooking).all()
-        data = [
+        return pd.DataFrame([
             {
                 "booking_id": _normalize(row.booking_id),
                 "room": _normalize(row.room),
@@ -187,8 +140,7 @@ def _load_or_df() -> pd.DataFrame:
                 "status": _normalize(row.status),
             }
             for row in rows
-        ]
-        return pd.DataFrame(data)
+        ])
     finally:
         db.close()
 
@@ -197,9 +149,8 @@ def _load_appointments_df() -> pd.DataFrame:
     db = SessionLocal()
     try:
         _bootstrap_appointments_from_csv_if_needed(db)
-
         rows = db.query(Appointment).all()
-        data = [
+        df = pd.DataFrame([
             {
                 "appointment_id": _normalize(row.appointment_id),
                 "department": _normalize(row.department),
@@ -210,8 +161,7 @@ def _load_appointments_df() -> pd.DataFrame:
                 "status": _normalize(row.status),
             }
             for row in rows
-        ]
-        df = pd.DataFrame(data)
+        ])
         if not df.empty:
             df["patient_count"] = pd.to_numeric(df["patient_count"], errors="coerce").fillna(0)
         return df
@@ -220,131 +170,75 @@ def _load_appointments_df() -> pd.DataFrame:
 
 
 def show_my_shifts(username, role):
-    st.markdown("## 🕒 My Shifts")
-
+    section_header("🕒 My Shifts")
     df = _load_shifts_df()
     if df.empty:
-        st.info("No shifts assigned.")
+        empty_state("No shifts assigned.")
         return
-
     my_shifts = df[df["staff_username"] == username]
-
     if my_shifts.empty:
-        st.info("No shifts assigned.")
+        empty_state("No shifts assigned.")
         return
-
-    st.dataframe(my_shifts, use_container_width=True, hide_index=True)
-
+    modern_table(my_shifts)
     shift_count = my_shifts.groupby("shift_type").size().reset_index(name="count")
-
-    fig = px.bar(
-        shift_count,
-        x="shift_type",
-        y="count",
-        title="My Shift Distribution",
-    )
+    fig = px.bar(shift_count, x="shift_type", y="count", title="My Shift Distribution")
     fig.update_layout(height=350)
     st.plotly_chart(fig, use_container_width=True)
 
 
 def show_all_shifts():
-    st.markdown("## 👥 Staff Shift Management")
-
+    section_header("👥 Staff Shift Management")
     df = _load_shifts_df()
-
     if df.empty:
-        st.info("No shifts available.")
+        empty_state("No shifts available.")
         return
-
-    st.dataframe(df, use_container_width=True, hide_index=True)
-
+    modern_table(df)
     summary = df.groupby(["department", "shift_type"]).size().reset_index(name="assigned_staff")
-
-    fig = px.bar(
-        summary,
-        x="department",
-        y="assigned_staff",
-        color="shift_type",
-        barmode="group",
-        title="Shift Allocation by Department",
-    )
+    fig = px.bar(summary, x="department", y="assigned_staff", color="shift_type", barmode="group", title="Shift Allocation by Department")
     fig.update_layout(height=400)
     st.plotly_chart(fig, use_container_width=True)
 
 
 def show_or_bookings(role, doctor_name=None):
-    st.markdown("## 🏥 Operating Room Bookings")
-
+    section_header("🏥 Operating Room Bookings")
     df = _load_or_df()
-
     if role == "doctor" and doctor_name:
         df = df[df["doctor"] == doctor_name]
-
     if df.empty:
-        st.info("No OR bookings available.")
+        empty_state("No OR bookings available.")
         return
-
-    st.dataframe(df, use_container_width=True, hide_index=True)
-
+    modern_table(df)
     booking_summary = df.groupby(["room", "status"]).size().reset_index(name="count")
-
-    fig = px.bar(
-        booking_summary,
-        x="room",
-        y="count",
-        color="status",
-        barmode="group",
-        title="OR Booking Status by Room",
-    )
+    fig = px.bar(booking_summary, x="room", y="count", color="status", barmode="group", title="OR Booking Status by Room")
     fig.update_layout(height=350)
     st.plotly_chart(fig, use_container_width=True)
 
 
 def show_appointments(role, department=None, doctor_name=None):
-    st.markdown("## 📅 Appointments & Clinic Bookings")
-
+    section_header("📅 Appointments & Clinic Bookings")
     df = _load_appointments_df()
-
     if role == "doctor" and doctor_name:
         df = df[df["doctor"] == doctor_name]
     elif role == "nurse" and department:
         df = df[df["department"] == department]
-
     if df.empty:
-        st.info("No appointments available.")
+        empty_state("No appointments available.")
         return
-
-    st.dataframe(df, use_container_width=True, hide_index=True)
-
-    fig = px.bar(
-        df,
-        x="time_slot",
-        y="patient_count",
-        color="status",
-        title="Patient Load by Appointment Slot",
-    )
+    modern_table(df)
+    fig = px.bar(df, x="time_slot", y="patient_count", color="status", title="Patient Load by Appointment Slot")
     fig.update_layout(height=350)
     st.plotly_chart(fig, use_container_width=True)
 
 
 def show_admin_appointments_overview():
-    st.markdown("## 📊 Appointment Management Overview")
-
+    section_header("📊 Appointment Management Overview")
     df = _load_appointments_df()
-
     if df.empty:
-        st.info("No appointments available.")
+        empty_state("No appointments available.")
         return
-
-    st.dataframe(df, use_container_width=True, hide_index=True)
-
+    modern_table(df)
     summary = df.groupby("department")["patient_count"].sum().reset_index()
-
-    fig = px.pie(
-        summary,
-        names="department",
-        values="patient_count",
-        title="Appointments Load by Department",
-    )
+    fig = px.pie(summary, names="department", values="patient_count", title="Appointments Load by Department")
     fig.update_layout(height=400)
     st.plotly_chart(fig, use_container_width=True)
+

@@ -1,54 +1,38 @@
-import streamlit as st
 from datetime import datetime
 
-from api_client import login_user
-from dashboard_sections import (
-    show_overview,
-    show_forecast,
-    show_optimization,
-    show_operations_center,
-)
-from staff_sections import (
-    show_my_shifts,
-    show_appointments,
-    show_or_bookings,
-)
+import streamlit as st
+
+from api_client import login_user_api
 from approval_sections import show_admin_approval_panel
-from audit_sections import (
-    show_audit_summary,
-    show_audit_table,
-    show_execution_trace,
+from audit_sections import show_audit_summary, show_audit_table, show_execution_trace
+from dashboard_sections import (
+    get_live_context,
+    show_evaluation_panel,
+    show_explainability_panel,
+    show_forecast,
+    show_operations_center,
+    show_optimization,
+    show_overview,
 )
 from message_center_sections import show_message_center
 from notification_sections import show_notifications_panel
-
-st.markdown("""
-<style>
-body {
-    background-color: #0f172a;
-    color: white;
-}
-</style>
-""", unsafe_allow_html=True)
+from staff_sections import show_appointments, show_my_shifts, show_or_bookings
+from ui_components import inject_base_styles, sidebar_status_card
 
 st.set_page_config(page_title="HRO Command Center", layout="wide")
+inject_base_styles()
 
-
-# ==========================================
-# LOGIN STATE
-# ==========================================
 if "user" not in st.session_state:
     st.session_state.user = None
 
 
 def login_view():
     st.title("🏥 HRO — AI Hospital System")
-
+    st.caption("AI-powered hospital operations, forecasting, approvals, and staff coordination.")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
-
     if st.button("Login"):
-        user = login_user(username, password)
+        user = login_user_api(username.strip(), password.strip()) if username.strip() and password.strip() else None
         if user:
             st.session_state.user = user
             st.success("Login successful")
@@ -57,165 +41,138 @@ def login_view():
             st.error("Invalid credentials")
 
 
-# ==========================================
-# HEADER
-# ==========================================
 def show_header(user):
-    col1, col2, col3, col4 = st.columns(4)
+    st.markdown(
+        f"""
+        <div class="hro-header">
+            <div>👤 {user['name']} ({user['role']})</div>
+            <div>🏥 HRO Command Center</div>
+            <div>🕒 {datetime.now().strftime('%H:%M')}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    col1.metric("User", user["name"])
-    col2.metric("Role", user["role"])
-    col3.metric("Department", user.get("department", "-"))
-    col4.metric("Time", datetime.now().strftime("%H:%M:%S"))
 
-    st.markdown("---")
-def show_header(user):
-    st.markdown(f"""
-    <div style="
-        display:flex;
-        justify-content:space-between;
-        background:#111827;
-        padding:15px;
-        border-radius:10px;
-        margin-bottom:20px;
-    ">
-        <div>👤 {user['name']} ({user['role']})</div>
-        <div>🏥 HRO Command Center</div>
-        <div>🕒 {datetime.now().strftime("%H:%M")}</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-# ==========================================
-# SIDEBAR NAV
-# ==========================================
 def sidebar_navigation(role):
     st.sidebar.title("🧭 Navigation")
-
     if role == "admin":
-        return st.sidebar.radio(
-            "Go to",
-            [
-                "Command Center",
-                "Operations",
-                "Optimization",
-                "Approvals",
-                "Messages",
-                "Audit",
-            ],
-        )
-
+        pages = [
+            "Command Center",
+            "Operations",
+            "Optimization",
+            "Approvals",
+            "Messages",
+            "Evaluation",
+            "Explainability",
+            "Audit",
+        ]
     elif role == "doctor":
-        return st.sidebar.radio(
-            "Go to",
+        pages = ["Overview", "My Shifts", "Appointments", "OR Bookings", "Forecast", "Notifications"]
+    else:
+        pages = ["Overview", "My Shifts", "Appointments", "Department", "Notifications"]
+    return st.sidebar.radio("Go to", pages)
+
+
+def show_sidebar_context(user):
+    ctx = get_live_context()
+    sidebar_status_card(
+        "User Session",
+        [
+            f"<b>Name:</b> {user.get('name', '-')}",
+            f"<b>Role:</b> {user.get('role', '-')}",
+            f"<b>Department:</b> {user.get('department', '-')}",
+        ],
+    )
+    if ctx.get("ready"):
+        result = ctx["prediction_result"]
+        sidebar_status_card(
+            "Live Summary",
             [
-                "Overview",
-                "My Shifts",
-                "Appointments",
-                "OR Bookings",
-                "Forecast",
-                "Notifications",
+                f"Current Patients: <b>{ctx['current_patients']}</b>",
+                f"Next Hour Forecast: <b>{int(ctx['prediction'])}</b>",
+                f"Peak Load: <b>{int(ctx['peak'])}</b>",
+                f"Emergency: <b>{result.get('emergency_level', 'LOW')}</b>",
             ],
         )
+    else:
+        sidebar_status_card("System Status", [ctx.get("reason", "Context unavailable")])
 
-    elif role == "nurse":
-        return st.sidebar.radio(
-            "Go to",
-            [
-                "Overview",
-                "My Shifts",
-                "Appointments",
-                "Department",
-                "Notifications",
-            ],
-        )
+    if st.sidebar.button("Logout"):
+        st.session_state.user = None
+        st.rerun()
 
 
-# ==========================================
-# MAIN APP
-# ==========================================
 def main_app():
     user = st.session_state.user
-    role = user["role"]
+    role = str(user["role"]).lower()
 
     show_header(user)
-
+    show_sidebar_context(user)
     page = sidebar_navigation(role)
 
-    # ================= ADMIN =================
     if role == "admin":
         if page == "Command Center":
             show_overview()
-            show_kpi_cards({
-                "patients": int(latest_prediction),
-                "beds": int(optimization["summary"]["beds_needed_total"]),
-                "doctors": int(optimization["summary"]["doctors_needed_total"]),
-                "nurses": int(optimization["summary"]["nurses_needed_total"]),
-})
         elif page == "Operations":
             show_operations_center()
-
         elif page == "Optimization":
             show_optimization()
-
         elif page == "Approvals":
-            show_admin_approval_panel(
-                peak=120,
-                beds_needed=130,
-                doctors_needed=15,
-                emergency_level="HIGH",
-                approver_name=user["name"],
-            )
-
+            ctx = get_live_context()
+            if not ctx["ready"]:
+                st.error(ctx["reason"])
+            else:
+                result = ctx["prediction_result"]
+                show_admin_approval_panel(
+                    peak=int(ctx["peak"]),
+                    beds_needed=int(result["recommended_resources"]["beds_needed"]),
+                    doctors_needed=int(result["recommended_resources"]["doctors_needed"]),
+                    emergency_level=result.get("emergency_level", "LOW"),
+                    approver_name=user.get("name", "Admin"),
+                )
         elif page == "Messages":
             show_message_center(user)
-
+        elif page == "Evaluation":
+            show_evaluation_panel()
+        elif page == "Explainability":
+            show_explainability_panel()
         elif page == "Audit":
             show_audit_summary()
+            st.markdown("---")
             show_audit_table()
+            st.markdown("---")
             show_execution_trace()
 
-    # ================= DOCTOR =================
     elif role == "doctor":
         if page == "Overview":
             show_overview()
-
         elif page == "My Shifts":
             show_my_shifts(user["username"], "doctor")
-
         elif page == "Appointments":
-            show_appointments("doctor", doctor_name=user["name"])
-
+            show_appointments("doctor", doctor_name=user.get("name"))
         elif page == "OR Bookings":
-            show_or_bookings("doctor", doctor_name=user["name"])
-
+            show_or_bookings("doctor", doctor_name=user.get("name"))
         elif page == "Forecast":
             show_forecast()
-
         elif page == "Notifications":
             show_notifications_panel(user)
 
-    # ================= NURSE =================
-    elif role == "nurse":
+    else:
         if page == "Overview":
             show_overview()
-
         elif page == "My Shifts":
             show_my_shifts(user["username"], "nurse")
-
         elif page == "Appointments":
-            show_appointments("nurse", department=user["department"])
-
+            show_appointments("nurse", department=user.get("department"))
         elif page == "Department":
             show_operations_center()
-
         elif page == "Notifications":
             show_notifications_panel(user)
 
 
-# ==========================================
-# RUN
-# ==========================================
 if st.session_state.user is None:
     login_view()
 else:
     main_app()
+
