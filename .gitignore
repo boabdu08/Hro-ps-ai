@@ -1,0 +1,27 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+# virtualenvs
+.venv/
+venv/
+env/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/settings.json
+
+# env/secrets
+.env
+.env.*
+
+# python tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# artifacts / outputs (keep if you intentionally version them)
+*.log
+

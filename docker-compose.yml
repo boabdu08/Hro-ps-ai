@@ -1,15 +1,37 @@
-
-
 services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: hro_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - hro_pg_data:/var/lib/postgresql/data
 
   api:
     build: .
     command: uvicorn api:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/hro_db
+      ARTIFACT_DIR: /app
+    depends_on:
+      - db
 
   dashboard:
     build: .
     command: streamlit run dashboard.py --server.port 8501 --server.address 0.0.0.0
     ports:
       - "8501:8501"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/hro_db
+      API_BASE_URL: http://api:8000
+    depends_on:
+      - api
+      - db
+
+volumes:
+  hro_pg_data:
