@@ -196,7 +196,14 @@ def seed_demo_recommendations():
     db = SessionLocal()
     try:
         _bootstrap_recommendations_from_csv_if_needed(db)
-        existing_messages = {_normalize(row.message) for row in db.query(RecommendationRecord).all()}
+        # Only avoid duplicating *pending* recommendations. Approved/rejected recommendations
+        # are part of history and we still want a way to generate new pending work.
+        existing_messages = {
+            _normalize(row.message)
+            for row in db.query(RecommendationRecord)
+                .filter(RecommendationRecord.status == "pending")
+                .all()
+        }
 
         demo_rows = [
             create_recommendation_row("capacity", "Peak forecast reached 135 patients. Recommend opening overflow capacity."),

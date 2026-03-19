@@ -266,6 +266,31 @@ def show_admin_message_center(sender_name: str, sender_role: str):
 def show_staff_message_center(user_name: str, role: str, department: str):
     section_header("💬 Staff Message Center", "Respond quickly to admin alerts and operational messages.")
 
+    st.markdown("### Send Message to Admin")
+    with st.expander("Compose a quick update", expanded=False):
+        staff_title = st.text_input("Title", key="staff_to_admin_title")
+        staff_message = st.text_area("Message", key="staff_to_admin_message")
+        staff_priority = st.selectbox("Priority", ["normal", "high", "critical"], index=0, key="staff_to_admin_priority")
+        if st.button("Send to Admin", key="staff_send_to_admin"):
+            if not staff_title.strip() or not staff_message.strip():
+                st.warning("Please enter both title and message.")
+            else:
+                result = send_message_api(
+                    sender_role=role,
+                    sender_name=user_name,
+                    target_role="admin",
+                    target_department="All Departments",
+                    priority=staff_priority,
+                    category="staff_update",
+                    title=staff_title.strip(),
+                    message=staff_message.strip(),
+                )
+                if result and result.get("status") == "sent":
+                    st.success("Message sent to admin.")
+                    st.rerun()
+                else:
+                    st.error("Failed to send message to admin.")
+
     tab_inbox, tab_archive = st.tabs(["Inbox", "Archive"])
 
     with tab_inbox:

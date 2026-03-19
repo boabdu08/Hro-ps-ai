@@ -27,9 +27,13 @@ from staff_sections import (
     show_or_bookings,
 )
 from ui_components import inject_base_styles, sidebar_status_card
+from database import init_db
 
 st.set_page_config(page_title="HRO Command Center", layout="wide")
 inject_base_styles()
+
+# Ensure DB tables exist even if the dashboard is run before the API.
+init_db()
 
 if "user" not in st.session_state:
     st.session_state.user = None
@@ -94,6 +98,7 @@ def sidebar_navigation(role):
             "Appointments",
             "OR Bookings",
             "Notifications",
+            "Messages",
         ]
     else:
         pages = [
@@ -102,6 +107,7 @@ def sidebar_navigation(role):
             "Appointments",
             "Department",
             "Notifications",
+            "Messages",
         ]
 
     return st.sidebar.radio("Go to", pages)
@@ -236,6 +242,9 @@ def main_app():
         elif page == "Notifications":
             show_notifications_panel(user)
 
+        elif page == "Messages":
+            show_message_center(user)
+
     else:
         if page == "Overview":
             show_overview()
@@ -251,6 +260,9 @@ def main_app():
 
         elif page == "Notifications":
             show_notifications_panel(user)
+
+        elif page == "Messages":
+            show_message_center(user)
 
 
 if st.session_state.user is None:

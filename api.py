@@ -666,6 +666,8 @@ def reply_to_message(payload: ReplyMessageRequest, db: Session = Depends(get_db)
     row.reply_timestamp = parse_datetime_now()
     row.status = "updated"
     row.acknowledged = "yes"
+    # Same rationale as ack: once actioned (replied), remove from inbox.
+    row.archived = True
 
     db.commit()
     db.refresh(row)
@@ -688,7 +690,10 @@ def acknowledge_message(payload: MessageActionRequest, db: Session = Depends(get
     if row is None:
         raise HTTPException(status_code=404, detail="Message not found.")
 
+    # Product behavior: once staff acknowledges a message, move it out of inbox to reduce distraction.
+    # Users can still view it under archive/history.
     row.acknowledged = "yes"
+    row.archived = True
     db.commit()
     db.refresh(row)
 
