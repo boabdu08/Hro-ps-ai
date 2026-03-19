@@ -21,7 +21,9 @@ from schemas import LoginRequest
 from etl_pipeline import ingest_patient_flow, ingest_appointments, ingest_or
 from auth import create_token, bearer_from_header, decode_token, verify_password
 from forecast_inference import load_assets as _load_assets, predict_hybrid as _predict_hybrid
+import os
 
+DATABASE_URL = os.getenv("DATABASE_URL")
 app = FastAPI(title="Hospital AI API")
 logging.basicConfig(level=logging.INFO)
 
