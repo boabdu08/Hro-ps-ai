@@ -14,8 +14,8 @@ from artifacts import artifact_diagnostics, load_manifest
 from feature_spec import FEATURE_COLUMNS, ARIMAX_EXOG_COLUMNS, SEQUENCE_LENGTH
 from evaluation_service import compare_models
 from database import get_db, init_db, engine
-from db_migrations import ensure_alerts_notifications, ensure_message_extensions, ensure_multi_tenant
-from models import Alert, Notification, NotificationPreference, Tenant, User, PatientFlow, MessageLog, MessageRead, OptimizationRun
+from db_migrations import ensure_alerts_notifications, ensure_message_extensions, ensure_multi_tenant, ensure_pipeline_runs
+from models import Alert, Notification, NotificationPreference, Tenant, User, PatientFlow, MessageLog, MessageRead, OptimizationRun, PipelineRun
 from resource_optimizer import optimize_resources
 from schemas import LoginRequest
 from etl_pipeline import ingest_patient_flow, ingest_appointments, ingest_or
@@ -46,6 +46,16 @@ def _startup_create_tables():
     ensure_multi_tenant(engine)
     ensure_message_extensions(engine)
     ensure_alerts_notifications(engine)
+    ensure_pipeline_runs(engine)
+
+    # Optional: run scheduler inside API process (dev/single-instance only).
+    from settings import get_settings
+
+    if get_settings().scheduler_run_in_api:
+        import asyncio
+        from scheduler import scheduler_loop
+
+        asyncio.create_task(scheduler_loop())
 
 LEGACY_MESSAGES_FILE = "messages_log.csv"  # import-only (not runtime)
 LEGACY_MESSAGE_COLS = [
@@ -706,6 +716,40 @@ def system_status(_token: dict = Depends(require_staff_or_admin)):
         "sequence_length": SEQUENCE_LENGTH,
         "artifacts": diag,
         "artifact_manifest": manifest,
+    }
+
+
+@system_router.get("/pipeline/status")
+def pipeline_status(
+    _token: dict = Depends(require_staff_or_admin),
+    db: Session = Depends(get_db),
+):
+    """Return latest scheduler pipeline run for the current tenant."""
+
+    tenant_id = get_tenant_id(_token, db)
+    row = (
+        db.query(PipelineRun)
+        .filter(PipelineRun.tenant_id == int(tenant_id))
+        .order_by(PipelineRun.id.desc())
+        .first()
+    )
+    if row is None:
+        return {"tenant_id": int(tenant_id), "latest": None}
+    try:
+        details = json.loads(row.details_json) if row.details_json else None
+    except Exception:
+        details = None
+
+    return {
+        "tenant_id": int(tenant_id),
+        "latest": {
+            "run_id": row.run_id,
+            "status": row.status,
+            "step": row.step,
+            "started_at": row.started_at.isoformat() if row.started_at else None,
+            "completed_at": row.completed_at.isoformat() if row.completed_at else None,
+            "details": details,
+        },
     }
 
 

@@ -61,6 +61,12 @@ class Settings:
     tenant_mode_enabled: bool
     default_tenant_slug: str
 
+    # Background pipeline (for always-on cloud)
+    scheduler_run_in_api: bool
+    scheduler_interval_seconds: int
+    synthetic_data_enabled: bool
+    synthetic_emergency_rate: float
+
 
 def _bool_env(name: str, default: bool = False) -> bool:
     raw = os.getenv(name)
@@ -97,6 +103,14 @@ def get_settings() -> Settings:
     tenant_mode_enabled = _bool_env("TENANT_MODE_ENABLED", True)
     default_tenant_slug = (os.getenv("DEFAULT_TENANT_SLUG") or "demo-hospital").strip() or "demo-hospital"
 
+    scheduler_run_in_api = _bool_env("SCHEDULER_RUN_IN_API", False)
+    scheduler_interval_seconds = _int_env("SCHEDULER_INTERVAL_SECONDS", 300)
+    synthetic_data_enabled = _bool_env("SYNTHETIC_DATA_ENABLED", True)
+    try:
+        synthetic_emergency_rate = float((os.getenv("SYNTHETIC_EMERGENCY_RATE") or "0.03").strip() or "0.03")
+    except Exception:
+        synthetic_emergency_rate = 0.03
+
     return Settings(
         app_env=app_env,
         database_url=database_url,
@@ -107,4 +121,9 @@ def get_settings() -> Settings:
         artifact_dir=artifact_dir,
         tenant_mode_enabled=tenant_mode_enabled,
         default_tenant_slug=default_tenant_slug,
+
+        scheduler_run_in_api=scheduler_run_in_api,
+        scheduler_interval_seconds=scheduler_interval_seconds,
+        synthetic_data_enabled=synthetic_data_enabled,
+        synthetic_emergency_rate=synthetic_emergency_rate,
     )

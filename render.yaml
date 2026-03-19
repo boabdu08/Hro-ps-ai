@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: hro-ps-api
+    env: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: DEFAULT_TENANT_SLUG
+        value: demo-hospital
+      - key: TENANT_MODE_ENABLED
+        value: "true"
+      - key: ARTIFACT_DIR
+        value: "."
+
+  - type: worker
+    name: hro-ps-worker
+    env: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: python worker.py
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: DEFAULT_TENANT_SLUG
+        value: demo-hospital
+      - key: TENANT_MODE_ENABLED
+        value: "true"
+      - key: SYNTHETIC_DATA_ENABLED
+        value: "true"
+      - key: SCHEDULER_INTERVAL_SECONDS
+        value: "300"
+      - key: SYNTHETIC_EMERGENCY_RATE
+        value: "0.03"

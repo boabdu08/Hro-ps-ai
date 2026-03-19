@@ -343,3 +343,25 @@ class Notification(Base):
 
     failure_reason = Column(Text, nullable=True)
     retry_count = Column(Integer, nullable=False, default=0)
+
+
+class PipelineRun(Base):
+    """Track background pipeline executions (scheduler runs)."""
+
+    __tablename__ = "pipeline_runs"
+    __table_args__ = (
+        Index("ix_pipeline_runs_tenant_started", "tenant_id", "started_at"),
+        Index("ix_pipeline_runs_tenant_status", "tenant_id", "status"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True)
+
+    run_id = Column(String, unique=True, nullable=False, index=True)
+    status = Column(String, nullable=False, default="running", index=True)  # running|ok|failed
+    step = Column(String, nullable=True, index=True)
+
+    started_at = Column(DateTime, nullable=False, server_default=func.now(), index=True)
+    completed_at = Column(DateTime, nullable=True)
+
+    details_json = Column(Text, nullable=True)

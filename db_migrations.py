@@ -273,3 +273,27 @@ def ensure_multi_tenant(engine: Engine) -> None:
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_message_log_tenant_id ON message_log(tenant_id)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_alerts_tenant_id ON alerts(tenant_id)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_notifications_tenant_id ON notifications(tenant_id)"))
+
+
+def ensure_pipeline_runs(engine: Engine) -> None:
+    """Create pipeline_runs table used by the scheduler (idempotent)."""
+
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS pipeline_runs (
+                    id SERIAL PRIMARY KEY,
+                    tenant_id INTEGER NULL,
+                    run_id VARCHAR NOT NULL UNIQUE,
+                    status VARCHAR NOT NULL DEFAULT 'running',
+                    step VARCHAR NULL,
+                    started_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                    completed_at TIMESTAMP NULL,
+                    details_json TEXT NULL
+                )
+                """
+            )
+        )
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_pipeline_runs_tenant_started ON pipeline_runs(tenant_id, started_at)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_pipeline_runs_tenant_status ON pipeline_runs(tenant_id, status)"))
