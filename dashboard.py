@@ -29,6 +29,7 @@ from staff_sections import (
     show_or_bookings,
 )
 from ui_components import inject_base_styles, sidebar_status_card
+from api_client import get_unread_notification_count
 from database import init_db
 
 st.set_page_config(page_title="HRO Command Center", layout="wide")
@@ -50,10 +51,18 @@ def login_view():
 
     st.caption(f"API: {api_base_url()}")
 
+    # SaaS: select tenant (optional; defaults to DEFAULT_TENANT_SLUG)
+    tenant_slug = st.text_input("Tenant (slug)", value=os.getenv("DEFAULT_TENANT_SLUG", "demo-hospital"))
+
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
 
     if st.button("Login"):
+        # NOTE: login_user_api currently only accepts (username, password);
+        # for tenant-aware login we pass tenant_slug through env for now.
+        if tenant_slug.strip():
+            os.environ["TENANT_SLUG"] = tenant_slug.strip()
+
         user = login_user_api(username.strip(), password.strip()) if username.strip() and password.strip() else None
         if user and isinstance(user, dict) and user.get("access_token") and user.get("user"):
             st.session_state.user = user["user"]
@@ -136,6 +145,18 @@ def show_sidebar_context(user):
             f"<b>Role:</b> {user.get('role', '-')}",
             f"<b>Department:</b> {user.get('department', '-')}",
         ],
+    )
+
+    # Notification counter (in-app notifications)
+    try:
+        notif_meta = get_unread_notification_count() or {}
+        notif_unread = int(notif_meta.get("unread_count") or 0)
+    except Exception:
+        notif_unread = 0
+
+    sidebar_status_card(
+        "Notifications",
+        [f"Unread notifications: <b>{notif_unread}</b>"],
     )
 
     if ctx.get("ready"):

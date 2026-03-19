@@ -18,13 +18,19 @@ def _required_env(name: str) -> str:
     return value.strip()
 
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "").strip()
+from settings import get_settings
+
+_settings = get_settings()
+
+SECRET_KEY = (_settings.jwt_secret_key or os.getenv("JWT_SECRET_KEY", "")).strip()
 if not SECRET_KEY:
     # Keep repo runnable in dev but *visible*.
     SECRET_KEY = "dev-unsafe-secret-change-me"
 
-ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256").strip() or "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60") or "60")
+ALGORITHM = (_settings.jwt_algorithm or os.getenv("JWT_ALGORITHM", "HS256")).strip() or "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = int(
+    _settings.access_token_expire_minutes or os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60") or "60"
+)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

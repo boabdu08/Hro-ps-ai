@@ -1,7 +1,8 @@
 import pandas as pd
 
 from database import SessionLocal
-from models import Appointment, ORBooking, PatientFlow
+from models import Appointment, ORBooking, PatientFlow, Tenant
+from settings import get_settings
 
 REQUIRED_PATIENT_COLS = ["patients"]
 REQUIRED_APPT_COLS = ["department", "patient_count"]
@@ -26,8 +27,12 @@ def ingest_patient_flow(file):
     df = clean_dataframe(df)
     db = SessionLocal()
     try:
+        settings = get_settings()
+        tenant = db.query(Tenant).filter(Tenant.slug == settings.default_tenant_slug).first()
+        tenant_id = int(tenant.id) if tenant else None
         for _, row in df.iterrows():
             db.add(PatientFlow(
+                tenant_id=tenant_id,
                 datetime=str(row.get("datetime", "")) if row.get("datetime", "") != "" else None,
                 patients=float(row["patients"]),
                 day_of_week=int(row.get("day_of_week", 0)) if str(row.get("day_of_week", "")).strip() != "" else None,
@@ -47,8 +52,12 @@ def ingest_appointments(file):
     df = clean_dataframe(df)
     db = SessionLocal()
     try:
+        settings = get_settings()
+        tenant = db.query(Tenant).filter(Tenant.slug == settings.default_tenant_slug).first()
+        tenant_id = int(tenant.id) if tenant else None
         for _, row in df.iterrows():
             db.add(Appointment(
+                tenant_id=tenant_id,
                 appointment_id=str(row.get("appointment_id", "")).strip(),
                 department=str(row["department"]).strip(),
                 doctor=str(row.get("doctor", "")).strip(),
@@ -68,8 +77,12 @@ def ingest_or(file):
     df = clean_dataframe(df)
     db = SessionLocal()
     try:
+        settings = get_settings()
+        tenant = db.query(Tenant).filter(Tenant.slug == settings.default_tenant_slug).first()
+        tenant_id = int(tenant.id) if tenant else None
         for _, row in df.iterrows():
             db.add(ORBooking(
+                tenant_id=tenant_id,
                 booking_id=str(row.get("booking_id", "")).strip(),
                 room=str(row.get("room", "")).strip(),
                 doctor=str(row.get("doctor", "")).strip(),
@@ -82,4 +95,5 @@ def ingest_or(file):
         db.commit()
     finally:
         db.close()
+
 

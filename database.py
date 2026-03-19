@@ -8,6 +8,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
+from settings import get_settings
+
 DB_USER = "postgres"
 DB_PASSWORD = "postgres"
 DB_HOST = "127.0.0.1"
@@ -17,11 +19,9 @@ DB_NAME = "hro_db"
 DEFAULT_DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 # Keep this module import-safe (no DB calls on import).
-_raw_database_url = os.getenv("DATABASE_URL")
-DATABASE_URL = (
-    (_raw_database_url.strip() if isinstance(_raw_database_url, str) else "")
-    or DEFAULT_DATABASE_URL
-).rstrip("/")
+_settings = get_settings()
+DATABASE_URL = (_settings.database_url or "").strip() or os.getenv("DATABASE_URL", "").strip() or DEFAULT_DATABASE_URL
+DATABASE_URL = DATABASE_URL.rstrip("/")
 
 
 def _env_int(name: str, default: int) -> int:

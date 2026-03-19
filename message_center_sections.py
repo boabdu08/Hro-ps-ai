@@ -5,6 +5,7 @@ from api_client import (
     archive_message_api,
     get_message_templates,
     get_messages,
+    get_unread_message_count,
     send_message_api,
     send_quick_reply_api,
 )
@@ -100,14 +101,14 @@ def _render_archive_button(message_id: str, key_suffix: str):
             st.error("Failed to archive message.")
 
 
-def _render_ack_button(message_id: str, acknowledged: str, key_suffix: str):
-    if str(acknowledged).lower() == "yes":
+def _render_ack_button(message_id: str, is_read: bool, key_suffix: str):
+    if bool(is_read):
         return
 
     if st.button("Mark as Read", key=f"ack_{key_suffix}"):
         result = acknowledge_message_api(message_id)
         if result and result.get("status") == "acknowledged":
-            st.success("Message marked as read.")
+            st.success("Marked as read (for you only).")
             st.rerun()
         else:
             st.error("Failed to mark message as read.")
@@ -207,6 +208,10 @@ def show_admin_message_center(sender_name: str, sender_role: str):
                 st.error("Failed to send custom message.")
 
     st.markdown("### Active Sent Messages")
+    unread_meta = get_unread_message_count() or {}
+    if isinstance(unread_meta, dict) and "unread_count" in unread_meta:
+        st.caption(f"Your unread (personal) inbox count: {int(unread_meta.get('unread_count') or 0)}")
+
     sent_messages = _safe_messages_response(
         sender_name=sender_name,
         include_archived=False,
@@ -232,7 +237,7 @@ def show_admin_message_center(sender_name: str, sender_role: str):
 
             c1, c2 = st.columns(2)
             with c1:
-                _render_ack_button(message_id, msg.get("acknowledged", "no"), f"admin_sent_{message_id}")
+                _render_ack_button(message_id, bool(msg.get("is_read", False)), f"admin_sent_{message_id}")
             with c2:
                 _render_archive_button(message_id, f"admin_sent_{message_id}")
 
@@ -304,6 +309,10 @@ def show_staff_message_center(user_name: str, role: str, department: str):
         messages = data["messages"]
         quick_replies = data["quick_replies"]
 
+        unread_meta = get_unread_message_count() or {}
+        if isinstance(unread_meta, dict) and "unread_count" in unread_meta:
+            st.caption(f"Unread for you: {int(unread_meta.get('unread_count') or 0)}")
+
         if not messages:
             empty_state("No messages available.")
         else:
@@ -319,7 +328,7 @@ def show_staff_message_center(user_name: str, role: str, department: str):
                 )
 
                 reply_value = _clean_text(msg.get("reply", ""))
-                acknowledged = _clean_text(msg.get("acknowledged", "no"))
+                is_read = bool(msg.get("is_read", False))
 
                 if reply_value:
                     _reply_block(msg)
@@ -359,7 +368,7 @@ def show_staff_message_center(user_name: str, role: str, department: str):
 
                 c1, c2 = st.columns(2)
                 with c1:
-                    _render_ack_button(message_id, acknowledged, f"staff_{message_id}")
+                    _render_ack_button(message_id, is_read, f"staff_{message_id}")
                 with c2:
                     _render_archive_button(message_id, f"staff_{message_id}")
 

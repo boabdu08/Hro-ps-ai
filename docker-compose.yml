@@ -15,10 +15,12 @@ services:
     command: uvicorn api:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/hro_db
-      ARTIFACT_DIR: /app
-      JWT_SECRET_KEY: "change-me-in-prod"
+      # Default for docker-compose dev if DATABASE_URL not set in .env
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://postgres:postgres@db:5432/hro_db}
+      ARTIFACT_DIR: ${ARTIFACT_DIR:-/app}
     depends_on:
       - db
 
@@ -27,10 +29,11 @@ services:
     command: streamlit run dashboard.py --server.port 8501 --server.address 0.0.0.0
     ports:
       - "8501:8501"
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/hro_db
-      API_BASE_URL: http://api:8000
-      JWT_SECRET_KEY: "change-me-in-prod"
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://postgres:postgres@db:5432/hro_db}
+      API_BASE_URL: ${API_BASE_URL:-http://api:8000}
     depends_on:
       - api
       - db

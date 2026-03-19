@@ -1,141 +1,168 @@
 import pandas as pd
 import streamlit as st
 
-from api_client import get_messages
+from api_client import (
+    ack_alert_api,
+    get_alerts,
+    get_notification_preferences,
+    get_notifications,
+    get_unread_notification_count,
+    mark_notification_read,
+    resolve_alert_api,
+    update_notification_preferences,
+)
 from ui_components import badge, empty_state, section_header
 
 
-def _fetch_messages(role=None, department=None, limit=50, unread_only=False):
-    response = get_messages(role=role, department=department, limit=limit, unread_only=unread_only)
-    if not response:
-        return []
-    messages = response.get("messages", [])
-    return [msg for msg in messages if isinstance(msg, dict)]
+def _priority_badge(priority: str):
+    prio = str(priority or "").lower()
+    if prio == "critical":
+        badge("CRITICAL", "#ef4444")
+    elif prio == "high":
+        badge("HIGH", "#f59e0b")
+    elif prio == "medium":
+        badge("MEDIUM", "#3b82f6")
+    else:
+        badge("LOW", "#64748b")
 
 
-def get_unread_count(messages):
-    return len([m for m in messages if str(m.get("acknowledged", "no")).lower() == "no"])
+def _render_preferences():
+    section_header("⚙️ Notification Preferences", "Control what you receive in-app.")
+    pref = (get_notification_preferences() or {}).get("preferences") or {}
 
+    receive_in_app = st.toggle("Receive in-app notifications", value=bool(pref.get("receive_in_app", True)))
+    critical_only = st.toggle("Critical only", value=bool(pref.get("critical_only", False)))
 
-def _render_reply(msg: dict):
-    reply = str(msg.get("reply", "")).strip()
-    reply_by = str(msg.get("reply_by", "")).strip()
-    reply_timestamp = str(msg.get("reply_timestamp", "")).strip()
-    if not reply:
-        return
-    st.success(f"Reply: {reply}")
-    meta = []
-    if reply_by:
-        meta.append(f"By: {reply_by}")
-    if reply_timestamp:
-        meta.append(f"At: {reply_timestamp}")
-    if meta:
-        st.caption(" | ".join(meta))
-
-
-def show_alert_center(role=None, department=None):
-    section_header("🚨 Alert Center")
-    messages = _fetch_messages(role=role, department=department, limit=50)
-    if not messages:
-        empty_state("No active alerts or messages.")
-        return
-
-    unread = get_unread_count(messages)
-    badge(f"Unread: {unread}", "#ef4444" if unread else "#10b981")
-    alert_messages = [msg for msg in messages if str(msg.get("priority", "")).lower() in ["critical", "high"]]
-    if not alert_messages:
-        empty_state("No critical or high-priority alerts.")
-        return
-
-    for msg in alert_messages:
-        st.markdown(f"### {msg.get('title', 'Untitled Alert')}")
-        priority = str(msg.get("priority", "normal")).lower()
-        if priority == "critical":
-            badge("Critical", "#ef4444")
+    # (Quiet hours are present in the model but optional in UI)
+    if st.button("Save preferences"):
+        res = update_notification_preferences(
+            {
+                "receive_in_app": bool(receive_in_app),
+                "critical_only": bool(critical_only),
+            }
+        )
+        if res and res.get("status") == "updated":
+            st.success("Preferences saved")
         else:
-            badge("High", "#f59e0b")
-        st.write(msg.get("message", ""))
-        st.caption(f"From: {msg.get('sender_name', '')} ({msg.get('sender_role', '')}) | Time: {msg.get('timestamp', '')}")
-        _render_reply(msg)
-        st.markdown("---")
+            st.error("Failed to save preferences")
 
 
-def show_staff_decision_feed(role, department=None):
-    section_header("📢 Staff Decision Feed")
-    messages = _fetch_messages(role=role, department=department, limit=50)
-    if not messages:
-        empty_state("No decisions available yet.")
+def show_alerts_center(user: dict):
+    role = str(user.get("role", "")).lower()
+    department = str(user.get("department", "All Departments")).strip()
+
+    section_header("🚨 Smart Alerts", "System-generated alerts from optimization/forecast signals.")
+    data = get_alerts(active_only=True, department=None, limit=100) or {}
+    alerts = data.get("alerts", []) if isinstance(data, dict) else []
+
+    if not alerts:
+        empty_state("No active alerts.")
         return
 
-    decision_messages = [
-        msg for msg in messages if str(msg.get("category", "")).lower() in ["emergency", "coverage", "shift", "capacity", "custom"]
-    ]
-    if not decision_messages:
-        empty_state("No operational decisions available yet.")
+    # Quick summary
+    critical_count = len([a for a in alerts if str(a.get("priority", "")).lower() == "critical"])
+    warning_count = len([a for a in alerts if str(a.get("priority", "")).lower() in {"high"}])
+    st.caption(f"Showing {len(alerts)} alerts | Critical: {critical_count} | High: {warning_count}")
+
+    for a in alerts:
+        title = str(a.get("title", "Alert"))
+        msg = str(a.get("message", ""))
+        prio = str(a.get("priority", "medium"))
+        dept = a.get("department")
+        alert_id = str(a.get("alert_id", ""))
+        source = str(a.get("source", "system"))
+        created_at = str(a.get("created_at", ""))
+        rec = str(a.get("recommendation_summary", "")).strip()
+
+        with st.container(border=True):
+            st.markdown(f"### {title}")
+            _priority_badge(prio)
+            if dept:
+                st.caption(f"Department: {dept} | Source: {source} | Created: {created_at}")
+            else:
+                st.caption(f"Source: {source} | Created: {created_at}")
+            st.write(msg)
+            if rec:
+                st.info(f"Recommendations: {rec}")
+
+            col1, col2, col3 = st.columns([1, 1, 2])
+            with col1:
+                if st.button("Acknowledge", key=f"ack_{alert_id}"):
+                    res = ack_alert_api(alert_id)
+                    if res and res.get("status") == "acknowledged":
+                        st.success("Acknowledged")
+                        st.rerun()
+                    else:
+                        st.error("Ack failed")
+
+            with col2:
+                if role == "admin":
+                    if st.button("Resolve", key=f"resolve_{alert_id}"):
+                        res = resolve_alert_api(alert_id)
+                        if res and res.get("status") == "resolved":
+                            st.success("Resolved")
+                            st.rerun()
+                        else:
+                            st.error("Resolve failed")
+                else:
+                    st.empty()
+
+            with col3:
+                # Convenience hint
+                if dept and str(dept).strip().lower() != department.strip().lower() and role != "admin":
+                    st.caption("(You might not normally see other departments; access is filtered server-side.)")
+
+
+def show_notifications_center(user: dict):
+    section_header("🔔 Notifications Center", "Your personal in-app notification inbox.")
+    unread_meta = get_unread_notification_count() or {}
+    unread_count = int(unread_meta.get("unread_count") or 0)
+    badge(f"Unread: {unread_count}", "#ef4444" if unread_count else "#10b981")
+
+    unread_only = st.toggle("Show unread only", value=False)
+    data = get_notifications(unread_only=unread_only, limit=100) or {}
+    rows = data.get("notifications", []) if isinstance(data, dict) else []
+
+    if not rows:
+        empty_state("No notifications.")
         return
 
-    for msg in decision_messages:
-        st.markdown(f"### {msg.get('title', 'Untitled')}")
-        priority = str(msg.get("priority", "normal")).lower()
-        body = msg.get("message", "")
-        if priority == "critical":
-            st.error(f"🚨 {body}")
-        elif priority == "high":
-            st.warning(f"⚠️ {body}")
-        else:
-            st.info(f"📌 {body}")
-        st.caption(f"From: {msg.get('sender_name', '')} ({msg.get('sender_role', '')}) | Time: {msg.get('timestamp', '')}")
-        _render_reply(msg)
-        st.markdown("---")
+    df = pd.DataFrame(rows)
+    # Sort newest first
+    if "created_at" in df.columns:
+        df = df.sort_values(by="created_at", ascending=False)
 
+    for n in df.to_dict("records"):
+        nid = str(n.get("notification_id", ""))
+        title = str(n.get("title", "Notification"))
+        body = str(n.get("body", ""))
+        created_at = str(n.get("created_at", ""))
+        read_at = n.get("read_at")
+        status = str(n.get("status", "delivered"))
 
-def show_admin_decision_history():
-    section_header("🗂 Decision History")
-    messages = _fetch_messages(limit=100)
-    if not messages:
-        empty_state("No decision history available.")
-        return
+        with st.container(border=True):
+            st.markdown(f"### {title}")
+            st.caption(f"Status: {status} | Created: {created_at}")
+            st.write(body)
+            if read_at:
+                badge("READ", "#10b981")
+            else:
+                badge("UNREAD", "#ef4444")
 
-    df = pd.DataFrame(messages)
-    keep_cols = [
-        "message_id", "timestamp", "sender_name", "sender_role", "target_role", "target_department",
-        "priority", "category", "title", "message", "status", "reply", "reply_by", "reply_timestamp", "acknowledged",
-    ]
-    available_cols = [c for c in keep_cols if c in df.columns]
-    st.dataframe(df[available_cols].copy(), use_container_width=True, hide_index=True)
-
-
-def show_department_notice_board(department):
-    section_header(f"📍 Department Notice Board — {department}")
-    messages = _fetch_messages(department=department, limit=50)
-    if not messages:
-        empty_state("No department notices available.")
-        return
-
-    filtered = []
-    for msg in messages:
-        target_department = str(msg.get("target_department", "")).strip().lower()
-        if target_department in [str(department).strip().lower(), "all departments", "all"]:
-            filtered.append(msg)
-
-    if not filtered:
-        empty_state("No department-specific notices currently available.")
-        return
-
-    for msg in filtered:
-        st.markdown(f"### {msg.get('title', 'Untitled')}")
-        st.info(msg.get("message", ""))
-        st.caption(f"From: {msg.get('sender_name', '')} ({msg.get('sender_role', '')}) | Time: {msg.get('timestamp', '')}")
-        _render_reply(msg)
-        st.markdown("---")
+            if not read_at:
+                if st.button("Mark as read", key=f"read_{nid}"):
+                    res = mark_notification_read(nid)
+                    if res and res.get("status") == "read":
+                        st.success("Marked as read")
+                        st.rerun()
+                    else:
+                        st.error("Failed")
 
 
 def show_notifications_panel(user: dict):
-    role = str(user.get("role", "")).lower()
-    department = user.get("department", "All Departments")
-    show_alert_center(role=role, department=department)
+    # Main page composition
+    show_alerts_center(user)
     st.markdown("---")
-    show_staff_decision_feed(role=role, department=department)
+    show_notifications_center(user)
     st.markdown("---")
-    show_department_notice_board(department)
-
+    _render_preferences()

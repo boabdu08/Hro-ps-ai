@@ -1,11 +1,13 @@
 import os
 import pandas as pd
 from database import engine, SessionLocal, Base
+from settings import get_settings
 from models import (
     PatientFlow,
     Appointment,
     ORBooking,
     StaffShift,
+    Tenant,
     User,
     RecommendationRecord,
     AuditEvent,
@@ -13,6 +15,18 @@ from models import (
 
 Base.metadata.create_all(bind=engine)
 db = SessionLocal()
+
+
+def _get_or_create_default_tenant_id() -> int:
+    settings = get_settings()
+    slug = settings.default_tenant_slug
+    row = db.query(Tenant).filter(Tenant.slug == slug).first()
+    if row is None:
+        row = Tenant(name="Demo Hospital", slug=slug)
+        db.add(row)
+        db.commit()
+        db.refresh(row)
+    return int(row.id)
 
 
 def safe_value(value):
@@ -23,9 +37,11 @@ def safe_value(value):
 
 def seed_patients_flow():
     try:
+        tenant_id = _get_or_create_default_tenant_id()
         df = pd.read_csv("clean_data.csv")
         for _, row in df.iterrows():
             record = PatientFlow(
+                tenant_id=int(tenant_id),
                 datetime=safe_value(row.get("datetime")),
                 patients=safe_value(row.get("patients")),
                 day_of_week=safe_value(row.get("day_of_week")),
@@ -44,9 +60,11 @@ def seed_patients_flow():
 
 def seed_appointments():
     try:
+        tenant_id = _get_or_create_default_tenant_id()
         df = pd.read_csv("appointments.csv")
         for _, row in df.iterrows():
             record = Appointment(
+                tenant_id=int(tenant_id),
                 appointment_id=safe_value(row.get("appointment_id")),
                 department=safe_value(row.get("department")),
                 doctor=safe_value(row.get("doctor")),
@@ -65,9 +83,11 @@ def seed_appointments():
 
 def seed_or_bookings():
     try:
+        tenant_id = _get_or_create_default_tenant_id()
         df = pd.read_csv("or_bookings.csv")
         for _, row in df.iterrows():
             record = ORBooking(
+                tenant_id=int(tenant_id),
                 booking_id=safe_value(row.get("booking_id")),
                 room=safe_value(row.get("room")),
                 doctor=safe_value(row.get("doctor")),
@@ -87,9 +107,11 @@ def seed_or_bookings():
 
 def seed_staff_shifts():
     try:
+        tenant_id = _get_or_create_default_tenant_id()
         df = pd.read_csv("shifts.csv")
         for _, row in df.iterrows():
             record = StaffShift(
+                tenant_id=int(tenant_id),
                 staff_username=safe_value(row.get("staff_username")),
                 name=safe_value(row.get("name")),
                 role=safe_value(row.get("role")),
@@ -108,9 +130,11 @@ def seed_staff_shifts():
 
 def seed_users():
     try:
+        tenant_id = _get_or_create_default_tenant_id()
         df = pd.read_csv("users.csv")
         for _, row in df.iterrows():
             record = User(
+                tenant_id=int(tenant_id),
                 username=safe_value(row.get("username")),
                 name=safe_value(row.get("name")),
                 role=safe_value(row.get("role")),
