@@ -1,0 +1,13 @@
+[theme]
+# Unique premium identity (hybrid: not white, not dark)
+# Note: Streamlit theme is limited; the real identity comes from CSS injected in ui_components.py.
+primaryColor = "#5B5CFF"               # blue‑violet brand
+backgroundColor = "#EEF0FF"            # soft lavender canvas
+secondaryBackgroundColor = "#F8F9FF"   # soft surface
+textColor = "#0B1020"                  # deep ink
+font = "sans serif"
+
+[server]
+headless = true
+enableCORS = false
+enableXsrfProtection = false

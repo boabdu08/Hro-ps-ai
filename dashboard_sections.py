@@ -8,6 +8,7 @@ from feature_spec import FEATURE_COLUMNS as LOCAL_FEATURE_COLUMNS, SEQUENCE_LENG
 from api_client import (
     explain_prediction,
     get_feature_config,
+    get_patient_flow_history,
     get_latest_sequence,
     get_optimization,
     get_prediction,
@@ -15,12 +16,30 @@ from api_client import (
 )
 from evaluation_service import build_detailed_predictions_dataframe, build_metrics_dataframe
 from forecast_runtime import generate_multistep_forecast
-from ui_components import alert_box, empty_state, kpi_card, modern_table, section_header
+from ui_components import (
+    alert_box,
+    empty_state,
+    kpi_card,
+    modern_table,
+    page_header,
+    scoped_key,
+    section_header,
+    status_badge,
+)
 
 
 def _load_runtime_dataframe():
     # DB-first runtime: dashboard should not read CSV files.
-    return pd.DataFrame()
+    # Fetch historical rows from API for charting.
+    data = get_patient_flow_history(limit=1000) or {}
+    rows = data.get("rows", []) if isinstance(data, dict) else []
+    if not rows:
+        return pd.DataFrame()
+    df = pd.DataFrame(rows)
+    # Ensure numeric
+    if "patients" in df.columns:
+        df["patients"] = pd.to_numeric(df["patients"], errors="coerce")
+    return df.dropna(subset=["patients"]).reset_index(drop=True)
 
 
 def _build_engineered_frame_from_base(df: pd.DataFrame, feature_columns: list[str]) -> pd.DataFrame:
@@ -162,9 +181,9 @@ def get_live_context():
 
 
 def show_overview():
-    section_header(
-        "🏥 Hospital Overview",
-        "Live system summary, pressure status, and AI forecast snapshot.",
+    page_header(
+        "Command Center",
+        "Live operational snapshot: current status, forecast risk, and recommended actions.",
     )
 
     ctx = get_live_context()
@@ -176,60 +195,121 @@ def show_overview():
     optimization = ctx["optimization"]
     summary = optimization.get("summary", {})
 
-    c1, c2, c3, c4 = st.columns(4)
+    # Top KPIs
+    c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
-        kpi_card("Current Patients", ctx["current_patients"], status="normal")
+        kpi_card("Patient load (now)", ctx["current_patients"], status="info")
     with c2:
-        kpi_card("Next Hour Forecast", int(ctx["prediction"]), status="normal")
+        kpi_card("Forecast (next hour)", int(ctx["prediction"]), status="normal")
     with c3:
         kpi_card(
-            "Beds Needed",
+            "Beds needed",
             int(summary.get("beds_needed_total", result["recommended_resources"]["beds_needed"])),
+            delta="System-wide",
             status="warning",
         )
     with c4:
+        kpi_card("Doctors needed", int(result["recommended_resources"]["doctors_needed"]), status="normal")
+    with c5:
         emergency_level = result.get("emergency_level", "LOW")
-        status = "critical" if emergency_level == "HIGH" else "warning" if emergency_level == "MEDIUM" else "normal"
-        kpi_card("Emergency Level", emergency_level, status=status)
+        status = "critical" if emergency_level == "HIGH" else "warning" if emergency_level == "MEDIUM" else "success"
+        kpi_card("Risk signal", emergency_level, delta="Emergency pressure", status=status)
 
+    # Executive status banner
     emergency_level = result.get("emergency_level", "LOW")
     if emergency_level == "HIGH":
         alert_box(
-            "🚨 Critical alert: high emergency load expected. Immediate capacity review recommended.",
+            "Emergency surge signal detected. Immediate capacity review recommended (beds, staffing, intake rules).",
             "critical",
         )
     elif emergency_level == "MEDIUM":
         alert_box(
-            "⚠️ Moderate emergency pressure detected. Monitor staffing and bed usage closely.",
+            "Moderate emergency pressure detected. Monitor staffing and bed usage closely and prepare surge coverage.",
             "warning",
         )
     else:
         alert_box(
-            "✅ System stable. No major emergency pressure detected.",
+            "Operational status stable. No major emergency pressure detected for the next hour.",
             "success",
         )
 
-    st.markdown("### Resource Snapshot")
-    s1, s2, s3 = st.columns(3)
-    s1.metric("Beds Needed", int(result["recommended_resources"]["beds_needed"]))
-    s2.metric("Doctors Needed", int(result["recommended_resources"]["doctors_needed"]))
-    s3.metric("Nurses Needed", int(result["recommended_resources"].get("nurses_needed", 0)))
+    # Command center composition: Forecast + Alerts + Recommendations
+    left, right = st.columns([1.6, 1])
+
+    with left:
+        with st.container(border=True):
+            section_header("24-hour demand outlook", "AI multistep forecast (peak detection)")
+            forecast_values = ctx.get("forecast_values", [])
+            if forecast_values:
+                forecast_df = pd.DataFrame({
+                    "hour": list(range(1, len(forecast_values) + 1)),
+                    "forecast": forecast_values,
+                })
+                fig = px.area(
+                    forecast_df,
+                    x="hour",
+                    y="forecast",
+                    title="",
+                )
+                fig.update_traces(
+                    line=dict(color="rgba(91,92,255,0.95)", width=3),
+                    fillcolor="rgba(91,92,255,0.14)",
+                )
+                fig.update_layout(
+                    height=320,
+                    xaxis_title="Next hours",
+                    yaxis_title="Predicted patients",
+                    margin=dict(l=10, r=10, t=10, b=10),
+                )
+                st.plotly_chart(fig, use_container_width=True, key=scoped_key("overview", "forecast_24h"))
+            else:
+                empty_state("Forecast values unavailable.")
+
+        with st.container(border=True):
+            section_header("Department pressure", "Where capacity constraints are most likely")
+            allocations = optimization.get("department_allocations", [])
+            if allocations:
+                alloc_df = pd.DataFrame(allocations)
+                show_cols = [c for c in ["department", "status", "priority_score", "bed_shortage", "doctor_shortage", "nurse_shortage"] if c in alloc_df.columns]
+                modern_table(alloc_df[show_cols] if show_cols else alloc_df, key=scoped_key("overview", "dept_pressure_table"))
+            else:
+                empty_state("No department allocation data available.")
+
+    with right:
+        with st.container(border=True):
+            section_header("Active alerts", "Operational signals requiring attention")
+            # Dashboard avoids direct DB reads; alert list is served by API on Notifications page.
+            st.caption("Open Notifications → Alerts for the full triage view.")
+            # Provide an executive hint from the risk signal.
+            if emergency_level in {"HIGH", "MEDIUM"}:
+                alert_box("Elevated risk detected. Review Alerts and pending Approvals.", "warning" if emergency_level == "MEDIUM" else "critical")
+            else:
+                alert_box("No critical alerts detected in the current signal.", "success")
+
+        with st.container(border=True):
+            section_header("Recommendations", "AI-generated operational actions")
+            recs = optimization.get("recommendations", [])
+            if recs:
+                for rec in recs[:6]:
+                    alert_box(str(rec), "info")
+            else:
+                empty_state("No recommendations currently available.")
 
     allocations = optimization.get("department_allocations", [])
     if allocations:
-        st.markdown("### Top Priority Departments")
+        section_header("Department Pressure Ranking", "Top departments by modeled pressure score")
         alloc_df = pd.DataFrame(allocations).head(5)
         show_cols = [
             c for c in ["department", "predicted_patients", "status", "priority_score"]
             if c in alloc_df.columns
         ]
-        modern_table(alloc_df[show_cols])
+        modern_table(alloc_df[show_cols], key=scoped_key("overview", "dept_pressure_ranking_table"))
 
 
 def show_forecast():
-    section_header(
-        "📈 Forecast & Demand Analysis",
-        "Historical flow, 24-hour AI forecast, and actual vs predicted view.",
+    page_header(
+        "Forecasting",
+        "Demand outlook across the next 24 hours — trends, peaks, and actual vs predicted.",
     )
 
     ctx = get_live_context()
@@ -249,6 +329,22 @@ def show_forecast():
         "forecast": predictions,
     })
 
+    # Summary KPIs
+    peak = float(max(predictions))
+    next_hour = float(predictions[0])
+    avg_24h = float(np.mean(predictions))
+    k1, k2, k3, k4 = st.columns(4)
+    with k1:
+        kpi_card("Next hour", int(next_hour), status="info")
+    with k2:
+        kpi_card("24h peak", int(peak), status="warning" if peak >= 100 else "normal")
+    with k3:
+        kpi_card("24h average", int(avg_24h), status="normal")
+    with k4:
+        trend = float(predictions[-1] - predictions[0])
+        kpi_card("Trend", f"{trend:+.1f}", delta="end − start", status="warning" if trend > 5 else "success" if trend < -5 else "normal")
+
+    section_header("Forecast charts")
     col1, col2 = st.columns(2)
 
     with col1:
@@ -262,12 +358,8 @@ def show_forecast():
                 y="patients",
                 title="Historical Patients",
             )
-            fig_hist.update_layout(
-                height=350,
-                xaxis_title="Time Index",
-                yaxis_title="Patients",
-            )
-            st.plotly_chart(fig_hist, use_container_width=True)
+            fig_hist.update_layout(height=350, xaxis_title="Time", yaxis_title="Patients")
+            st.plotly_chart(fig_hist, use_container_width=True, key=scoped_key("forecast", "hist_patients"))
         else:
             empty_state("Historical data unavailable.")
 
@@ -279,12 +371,8 @@ def show_forecast():
             markers=True,
             title="24-Hour AI Forecast",
         )
-        fig_forecast.update_layout(
-            height=350,
-            xaxis_title="Next Hours",
-            yaxis_title="Predicted Patients",
-        )
-        st.plotly_chart(fig_forecast, use_container_width=True)
+        fig_forecast.update_layout(height=350, xaxis_title="Next hours", yaxis_title="Predicted patients")
+        st.plotly_chart(fig_forecast, use_container_width=True, key=scoped_key("forecast", "forecast_24h"))
 
     if not df.empty:
         actual = df["patients"].tail(len(predictions)).values.astype(float)
@@ -303,18 +391,14 @@ def show_forecast():
             y=["Actual", "Forecast"],
             title="Actual vs Forecast",
         )
-        fig_compare.update_layout(
-            height=350,
-            xaxis_title="Time Window",
-            yaxis_title="Patients",
-        )
-        st.plotly_chart(fig_compare, use_container_width=True)
+        fig_compare.update_layout(height=350, xaxis_title="Window", yaxis_title="Patients")
+        st.plotly_chart(fig_compare, use_container_width=True, key=scoped_key("forecast", "actual_vs_forecast"))
 
 
 def show_optimization():
-    section_header(
-        "🧩 Advanced Resource Optimization Center",
-        "Department allocations, shortage ranking, and AI-generated recommendations.",
+    page_header(
+        "Optimization",
+        "AI-powered resource optimization — allocations, shortages, and recommended actions.",
     )
 
     ctx = get_live_context()
@@ -328,88 +412,94 @@ def show_optimization():
     recommendations = optimization.get("recommendations", [])
     actions = optimization.get("actions", [])
 
+    objective = summary.get("objective")
+    top_dept = str(summary.get("top_priority_department", "-") or "-")
+
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Beds Needed Total", int(summary.get("beds_needed_total", 0)))
-    c2.metric("Doctors Needed Total", int(summary.get("doctors_needed_total", 0)))
-    c3.metric("Nurses Needed Total", int(summary.get("nurses_needed_total", 0)))
-    c4.metric("Top Priority Dept", str(summary.get("top_priority_department", "-")))
+    with c1:
+        kpi_card("Beds needed", int(summary.get("beds_needed_total", 0)), status="warning")
+    with c2:
+        kpi_card("Doctors needed", int(summary.get("doctors_needed_total", 0)), status="normal")
+    with c3:
+        kpi_card("Nurses needed", int(summary.get("nurses_needed_total", 0)), status="normal")
+    with c4:
+        kpi_card("Top priority", top_dept, delta=f"Objective: {objective}" if objective is not None else None, status="info")
 
-    if allocations:
-        alloc_df = pd.DataFrame(allocations)
-        modern_table(alloc_df)
+    left, right = st.columns([1.35, 1])
+    with left:
+        with st.container(border=True):
+            section_header("Department allocations")
+            if allocations:
+                alloc_df = pd.DataFrame(allocations)
+                show_cols = [
+                    c
+                    for c in [
+                        "department",
+                        "predicted_patients",
+                        "status",
+                        "beds_required",
+                        "bed_shortage",
+                        "doctors_required",
+                        "doctor_shortage",
+                        "nurses_required",
+                        "nurse_shortage",
+                        "priority_score",
+                    ]
+                    if c in alloc_df.columns
+                ]
+                modern_table(alloc_df[show_cols] if show_cols else alloc_df, key=scoped_key("optimization", "alloc_table"))
+            else:
+                empty_state("No optimization allocations available.")
 
-        if "priority_score" in alloc_df.columns and "department" in alloc_df.columns:
-            fig_priority = px.bar(
-                alloc_df,
-                x="department",
-                y="priority_score",
-                color="status" if "status" in alloc_df.columns else None,
-                title="Priority Score by Department",
-            )
-            fig_priority.update_layout(height=400)
-            st.plotly_chart(fig_priority, use_container_width=True)
+        if allocations:
+            alloc_df = pd.DataFrame(allocations)
+            with st.container(border=True):
+                section_header("Pressure ranking")
+                if "priority_score" in alloc_df.columns and "department" in alloc_df.columns:
+                    fig_priority = px.bar(
+                        alloc_df,
+                        x="department",
+                        y="priority_score",
+                        color="status" if "status" in alloc_df.columns else None,
+                        title="",
+                    )
+                    fig_priority.update_layout(height=360, yaxis_title="Priority score", xaxis_title="")
+                    st.plotly_chart(fig_priority, use_container_width=True, key=scoped_key("optimization", "pressure_ranking"))
 
-        shortage_cols = ["department", "bed_shortage", "doctor_shortage", "nurse_shortage"]
-        if all(col in alloc_df.columns for col in shortage_cols):
-            shortage_df = alloc_df[shortage_cols].copy()
-            fig_shortage = px.bar(
-                shortage_df,
-                x="department",
-                y=["bed_shortage", "doctor_shortage", "nurse_shortage"],
-                barmode="group",
-                title="Shortage Overview by Department",
-            )
-            fig_shortage.update_layout(height=420)
-            st.plotly_chart(fig_shortage, use_container_width=True)
-    else:
-        empty_state("No optimization data available.")
+            shortage_cols = ["department", "bed_shortage", "doctor_shortage", "nurse_shortage"]
+            if all(col in alloc_df.columns for col in shortage_cols):
+                with st.container(border=True):
+                    section_header("Shortages by department")
+                    shortage_df = alloc_df[shortage_cols].copy()
+                    fig_shortage = px.bar(
+                        shortage_df,
+                        x="department",
+                        y=["bed_shortage", "doctor_shortage", "nurse_shortage"],
+                        barmode="group",
+                        title="",
+                    )
+                    fig_shortage.update_layout(height=380, xaxis_title="")
+                    st.plotly_chart(fig_shortage, use_container_width=True, key=scoped_key("optimization", "shortages"))
 
-    st.markdown("### Recommendations")
-    if recommendations:
-        for rec in recommendations:
-            st.info(rec)
-    else:
-        empty_state("No recommendations available.")
+    with right:
+        with st.container(border=True):
+            section_header("Recommendations")
+            if recommendations:
+                for rec in recommendations:
+                    alert_box(str(rec), level="info")
+            else:
+                empty_state("No recommendations available.")
 
-    st.markdown("### Suggested Actions")
-    if actions:
-        modern_table(pd.DataFrame(actions))
-    else:
-        empty_state("No explicit actions generated.")
+        with st.container(border=True):
+            section_header("Action plan")
+            if actions:
+                modern_table(pd.DataFrame(actions), key=scoped_key("optimization", "actions_table"))
+            else:
+                empty_state("No explicit actions generated.")
 
 
-def show_operations_center():
-    section_header(
-        "⚙️ Operations Center",
-        "Operational planning, simulation, and department capacity views.",
-    )
-
-    ctx = get_live_context()
-    if not ctx["ready"]:
-        empty_state(ctx["reason"])
-        return
-
-    prediction = ctx["prediction"]
-
-    c1, c2, c3 = st.columns(3)
-    demand = c1.slider("Demand Increase %", 0, 100, 20, key="ops_demand")
-    beds = c2.slider("Available Beds", 50, 300, 120, key="ops_beds")
-    doctors = c3.slider("Available Doctors", 5, 50, 15, key="ops_doctors")
-
-    sim = simulate(prediction, beds, doctors, demand)
-    if sim:
-        s1, s2, s3 = st.columns(3)
-        s1.metric("Simulated Patients", int(sim["simulated_patients"]))
-        s2.metric("Emergency Level", sim["emergency_level"])
-        s3.metric("Doctor Shortage", int(sim["doctor_shortage"]))
-
-        left, right = st.columns(2)
-        with left:
-            st.write("#### Bed Allocation")
-            st.json(sim["bed_allocation"])
-        with right:
-            st.write("#### Recommended Resources")
-            st.json(sim["recommended_resources"])
+def _build_demo_capacity_map(prediction: float) -> pd.DataFrame:
+    """Deterministic department capacity map for UI (demo until real dept capacity model exists)."""
 
     hospital_map = pd.DataFrame({
         "Department": ["ER", "ICU", "General Ward", "Surgery", "Radiology"],
@@ -423,8 +513,139 @@ def show_operations_center():
         ],
     })
     hospital_map["Available"] = hospital_map["Capacity"] - hospital_map["Occupied"]
+    return hospital_map
 
-    modern_table(hospital_map)
+
+def render_operations(*, key_prefix: str = "ops"):
+    """Operations tab: live overview (no what-if controls)."""
+
+    ctx = get_live_context()
+    if not ctx["ready"]:
+        empty_state(ctx["reason"])
+        return
+
+    key_prefix = str(key_prefix or "ops").strip() or "ops"
+
+    result = ctx["prediction_result"]
+    optimization = ctx["optimization"]
+    summary = optimization.get("summary", {})
+    allocations = optimization.get("department_allocations", [])
+
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        kpi_card("Current patients", int(ctx["current_patients"]), status="info")
+    with c2:
+        kpi_card("Next-hour forecast", int(ctx["prediction"]), status="normal")
+    with c3:
+        emergency_level = str(result.get("emergency_level", "LOW"))
+        status = "critical" if emergency_level == "HIGH" else "warning" if emergency_level == "MEDIUM" else "success"
+        kpi_card("Emergency signal", emergency_level, status=status)
+    with c4:
+        beds_needed = int(summary.get("beds_needed_total", result["recommended_resources"]["beds_needed"]))
+        kpi_card("Beds needed", beds_needed, status="warning" if beds_needed >= 100 else "normal")
+
+    left, right = st.columns([1.35, 1])
+    with left:
+        with st.container(border=True):
+            section_header("Department allocations", "Live optimization snapshot")
+            if allocations:
+                alloc_df = pd.DataFrame(allocations)
+                show_cols = [
+                    c
+                    for c in [
+                        "department",
+                        "status",
+                        "priority_score",
+                        "bed_shortage",
+                        "doctor_shortage",
+                        "nurse_shortage",
+                    ]
+                    if c in alloc_df.columns
+                ]
+                modern_table(
+                    alloc_df[show_cols] if show_cols else alloc_df,
+                    key=scoped_key(key_prefix, "alloc_table"),
+                )
+            else:
+                empty_state("No optimization allocations available.")
+
+        if allocations:
+            alloc_df = pd.DataFrame(allocations)
+            with st.container(border=True):
+                section_header("Pressure ranking")
+                if "priority_score" in alloc_df.columns and "department" in alloc_df.columns:
+                    fig_priority = px.bar(
+                        alloc_df,
+                        x="department",
+                        y="priority_score",
+                        color="status" if "status" in alloc_df.columns else None,
+                        title="",
+                    )
+                    fig_priority.update_layout(height=360, yaxis_title="Priority score", xaxis_title="")
+                    st.plotly_chart(
+                        fig_priority,
+                        use_container_width=True,
+                        key=scoped_key(key_prefix, "pressure_ranking"),
+                    )
+
+    with right:
+        with st.container(border=True):
+            section_header("24-hour peak")
+            peak = float(ctx.get("peak") or ctx["prediction"])
+            kpi_card("Peak forecast", int(peak), status="warning" if peak >= 120 else "normal")
+            st.caption("Open Forecast page for the full 24-hour curve.")
+
+        with st.container(border=True):
+            section_header("Demo capacity map")
+            hospital_map = _build_demo_capacity_map(float(ctx["prediction"]))
+            modern_table(hospital_map, key=scoped_key(key_prefix, "capacity_table"))
+
+
+def render_simulation(*, key_prefix: str = "sim"):
+    """Simulation tab: what-if sliders + scenario outputs."""
+
+    ctx = get_live_context()
+    if not ctx["ready"]:
+        empty_state(ctx["reason"])
+        return
+
+    prediction = float(ctx["prediction"])
+    key_prefix = str(key_prefix or "sim").strip() or "sim"
+
+    with st.container(border=True):
+        section_header("Scenario controls")
+        c1, c2, c3 = st.columns(3)
+        demand = c1.slider("Demand increase (%)", 0, 100, 20, key=scoped_key(key_prefix, "demand"))
+        beds = c2.slider("Available beds", 50, 300, 120, key=scoped_key(key_prefix, "beds"))
+        doctors = c3.slider("Available doctors", 5, 50, 15, key=scoped_key(key_prefix, "doctors"))
+
+    sim = simulate(prediction, beds, doctors, demand)
+    if sim:
+        s1, s2, s3 = st.columns(3)
+        with s1:
+            kpi_card("Simulated patients", int(sim["simulated_patients"]), status="info")
+        with s2:
+            level = str(sim.get("emergency_level", "LOW"))
+            status = "critical" if level == "HIGH" else "warning" if level == "MEDIUM" else "success"
+            kpi_card("Emergency signal", level, status=status)
+        with s3:
+            shortage = int(sim.get("doctor_shortage") or 0)
+            kpi_card("Doctor shortage", shortage, status="warning" if shortage > 0 else "success")
+
+        left, right = st.columns(2)
+        with left:
+            with st.container(border=True):
+                section_header("Bed allocation")
+                st.json(sim["bed_allocation"])
+        with right:
+            with st.container(border=True):
+                section_header("Recommended resources")
+                st.json(sim["recommended_resources"])
+
+    hospital_map = _build_demo_capacity_map(prediction)
+    with st.container(border=True):
+        section_header("Capacity overview")
+        modern_table(hospital_map, key=scoped_key(key_prefix, "capacity_table"))
 
     fig_dept = px.bar(
         hospital_map,
@@ -433,12 +654,123 @@ def show_operations_center():
         barmode="group",
         title="Department Capacity Overview",
     )
-    fig_dept.update_layout(height=400)
-    st.plotly_chart(fig_dept, use_container_width=True)
+    fig_dept.update_layout(height=380)
+    with st.container(border=True):
+        section_header("Department capacity chart")
+        st.plotly_chart(fig_dept, use_container_width=True, key=scoped_key(key_prefix, "fig_dept"))
+
+
+def render_digital_twin(*, key_prefix: str = "twin"):
+    """Digital twin tab: system mirror + multistep forecast probe."""
+
+    ctx = get_live_context()
+    if not ctx["ready"]:
+        empty_state(ctx["reason"])
+        return
+
+    key_prefix = str(key_prefix or "twin").strip() or "twin"
+    forecast_values = list(ctx.get("forecast_values") or [])
+    if not forecast_values:
+        empty_state("Forecast values unavailable.")
+        return
+
+    horizon = st.select_slider(
+        "Twin horizon (hours ahead)",
+        options=list(range(1, len(forecast_values) + 1)),
+        value=1,
+        key=scoped_key(key_prefix, "horizon"),
+    )
+    predicted_at_h = float(forecast_values[int(horizon) - 1])
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        kpi_card("Now", int(ctx["current_patients"]), status="info")
+    with c2:
+        kpi_card(f"+{horizon}h", int(predicted_at_h), status="normal")
+    with c3:
+        peak = float(max(forecast_values))
+        kpi_card("24h peak", int(peak), status="warning" if peak >= 120 else "normal")
+
+    twin_df = pd.DataFrame({
+        "hour": list(range(1, len(forecast_values) + 1)),
+        "forecast": forecast_values,
+    })
+    fig = px.area(twin_df, x="hour", y="forecast", title="")
+    fig.update_traces(
+        line=dict(color="rgba(91,92,255,0.95)", width=3),
+        fillcolor="rgba(91,92,255,0.14)",
+    )
+    fig.update_layout(height=320, xaxis_title="Next hours", yaxis_title="Predicted patients", margin=dict(l=10, r=10, t=10, b=10))
+    st.plotly_chart(fig, use_container_width=True, key=scoped_key(key_prefix, "forecast_curve"))
+
+
+def render_department_status(*, key_prefix: str = "dept"):
+    """Department status tab: per-department breakdown from optimization allocations."""
+
+    ctx = get_live_context()
+    if not ctx["ready"]:
+        empty_state(ctx["reason"])
+        return
+
+    key_prefix = str(key_prefix or "dept").strip() or "dept"
+    optimization = ctx["optimization"]
+    allocations = optimization.get("department_allocations", [])
+    if not allocations:
+        empty_state("No department allocation data available.")
+        return
+
+    alloc_df = pd.DataFrame(allocations)
+    if "department" not in alloc_df.columns:
+        modern_table(alloc_df, key=scoped_key(key_prefix, "alloc_table"))
+        return
+
+    departments = [str(d) for d in alloc_df["department"].dropna().unique().tolist()]
+    departments = sorted(departments)
+    selected = st.selectbox(
+        "Department",
+        departments,
+        index=0,
+        key=scoped_key(key_prefix, "department_selector"),
+    )
+    row = alloc_df[alloc_df["department"] == selected].head(1)
+    if row.empty:
+        empty_state("Department not found.")
+        return
+
+    r = row.iloc[0].to_dict()
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        kpi_card("Status", str(r.get("status", "-")).upper(), status="warning" if str(r.get("status", "")).lower() in {"warning", "critical"} else "success")
+    with c2:
+        kpi_card("Bed shortage", int(r.get("bed_shortage") or 0), status="warning" if int(r.get("bed_shortage") or 0) > 0 else "success")
+    with c3:
+        kpi_card("Doctor shortage", int(r.get("doctor_shortage") or 0), status="warning" if int(r.get("doctor_shortage") or 0) > 0 else "success")
+    with c4:
+        kpi_card("Nurse shortage", int(r.get("nurse_shortage") or 0), status="warning" if int(r.get("nurse_shortage") or 0) > 0 else "success")
+
+    show_cols = [c for c in ["department", "status", "priority_score", "bed_shortage", "doctor_shortage", "nurse_shortage"] if c in alloc_df.columns]
+    with st.container(border=True):
+        section_header("All departments")
+        modern_table(alloc_df[show_cols] if show_cols else alloc_df, key=scoped_key(key_prefix, "alloc_table"))
+
+    shortage_cols = ["bed_shortage", "doctor_shortage", "nurse_shortage"]
+    if all(c in alloc_df.columns for c in shortage_cols):
+        chart_df = alloc_df[["department"] + shortage_cols].copy()
+        fig = px.bar(chart_df, x="department", y=shortage_cols, barmode="group", title="")
+        fig.update_layout(height=380, xaxis_title="")
+        st.plotly_chart(fig, use_container_width=True, key=scoped_key(key_prefix, "shortages_chart"))
+
+
+def show_operations_center(*, key_prefix: str = "ops"):
+    page_header(
+        "Operations Center",
+        "Live overview: demand signals, allocations, and capacity context.",
+    )
+    render_operations(key_prefix=key_prefix)
 
 
 def show_evaluation_panel():
-    section_header("📏 Forecast Evaluation Panel", "Model comparison using saved v2 outputs.")
+    page_header("Evaluation", "Model comparison and offline metrics (v2 outputs).")
 
     split = st.radio(
         "Evaluation Split",
@@ -472,7 +804,7 @@ def show_evaluation_panel():
         title="Forecast Error Metrics",
     )
     fig_metrics.update_layout(height=420)
-    st.plotly_chart(fig_metrics, use_container_width=True)
+    st.plotly_chart(fig_metrics, use_container_width=True, key=scoped_key("evaluation", "metrics"))
 
     required_cols = ["time_index", "actual", "lstm_pred", "arimax_pred", "hybrid_pred"]
     if not detailed_df.empty and all(col in detailed_df.columns for col in required_cols):
@@ -502,15 +834,15 @@ def show_evaluation_panel():
             title="Actual vs Forecasted Patient Flow",
         )
         fig_compare.update_layout(height=450)
-        st.plotly_chart(fig_compare, use_container_width=True)
+        st.plotly_chart(fig_compare, use_container_width=True, key=scoped_key("evaluation", "actual_vs_models"))
 
-        modern_table(clean_df.tail(50))
+        modern_table(clean_df.tail(50), key=scoped_key("evaluation", "tail_table"))
     else:
         empty_state("Detailed evaluation outputs are not available yet.")
 
 
 def show_explainability_panel():
-    section_header("🔬 Explainable AI Panel")
+    page_header("Explainability", "Feature sensitivity analysis for the current forecast input.")
 
     ctx = get_live_context()
     if not ctx["ready"]:
@@ -541,18 +873,30 @@ def show_explainability_panel():
         title="Feature Impact on Prediction",
     )
     fig.update_layout(height=420)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, key=scoped_key("explainability", "feature_impacts"))
 
-    modern_table(impact_df.sort_values(by="abs_impact", ascending=False))
+    modern_table(impact_df.sort_values(by="abs_impact", ascending=False), key=scoped_key("explainability", "impact_table"))
 
 
 def show_simulation():
-    show_operations_center()
+    page_header(
+        "Simulation",
+        "What-if analysis: simulate demand shocks and visualize capacity impact.",
+    )
+    render_simulation(key_prefix="sim")
 
 
 def show_digital_twin():
-    show_operations_center()
+    page_header(
+        "Digital Twin",
+        "System mirror: probe multistep forecasts and peak pressure ahead.",
+    )
+    render_digital_twin(key_prefix="twin")
 
 
 def show_department_status():
-    show_operations_center()
+    page_header(
+        "Department Status",
+        "Department-by-department shortages and priority breakdown.",
+    )
+    render_department_status(key_prefix="dept")

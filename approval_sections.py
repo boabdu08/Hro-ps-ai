@@ -7,8 +7,9 @@ import streamlit as st
 from sqlalchemy.orm import Session
 
 from database import SessionLocal
-from models import Appointment, AuditEvent, ORBooking, RecommendationRecord, StaffShift
-from ui_components import empty_state, section_header
+from settings import get_settings
+from models import Appointment, AuditEvent, ORBooking, RecommendationRecord, StaffShift, Tenant
+from ui_components import empty_state, page_header, section_header, status_badge
 
 LEGACY_RECOMMENDATION_FILE = "recommendation_log.csv"  # import-only (not runtime)
 REQUIRED_LOG_COLS = [
@@ -50,9 +51,29 @@ def _new_audit_id() -> str:
     return f"AUD-{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
 
 
+def _get_default_tenant_id(db) -> int:
+    """Resolve tenant for Streamlit-side DB actions.
+
+    The Streamlit app currently performs some DB writes directly (not via API),
+    so it needs an explicit tenant context.
+    """
+
+    settings = get_settings()
+    slug = str(settings.default_tenant_slug or "demo-hospital").strip() or "demo-hospital"
+    row = db.query(Tenant).filter(Tenant.slug == slug).first()
+    if row is None:
+        row = Tenant(name="Demo Hospital", slug=slug)
+        db.add(row)
+        db.commit()
+        db.refresh(row)
+    return int(row.id)
+
+
 def _record_audit(db: Session, action: str, actor: str, target: str, status: str, details: str):
+    tenant_id = _get_default_tenant_id(db)
     db.add(
         AuditEvent(
+            tenant_id=int(tenant_id),
             audit_id=_new_audit_id(),
             timestamp=_now(),
             action=_normalize(action),
@@ -87,7 +108,13 @@ def load_recommendations() -> pd.DataFrame:
     db = SessionLocal()
     try:
         _bootstrap_recommendations_from_csv_if_needed(db)
-        rows = db.query(RecommendationRecord).order_by(RecommendationRecord.id.desc()).all()
+        tenant_id = _get_default_tenant_id(db)
+        rows = (
+            db.query(RecommendationRecord)
+            .filter(RecommendationRecord.tenant_id == int(tenant_id))
+            .order_by(RecommendationRecord.id.desc())
+            .all()
+        )
         return pd.DataFrame([_recommendation_record_to_dict(row) for row in rows], columns=REQUIRED_LOG_COLS)
     finally:
         db.close()
@@ -96,7 +123,8 @@ def load_recommendations() -> pd.DataFrame:
 def reset_recommendations():
     db = SessionLocal()
     try:
-        db.query(RecommendationRecord).delete()
+        tenant_id = _get_default_tenant_id(db)
+        db.query(RecommendationRecord).filter(RecommendationRecord.tenant_id == int(tenant_id)).delete()
         _record_audit(
             db,
             "reset_recommendations",
@@ -166,12 +194,13 @@ def seed_demo_recommendations():
     db = SessionLocal()
     try:
         _bootstrap_recommendations_from_csv_if_needed(db)
+        tenant_id = _get_default_tenant_id(db)
         # Only avoid duplicating *pending* recommendations. Approved/rejected recommendations
         # are part of history and we still want a way to generate new pending work.
         existing_messages = {
             _normalize(row.message)
             for row in db.query(RecommendationRecord)
-                .filter(RecommendationRecord.status == "pending")
+                .filter(RecommendationRecord.tenant_id == int(tenant_id), RecommendationRecord.status == "pending")
                 .all()
         }
 
@@ -189,6 +218,7 @@ def seed_demo_recommendations():
 
             db.add(
                 RecommendationRecord(
+                    tenant_id=int(tenant_id),
                     recommendation_id=row["recommendation_id"],
                     timestamp=row["timestamp"],
                     rec_type=row["type"],
@@ -219,11 +249,16 @@ def sync_recommendations(peak, beds_needed, doctors_needed, emergency_level):
     db = SessionLocal()
     try:
         _bootstrap_recommendations_from_csv_if_needed(db)
+        tenant_id = _get_default_tenant_id(db)
 
         generated = generate_ai_recommendations(peak, beds_needed, doctors_needed, emergency_level)
         pending_messages = {
             _normalize(row.message)
-            for row in db.query(RecommendationRecord).filter(RecommendationRecord.status == "pending").all()
+            for row in (
+                db.query(RecommendationRecord)
+                .filter(RecommendationRecord.tenant_id == int(tenant_id), RecommendationRecord.status == "pending")
+                .all()
+            )
         }
 
         inserted = 0
@@ -234,6 +269,7 @@ def sync_recommendations(peak, beds_needed, doctors_needed, emergency_level):
             row = create_recommendation_row(rec["type"], rec["message"])
             db.add(
                 RecommendationRecord(
+                    tenant_id=int(tenant_id),
                     recommendation_id=row["recommendation_id"],
                     timestamp=row["timestamp"],
                     rec_type=row["type"],
@@ -258,18 +294,25 @@ def sync_recommendations(peak, beds_needed, doctors_needed, emergency_level):
             )
 
         db.commit()
-        rows = db.query(RecommendationRecord).order_by(RecommendationRecord.id.desc()).all()
+        rows = (
+            db.query(RecommendationRecord)
+            .filter(RecommendationRecord.tenant_id == int(tenant_id))
+            .order_by(RecommendationRecord.id.desc())
+            .all()
+        )
         return pd.DataFrame([_recommendation_record_to_dict(row) for row in rows], columns=REQUIRED_LOG_COLS)
     finally:
         db.close()
 
 
 def execute_staff_decision(db: Session, message: str) -> Tuple[str, str, str]:
+    tenant_id = _get_default_tenant_id(db)
     department = infer_department_from_message(message)
     next_day = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
 
     db.add(
         StaffShift(
+            tenant_id=int(tenant_id),
             staff_username=f"backup_doctor_{department.lower().replace(' ', '_')}",
             name="Backup Doctor",
             role="doctor",
@@ -288,7 +331,8 @@ def execute_staff_decision(db: Session, message: str) -> Tuple[str, str, str]:
 
 
 def execute_beds_decision(db: Session, message: str) -> Tuple[str, str, str]:
-    appointments = db.query(Appointment).all()
+    tenant_id = _get_default_tenant_id(db)
+    appointments = db.query(Appointment).filter(Appointment.tenant_id == int(tenant_id)).all()
     if not appointments:
         return "skipped", "No appointments found to rebalance.", "appointments"
 
@@ -303,7 +347,8 @@ def execute_beds_decision(db: Session, message: str) -> Tuple[str, str, str]:
 
 
 def execute_capacity_decision(db: Session, message: str) -> Tuple[str, str, str]:
-    appointments = db.query(Appointment).all()
+    tenant_id = _get_default_tenant_id(db)
+    appointments = db.query(Appointment).filter(Appointment.tenant_id == int(tenant_id)).all()
     if not appointments:
         return "skipped", "No appointment slots available for capacity reallocation.", "appointments"
 
@@ -327,14 +372,19 @@ def execute_emergency_decision(db: Session, message: str) -> Tuple[str, str, str
     note_parts: List[str] = []
     affected_entities: List[str] = []
 
-    pending_or_rows = [row for row in db.query(ORBooking).all() if _normalize(row.status).lower() == "pending"]
+    tenant_id = _get_default_tenant_id(db)
+    pending_or_rows = [
+        row
+        for row in db.query(ORBooking).filter(ORBooking.tenant_id == int(tenant_id)).all()
+        if _normalize(row.status).lower() == "pending"
+    ]
     if pending_or_rows:
         for row in pending_or_rows:
             row.status = "Priority Review"
             affected_entities.append(f"or:{_normalize(row.booking_id)}")
         note_parts.append("Pending OR bookings escalated to Priority Review")
 
-    appt_rows = db.query(Appointment).all()
+    appt_rows = db.query(Appointment).filter(Appointment.tenant_id == int(tenant_id)).all()
     if appt_rows:
         busiest = max(appt_rows, key=lambda row: _safe_int(row.patient_count, 0))
         busiest.status = "Restricted Intake"
@@ -367,7 +417,15 @@ def approve_recommendation(recommendation_id, approver_name):
     db = SessionLocal()
     try:
         _bootstrap_recommendations_from_csv_if_needed(db)
-        row = db.query(RecommendationRecord).filter(RecommendationRecord.recommendation_id == recommendation_id).first()
+        tenant_id = _get_default_tenant_id(db)
+        row = (
+            db.query(RecommendationRecord)
+            .filter(
+                RecommendationRecord.tenant_id == int(tenant_id),
+                RecommendationRecord.recommendation_id == recommendation_id,
+            )
+            .first()
+        )
         if row is None:
             return False
 
@@ -405,7 +463,15 @@ def reject_recommendation(recommendation_id, approver_name):
     db = SessionLocal()
     try:
         _bootstrap_recommendations_from_csv_if_needed(db)
-        row = db.query(RecommendationRecord).filter(RecommendationRecord.recommendation_id == recommendation_id).first()
+        tenant_id = _get_default_tenant_id(db)
+        row = (
+            db.query(RecommendationRecord)
+            .filter(
+                RecommendationRecord.tenant_id == int(tenant_id),
+                RecommendationRecord.recommendation_id == recommendation_id,
+            )
+            .first()
+        )
         if row is None:
             return False
 
@@ -434,7 +500,10 @@ def reject_recommendation(recommendation_id, approver_name):
 
 
 def show_admin_approval_panel(peak, beds_needed, doctors_needed, emergency_level, approver_name):
-    section_header("✅ AI Recommendation Approval Center", "Approve or reject AI-generated operational recommendations.")
+    page_header(
+        "Approvals",
+        "Review and approve AI-generated operational recommendations with full traceability.",
+    )
 
     top1, top2, top3 = st.columns(3)
     with top1:
@@ -448,7 +517,9 @@ def show_admin_approval_panel(peak, beds_needed, doctors_needed, emergency_level
             st.warning("Recommendation log reset.")
             st.rerun()
     with top3:
-        st.metric("Current Emergency Level", str(emergency_level))
+        level = str(emergency_level or "LOW")
+        tone = "critical" if level == "HIGH" else "warning" if level == "MEDIUM" else "success"
+        status_badge(f"Emergency: {level}", tone)
 
     df = sync_recommendations(peak, beds_needed, doctors_needed, emergency_level)
     if df.empty:
@@ -464,14 +535,15 @@ def show_admin_approval_panel(peak, beds_needed, doctors_needed, emergency_level
     s2.metric("Approved", len(approved_df))
     s3.metric("Rejected", len(rejected_df))
 
-    st.write("### Pending Recommendations")
+    section_header("Pending", "Items requiring your decision")
     if pending_df.empty:
         st.success("No pending recommendations.")
     else:
         pending_df = pending_df.sort_values(by="timestamp", ascending=False)
         for _, row in pending_df.iterrows():
-            st.markdown(f"**{str(row['type']).upper()}** — {row['message']}")
-            st.caption(f"Created at: {row['timestamp']}")
+            st.markdown(f"#### {str(row['type']).upper()}")
+            st.write(str(row["message"]))
+            st.caption(f"Created: {row['timestamp']}")
             c1, c2 = st.columns(2)
             with c1:
                 if st.button(f"Approve {row['recommendation_id']}", key=f"approve_{row['recommendation_id']}"):
@@ -491,7 +563,7 @@ def show_admin_approval_panel(peak, beds_needed, doctors_needed, emergency_level
                     st.rerun()
             st.markdown("---")
 
-    st.write("### Approved / Rejected Recommendations")
+    section_header("History", "Approved and rejected recommendations")
     history_df = pd.concat([approved_df, rejected_df], ignore_index=True)
     if history_df.empty:
         empty_state("No processed recommendations yet.")

@@ -5,6 +5,7 @@ import logging
 
 import numpy as np
 from fastapi import FastAPI, HTTPException, Depends, Query, UploadFile, File, APIRouter, Header
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
@@ -13,19 +14,48 @@ from sqlalchemy import text
 from artifacts import artifact_diagnostics, load_manifest
 from feature_spec import FEATURE_COLUMNS, ARIMAX_EXOG_COLUMNS, SEQUENCE_LENGTH
 from evaluation_service import compare_models
-from database import get_db, init_db, engine
+from database import get_db, init_db, engine, SessionLocal
 from db_migrations import ensure_alerts_notifications, ensure_message_extensions, ensure_multi_tenant, ensure_pipeline_runs
 from models import Alert, Notification, NotificationPreference, Tenant, User, PatientFlow, MessageLog, MessageRead, OptimizationRun, PipelineRun
 from resource_optimizer import optimize_resources
 from schemas import LoginRequest
 from etl_pipeline import ingest_patient_flow, ingest_appointments, ingest_or
-from auth import create_token, bearer_from_header, decode_token, verify_password
+from auth import create_token, bearer_from_header, decode_token, verify_password, hash_password
 from forecast_inference import load_assets as _load_assets, predict_hybrid as _predict_hybrid
 import os
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 app = FastAPI(title="Hospital AI API")
 logging.basicConfig(level=logging.INFO)
+
+# CORS: allow Streamlit dev server and configurable origins for deployment.
+# Canonical env var per deployment docs: CORS_ORIGINS (comma-separated).
+# Backwards compatible: CORS_ALLOW_ORIGINS.
+allowed_origins_env = (
+    os.getenv("CORS_ORIGINS", "").strip()
+    or os.getenv("CORS_ALLOW_ORIGINS", "").strip()
+)
+allowed_origins = [
+    "http://localhost:8501",
+    "http://127.0.0.1:8501",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+if allowed_origins_env:
+    # comma-separated
+    allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    # If you ever switch to cookie-based auth, set this to True and ensure
+    # allow_origins is NOT "*".
+    allow_credentials=False,
+    allow_methods=["*"] ,
+    allow_headers=["*"] ,
+)
 
 # Routers (keep public URLs stable; we can version later)
 system_router = APIRouter(tags=["system"])
@@ -49,6 +79,64 @@ def _startup_create_tables():
     ensure_message_extensions(engine)
     ensure_alerts_notifications(engine)
     ensure_pipeline_runs(engine)
+
+    # Local-ready: ensure demo tenant + auth users exist.
+    # This makes fresh DBs usable without manually running seed scripts.
+    try:
+        from settings import get_settings
+
+        settings = get_settings()
+        db = SessionLocal()
+        try:
+            # Ensure tenant exists
+            slug = normalize_text(settings.default_tenant_slug)
+            tenant = db.query(Tenant).filter(Tenant.slug == slug).first()
+            if tenant is None:
+                tenant = Tenant(name="Demo Hospital", slug=slug)
+                db.add(tenant)
+                db.commit()
+                db.refresh(tenant)
+
+            # Ensure baseline demo users (password: 123456)
+            pwd = "123456"
+            hashed = hash_password(pwd)
+            desired = [
+                {"username": "admin1", "name": "Hospital Admin", "role": "admin", "department": "Management"},
+                {"username": "doctor1", "name": "Dr. Ahmed", "role": "doctor", "department": "ER"},
+                {"username": "nurse1", "name": "Nurse Mona", "role": "nurse", "department": "General Ward"},
+            ]
+
+            for u in desired:
+                row = (
+                    db.query(User)
+                    .filter(User.tenant_id == int(tenant.id), User.username == u["username"])
+                    .first()
+                )
+                if row is None:
+                    db.add(
+                        User(
+                            tenant_id=int(tenant.id),
+                            username=u["username"],
+                            name=u["name"],
+                            role=u["role"],
+                            department=u["department"],
+                            password=hashed,
+                        )
+                    )
+                else:
+                    # Ensure password is hashed and matches demo credential.
+                    stored = normalize_text(row.password)
+                    if (not stored) or ("$" not in stored) or (not verify_password(pwd, stored)):
+                        row.password = hashed
+                    row.name = row.name or u["name"]
+                    row.role = row.role or u["role"]
+                    row.department = row.department or u["department"]
+
+            db.commit()
+        finally:
+            db.close()
+    except Exception as e:
+        logging.exception("startup demo seed failed: %s", e)
 
     # Optional: run scheduler inside API process (dev/single-instance only).
     from settings import get_settings
@@ -674,16 +762,46 @@ async def log_requests(request, call_next):
 
 
 @system_router.get("/")
-def home(_token: dict = Depends(require_staff_or_admin)):
+def home_public():
+    """Public root endpoint for uptime checks and basic diagnostics."""
+
     return {"message": "Hospital AI API is running"}
 
 
-@system_router.get("/health")
+@system_router.get("/", include_in_schema=False)
+def home_authenticated(_token: dict = Depends(require_staff_or_admin)):
+    # Keep an authenticated version for backward compatibility in case
+    # the dashboard expected auth on root.
+    return {"message": "Hospital AI API is running"}
+
+
+@system_router.get("/health", include_in_schema=False)
+def health_public():
+    return {"status": "ok"}
+
+
+@system_router.get("/health/authenticated")
 def health(_token: dict = Depends(require_staff_or_admin)):
     return {"status": "ok"}
 
 
-@system_router.get("/health/db")
+@system_router.get("/health/db", include_in_schema=False)
+def health_db_public():
+    """DB readiness probe.
+
+    Intentionally public: suitable for Render/Railway health checks.
+    Does not expose secrets; only verifies connectivity.
+    """
+
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return {"status": "ok"}
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"db_unhealthy: {e}")
+
+
+@system_router.get("/health/db/authenticated")
 def health_db(_token: dict = Depends(require_staff_or_admin)):
     try:
         with engine.connect() as conn:
@@ -1145,6 +1263,14 @@ def unpin_message(
 
 @auth_router.post("/login")
 def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
+    # Debug log (safe): never log raw password.
+    logging.info(
+        "auth.login received payload keys=%s tenant_slug=%s username=%s",
+        sorted(list((payload.dict() if hasattr(payload, "dict") else {}).keys())),
+        normalize_text(getattr(payload, "tenant_slug", None) or ""),
+        normalize_text(getattr(payload, "username", None) or ""),
+    )
+
     username = normalize_text(payload.username)
     password = normalize_text(payload.password)
 
@@ -1159,7 +1285,32 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
         tenant_id = _get_default_tenant_id(db)
 
     user = db.query(User).filter(User.username == username, User.tenant_id == tenant_id).first()
-    if user is None or not verify_password(password, normalize_text(user.password)):
+    if user is None:
+        logging.info("auth.login user_not_found tenant_id=%s username=%s", tenant_id, username)
+        raise HTTPException(status_code=401, detail="Invalid username or password.")
+
+    stored = normalize_text(user.password)
+    ok = verify_password(password, stored)
+
+    # Backwards compatibility: older seed scripts stored plaintext.
+    if not ok and stored and "$" not in stored:
+        ok = password == stored
+        if ok:
+            logging.warning(
+                "auth.login plaintext_password_detected; upgrading hash for user=%s tenant_id=%s",
+                username,
+                tenant_id,
+            )
+            try:
+                from auth import hash_password
+
+                user.password = hash_password(password)
+                db.commit()
+            except Exception:
+                db.rollback()
+
+    if not ok:
+        logging.info("auth.login password_verify_failed tenant_id=%s username=%s", tenant_id, username)
         raise HTTPException(status_code=401, detail="Invalid username or password.")
 
     token = create_token(
@@ -1229,6 +1380,45 @@ def get_latest_patient_flow_sequence(
     }
 
 
+@patient_flow_router.get("/history")
+def get_patient_flow_history(
+    limit: int = Query(default=500, ge=1, le=5000),
+    _token: dict = Depends(require_staff_or_admin),
+    db: Session = Depends(get_db),
+):
+    """Return recent patient flow rows for historical charts.
+
+    The dashboard Forecast page needs a time-series of raw patient counts.
+    This endpoint provides the last N rows (oldest->newest) scoped to tenant.
+    """
+
+    tenant_id = get_tenant_id(_token, db)
+    rows = (
+        db.query(PatientFlow)
+        .filter(PatientFlow.tenant_id == int(tenant_id))
+        .order_by(PatientFlow.id.desc())
+        .limit(int(limit))
+        .all()
+    )
+    rows = list(reversed(rows))
+    return {
+        "tenant_id": int(tenant_id),
+        "limit": int(limit),
+        "rows": [
+            {
+                "datetime": normalize_text(r.datetime),
+                "patients": float(r.patients),
+                "day_of_week": int(r.day_of_week or 0),
+                "month": int(r.month or 0),
+                "is_weekend": int(r.is_weekend or 0),
+                "holiday": int(r.holiday or 0),
+                "weather": float(r.weather or 0.0),
+            }
+            for r in rows
+        ],
+    }
+
+
 @ml_router.get("/optimize_resources/{predicted_patients}")
 def optimize_resources_endpoint(
     predicted_patients: float,
@@ -1238,7 +1428,7 @@ def optimize_resources_endpoint(
     """Run optimization and persist the run for audit + approvals."""
 
     tenant_id = get_tenant_id(_token, db)
-    result = optimize_resources(predicted_patients)
+    result = optimize_resources(predicted_patients, tenant_id=int(tenant_id))
     summary = result.get("summary", {}) if isinstance(result, dict) else {}
 
     try:
@@ -1660,7 +1850,14 @@ def predict(
             ),
         )
 
-    result = predict_hybrid(sequence_array)
+    try:
+        result = predict_hybrid(sequence_array)
+    except Exception as e:
+        # Most common reasons:
+        # - Missing artifacts (model/scalers)
+        # - TensorFlow not installed in the API runtime
+        # - Feature drift (wrong feature count)
+        raise HTTPException(status_code=503, detail=f"Forecast service unavailable: {e}")
     predicted_patients = float(result["hybrid_prediction"])
 
     return {
@@ -1713,7 +1910,10 @@ def explain(
             ),
         )
 
-    return explain_feature_importance(sequence_array)
+    try:
+        return explain_feature_importance(sequence_array)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Explainability unavailable: {e}")
 
 
 @ml_router.post("/evaluate")
@@ -1769,8 +1969,8 @@ def _legacy_message_templates(_token: dict = Depends(require_staff_or_admin)):
 # - Old: GET /users -> New: GET /auth/users
 @system_router.get("/users", include_in_schema=False)
 def _legacy_users(_token: dict = Depends(require_admin), db: Session = Depends(get_db)):
-    # Mirror /auth/users payload.
-    users = db.query(User).all()
+    tenant_id = get_tenant_id(_token, db)
+    users = db.query(User).filter(User.tenant_id == int(tenant_id)).all()
     return {
         "users": [
             {

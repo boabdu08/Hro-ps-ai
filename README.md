@@ -31,8 +31,27 @@ Manage patient flow, optimize resources, and simulate hospital scenarios with AI
 
 ## 🔹 Setup Instructions
 
-1. **Clone the repository**
+### 1) Clone the repository
 
 ```bash
 git clone https://github.com/username/hro-ps-ai.git
 cd hro-ps-ai
+```
+
+### 2) Recommended local run commands (Windows)
+
+This repo historically ended up with **two venvs** in some environments (`venv/` and `.venv311/`).
+To avoid interpreter mismatch issues (missing deps, different Python versions), use the PowerShell scripts below.
+They auto-select `venv` first, then `.venv311`.
+
+```powershell
+./scripts/seed.ps1
+./scripts/run_api.ps1
+./scripts/run_dashboard.ps1
+
+# optional always-on pipeline
+./scripts/run_worker.ps1
+```
+
+> Note: If your PowerShell execution policy blocks running scripts, use:
+> `powershell -ExecutionPolicy Bypass -Command "& ./scripts/run_dashboard.ps1"`

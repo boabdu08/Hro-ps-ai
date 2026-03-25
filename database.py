@@ -10,18 +10,46 @@ from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 from settings import get_settings
 
-DB_USER = "postgres"
-DB_PASSWORD = "postgres"
-DB_HOST = "127.0.0.1"
-DB_PORT = "5432"
-DB_NAME = "hro_db"
 
-DEFAULT_DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+def _normalize_database_url(raw: str) -> str:
+    """Normalize DATABASE_URL into a SQLAlchemy-friendly Postgres URL.
+
+    Common providers (Render/Heroku/Railway) may provide:
+      - postgres://...  (legacy)
+      - postgresql://...
+      - postgresql+psycopg2://...
+    """
+
+    url = (raw or "").strip().rstrip("/")
+    if not url:
+        return ""
+
+    # SQLAlchemy expects postgresql:// not postgres://
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://") :]
+
+    # If provider gives plain postgresql://, keep it; psycopg2-binary supports it.
+    return url
+
+
+def _default_dev_database_url() -> str:
+    # Local developer convenience (Docker Compose / local Postgres)
+    return "postgresql+psycopg2://postgres:postgres@127.0.0.1:5432/hro_db"
+
 
 # Keep this module import-safe (no DB calls on import).
 _settings = get_settings()
-DATABASE_URL = (_settings.database_url or "").strip() or os.getenv("DATABASE_URL", "").strip() or DEFAULT_DATABASE_URL
-DATABASE_URL = DATABASE_URL.rstrip("/")
+_env_url = _normalize_database_url(os.getenv("DATABASE_URL", ""))
+_settings_url = _normalize_database_url(_settings.database_url)
+
+DATABASE_URL = _settings_url or _env_url
+
+# In dev/local/test, allow an explicit default. In production, require DATABASE_URL.
+if not DATABASE_URL:
+    if str(_settings.app_env).lower() in {"dev", "local", "test"}:
+        DATABASE_URL = _default_dev_database_url()
+    else:
+        raise RuntimeError("DATABASE_URL is required in production")
 
 
 def _env_int(name: str, default: int) -> int:

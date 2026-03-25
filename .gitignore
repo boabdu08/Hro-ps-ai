@@ -4,24 +4,69 @@ __pycache__/
 
 # virtualenvs
 .venv/
+.venv311/
+.venv*/
 venv/
 env/
+ENV/
+
+# distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Streamlit cache
+.streamlit/cache/
+
+# ML / artifacts (keep only what you truly want versioned)
+*.h5
+*.keras
+*.pkl
+*.joblib
+*.npz
+*.npy
+
+# Local DB / cache
+*.sqlite3
+
+# Local Postgres data (if ever created)
+*.db
 
 # OS/editor
 .DS_Store
 Thumbs.db
 .vscode/*
 !.vscode/settings.json
+!.vscode/extensions.json
 
 # env/secrets
 .env
 .env.*
+!.env.example
 
 # python tooling
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 
+# Coverage
+.coverage
+htmlcov/
+
 # artifacts / outputs (keep if you intentionally version them)
 *.log
+
+# temp files
+tmp_*.txt
+
+
+
+
 

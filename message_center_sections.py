@@ -9,7 +9,7 @@ from api_client import (
     send_message_api,
     send_quick_reply_api,
 )
-from ui_components import badge, empty_state, section_header
+from ui_components import alert_box, empty_state, page_header, section_header, status_badge
 
 TARGET_ROLE_OPTIONS = ["doctor", "nurse", "all"]
 TARGET_DEPARTMENT_OPTIONS = [
@@ -26,11 +26,11 @@ PRIORITY_OPTIONS = ["normal", "high", "critical"]
 def _priority_badge(priority: str):
     value = str(priority).strip().lower()
     if value == "critical":
-        badge("Critical", "#ef4444")
+        status_badge("CRITICAL", "critical")
     elif value == "high":
-        badge("High", "#f59e0b")
+        status_badge("HIGH", "warning")
     else:
-        badge("Normal", "#2563eb")
+        status_badge("NORMAL", "info")
 
 
 def _safe_templates_response():
@@ -115,7 +115,7 @@ def _render_ack_button(message_id: str, is_read: bool, key_suffix: str):
 
 
 def show_admin_message_center(sender_name: str, sender_role: str):
-    section_header("💬 Admin Messaging Hub", "Send quick operational messages to hospital staff.")
+    page_header("Messages", "Operational messaging to coordinate staff across departments.")
     data = _safe_templates_response()
     templates = data["admin_templates"]
 
@@ -142,7 +142,7 @@ def show_admin_message_center(sender_name: str, sender_role: str):
             key="admin_message_priority",
         )
 
-    st.markdown("### Quick Message Shortcuts")
+    section_header("Quick templates")
     if not templates:
         empty_state("No quick templates available.")
     else:
@@ -151,7 +151,7 @@ def show_admin_message_center(sender_name: str, sender_role: str):
             message = template.get("message", "")
             category = template.get("category", "general")
 
-            st.markdown(f"**{title}**")
+            st.markdown(f"#### {title}")
             _priority_badge(template.get("priority", selected_priority))
             st.write(message)
             st.caption(
@@ -178,7 +178,7 @@ def show_admin_message_center(sender_name: str, sender_role: str):
 
             st.markdown("---")
 
-    st.markdown("### Send Custom Message")
+    section_header("Compose")
     custom_title = st.text_input("Custom Title", key="admin_custom_title")
     custom_type = st.selectbox(
         "Message Type",
@@ -207,7 +207,7 @@ def show_admin_message_center(sender_name: str, sender_role: str):
             else:
                 st.error("Failed to send custom message.")
 
-    st.markdown("### Active Sent Messages")
+    section_header("Sent messages")
     unread_meta = get_unread_message_count() or {}
     if isinstance(unread_meta, dict) and "unread_count" in unread_meta:
         st.caption(f"Your unread (personal) inbox count: {int(unread_meta.get('unread_count') or 0)}")
@@ -224,7 +224,7 @@ def show_admin_message_center(sender_name: str, sender_role: str):
         for i, msg in enumerate(sent_messages):
             message_id = msg.get("message_id", "")
 
-            st.markdown(f"**{msg.get('title', 'Untitled')}**")
+            st.markdown(f"#### {msg.get('title', 'Untitled')}")
             _priority_badge(msg.get("priority", "normal"))
             st.write(msg.get("message", ""))
             st.caption(
@@ -244,7 +244,7 @@ def show_admin_message_center(sender_name: str, sender_role: str):
             if i < len(sent_messages) - 1:
                 st.markdown("---")
 
-    st.markdown("### Archived Sent Messages")
+    section_header("Archived")
     archived_messages = _safe_messages_response(
         sender_name=sender_name,
         include_archived=True,
@@ -255,7 +255,7 @@ def show_admin_message_center(sender_name: str, sender_role: str):
         empty_state("No archived sent messages.")
     else:
         for i, msg in enumerate(archived_messages):
-            st.markdown(f"**{msg.get('title', 'Untitled')}**")
+            st.markdown(f"#### {msg.get('title', 'Untitled')}")
             _priority_badge(msg.get("priority", "normal"))
             st.write(msg.get("message", ""))
             _reply_block(msg)
@@ -269,9 +269,9 @@ def show_admin_message_center(sender_name: str, sender_role: str):
 
 
 def show_staff_message_center(user_name: str, role: str, department: str):
-    section_header("💬 Staff Message Center", "Respond quickly to admin alerts and operational messages.")
+    page_header("Messages", "Your inbox for operational updates, alerts, and quick replies.")
 
-    st.markdown("### Send Message to Admin")
+    section_header("Send update to Admin")
     with st.expander("Compose a quick update", expanded=False):
         staff_title = st.text_input("Title", key="staff_to_admin_title")
         staff_message = st.text_area("Message", key="staff_to_admin_message")
@@ -311,7 +311,8 @@ def show_staff_message_center(user_name: str, role: str, department: str):
 
         unread_meta = get_unread_message_count() or {}
         if isinstance(unread_meta, dict) and "unread_count" in unread_meta:
-            st.caption(f"Unread for you: {int(unread_meta.get('unread_count') or 0)}")
+            count = int(unread_meta.get("unread_count") or 0)
+            status_badge(f"Unread: {count}", "critical" if count else "success")
 
         if not messages:
             empty_state("No messages available.")
@@ -319,7 +320,7 @@ def show_staff_message_center(user_name: str, role: str, department: str):
             for idx, msg in enumerate(messages):
                 message_id = msg.get("message_id", "")
 
-                st.markdown(f"### {msg.get('title', 'Untitled Message')}")
+                st.markdown(f"#### {msg.get('title', 'Untitled Message')}")
                 _priority_badge(msg.get("priority", "normal"))
                 st.write(msg.get("message", ""))
                 st.caption(
@@ -333,7 +334,7 @@ def show_staff_message_center(user_name: str, role: str, department: str):
                 if reply_value:
                     _reply_block(msg)
                 else:
-                    st.markdown("#### Quick Replies")
+                    section_header("Quick replies")
                     if quick_replies:
                         cols = st.columns(4)
                         for q_idx, reply in enumerate(quick_replies):
@@ -388,7 +389,7 @@ def show_staff_message_center(user_name: str, role: str, department: str):
             empty_state("No archived messages.")
         else:
             for idx, msg in enumerate(archived_messages):
-                st.markdown(f"### {msg.get('title', 'Untitled Message')}")
+                st.markdown(f"#### {msg.get('title', 'Untitled Message')}")
                 _priority_badge(msg.get("priority", "normal"))
                 st.write(msg.get("message", ""))
                 _reply_block(msg)

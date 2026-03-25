@@ -13,7 +13,6 @@ from typing import Any, Dict, Tuple
 
 import joblib
 import numpy as np
-from tensorflow.keras.models import load_model
 
 from artifacts import artifact_diagnostics, get_artifact_paths
 from feature_spec import ARIMAX_EXOG_COLUMNS, FEATURE_COLUMNS
@@ -43,6 +42,15 @@ def load_assets() -> ForecastAssets:
     diag = artifact_diagnostics()
     if diag.get("missing"):
         raise FileNotFoundError(f"Missing required artifacts: {diag['missing']}")
+
+    # Lazy import so the API can start even if TensorFlow isn't installed.
+    # This improves cold-start + makes CI lighter; /predict will return 503 if missing.
+    try:
+        from tensorflow.keras.models import load_model  # type: ignore
+    except Exception as e:
+        raise RuntimeError(
+            "TensorFlow is required for LSTM inference. Install tensorflow (see requirements.txt)."
+        ) from e
 
     paths = get_artifact_paths()
     lstm_model = load_model(str(paths.lstm_model), compile=False)

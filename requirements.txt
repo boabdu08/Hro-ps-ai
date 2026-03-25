@@ -1,19 +1,57 @@
-streamlit==1.35.0
-pandas==2.1.4
-numpy==1.26.4
-scikit-learn==1.3.2
-plotly==5.22.0
-matplotlib==3.8.4
-requests==2.31.0
+# Core web
 fastapi==0.111.0
-uvicorn==0.30.1
-shap==0.44.1
-pydantic==2.7.1
-sqlalchemy==2.0.32
-psycopg2-binary==2.9.9
-joblib==1.4.2
-tensorflow==2.16.1
-statsmodels==0.14.2
-python-jose==3.3.0
+uvicorn[standard]==0.30.1
+
+# UI
+# Streamlit 1.35 pins numpy<2 which breaks modern Python local dev (3.13) where
+# many environments already use NumPy 2.x.
+# Keep prod/runtime pinned via python version marker.
+streamlit==1.35.0; python_version < "3.13"
+streamlit>=1.54.0; python_version >= "3.13"
+
+# Data
+# NOTE: this repo's deployment runtime is Python 3.11 (runtime.txt).
+# For local dev in newer Pythons, prefer installing via `uv pip` or a 3.11 venv.
+pandas>=2.2.2
+# NumPy build note:
+# - Repo deploy runtime is Python 3.11 (see runtime.txt) where NumPy wheels are available.
+# - On Python 3.13, some dependency resolvers may try to downgrade to NumPy 1.26.x
+#   (which has no wheel for 3.13) and then attempt a source build (requires MSVC).
+#   Use a wheel-backed NumPy on 3.13 to keep `pip install -r requirements.txt` reliable.
+numpy>=1.26.4; python_version < "3.13"
+numpy==2.2.6; python_version >= "3.13"
+requests==2.31.0
+plotly==5.22.0
+# NOTE: matplotlib is not used by the runtime dashboard; it frequently requires
+# native build tooling on Windows (especially on Python 3.13).
+# Keep it out of the default install to make repo setup reliable.
+# If you need it for offline notebooks/scripts, install it manually.
+# matplotlib==3.8.4
+
+# Auth / security
+python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.9
+
+# DB
+sqlalchemy==2.0.32
+# psycopg2-binary has historically lagged new Python releases with wheels.
+# For Python 3.13+ use psycopg3 binary wheels.
+psycopg2-binary==2.9.9; python_version < "3.13"
+psycopg[binary]>=3.2.0; python_version >= "3.13"
+
+# ML/runtime (keep minimal for serving + this repo's scripts)
+scikit-learn>=1.3.2
+joblib>=1.4.2
+statsmodels>=0.14.2
+tensorflow>=2.16.1
+shap>=0.44.1
+
+# Config
+python-dotenv==1.0.1
+
+# Dev / CI
+pytest==8.2.2
+black==24.4.2
+isort==5.13.2
+flake8==7.0.0

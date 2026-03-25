@@ -1,0 +1,48 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image (sanity)
+        run: docker build -t hro-ps-ai:cd .
+
+      - name: Note
+        run: |
+          echo "CD uses deploy hooks (Render). Ensure RENDER_DEPLOY_HOOK_API and RENDER_DEPLOY_HOOK_DASHBOARD are set in repo secrets."
+
+      # -----------------
+      # Render deployment
+      # -----------------
+      - name: Deploy API to Render (deploy hook)
+        if: ${{ secrets.RENDER_DEPLOY_HOOK_API != '' }}
+        run: curl -fsSL "${{ secrets.RENDER_DEPLOY_HOOK_API }}"
+
+      - name: Deploy Dashboard to Render (deploy hook)
+        if: ${{ secrets.RENDER_DEPLOY_HOOK_DASHBOARD != '' }}
+        run: curl -fsSL "${{ secrets.RENDER_DEPLOY_HOOK_DASHBOARD }}"
+
+      # ------------------
+      # Railway deployment
+      # ------------------
+      # If you use Railway, add a step here using a Railway token.
+      # Example (placeholder):
+      # - name: Deploy to Railway
+      #   if: ${{ secrets.RAILWAY_TOKEN != '' }}
+      #   run: |
+      #     npm i -g @railway/cli
+      #     railway up --service api
+
+      # ----------------
+      # AWS deployment
+      # ----------------
+      # Placeholder for AWS (ECS/ECR/AppRunner) deployments.
+      # Use secrets:
+      #   AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION

@@ -2,17 +2,36 @@ import pandas as pd
 import streamlit as st
 
 from database import SessionLocal
-from models import AuditEvent
-from ui_components import empty_state, section_header
+from models import AuditEvent, Tenant
+from settings import get_settings
+from ui_components import empty_state, page_header, section_header, status_badge
 
 
 EXPECTED_COLS = ["audit_id", "timestamp", "action", "actor", "target", "status", "details"]
 
 
+def _get_default_tenant_id(db) -> int:
+    settings = get_settings()
+    slug = str(settings.default_tenant_slug or "demo-hospital").strip() or "demo-hospital"
+    row = db.query(Tenant).filter(Tenant.slug == slug).first()
+    if row is None:
+        row = Tenant(name="Demo Hospital", slug=slug)
+        db.add(row)
+        db.commit()
+        db.refresh(row)
+    return int(row.id)
+
+
 def load_audit_log():
     db = SessionLocal()
     try:
-        rows = db.query(AuditEvent).order_by(AuditEvent.id.desc()).all()
+        tenant_id = _get_default_tenant_id(db)
+        rows = (
+            db.query(AuditEvent)
+            .filter(AuditEvent.tenant_id == int(tenant_id))
+            .order_by(AuditEvent.id.desc())
+            .all()
+        )
         data = [
             {
                 "audit_id": str(row.audit_id or "").strip(),
@@ -31,7 +50,7 @@ def load_audit_log():
 
 
 def show_audit_summary():
-    section_header("🧾 Audit Summary")
+    page_header("Audit", "Operational traceability — approvals, resets, and workflow events.")
     df = load_audit_log()
     if df.empty:
         empty_state("No audit records available.")
@@ -41,14 +60,18 @@ def show_audit_summary():
     failed = len(df[df["status"].str.lower() == "failed"])
     approve_actions = len(df[df["action"].str.contains("approve", case=False, na=False)])
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Total Audit Events", total)
-    c2.metric("Success", success)
-    c3.metric("Failed", failed)
-    c4.metric("Approve Actions", approve_actions)
+    with c1:
+        status_badge(f"Events: {total}", "info")
+    with c2:
+        status_badge(f"Success: {success}", "success" if success else "neutral")
+    with c3:
+        status_badge(f"Failed: {failed}", "critical" if failed else "neutral")
+    with c4:
+        status_badge(f"Approvals: {approve_actions}", "warning" if approve_actions else "neutral")
 
 
 def show_audit_table():
-    section_header("📚 Audit Event Log")
+    section_header("Event log")
     df = load_audit_log()
     if df.empty:
         empty_state("No audit log records available.")
@@ -57,7 +80,7 @@ def show_audit_table():
 
 
 def show_execution_trace():
-    section_header("🛠 Execution Trace")
+    section_header("Execution trace", "A compact timeline of recommendation actions")
     df = load_audit_log()
     if df.empty:
         empty_state("No execution trace available.")

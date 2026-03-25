@@ -1,6 +1,6 @@
 username,password,name,role,department
-admin1,1234,Hospital Admin,admin,Management
-doctor1,1234,Dr. Ahmed,doctor,ER
-doctor2,1234,Dr. Sara,doctor,ICU
-nurse1,1234,Nurse Mona,nurse,General Ward
-nurse2,1234,Nurse Ali,nurse,ER
+admin1,123456,Hospital Admin,admin,Management
+doctor1,123456,Dr. Ahmed,doctor,ER
+doctor2,123456,Dr. Sara,doctor,ICU
+nurse1,123456,Nurse Mona,nurse,General Ward
+nurse2,123456,Nurse Ali,nurse,ER

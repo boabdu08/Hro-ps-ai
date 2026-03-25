@@ -94,7 +94,7 @@ def get_settings() -> Settings:
     database_url = (os.getenv("DATABASE_URL") or "").strip()
     api_base_url = (os.getenv("API_BASE_URL") or "http://127.0.0.1:8000").strip() or "http://127.0.0.1:8000"
 
-    jwt_secret_key = (os.getenv("JWT_SECRET_KEY") or "").strip() or "dev-unsafe-secret-change-me"
+    jwt_secret_key = (os.getenv("JWT_SECRET_KEY") or "").strip()
     jwt_algorithm = (os.getenv("JWT_ALGORITHM") or "HS256").strip() or "HS256"
     access_token_expire_minutes = _int_env("ACCESS_TOKEN_EXPIRE_MINUTES", 60)
 

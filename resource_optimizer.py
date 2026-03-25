@@ -87,7 +87,7 @@ def _department_status(required_beds, beds_capacity, warning_ratio, critical_rat
     return "stable"
 
 
-def _load_operational_state() -> Dict[str, Dict[str, float]]:
+def _load_operational_state(*, tenant_id: int | None = None) -> Dict[str, Dict[str, float]]:
     db = SessionLocal()
     try:
         state = {
@@ -100,17 +100,26 @@ def _load_operational_state() -> Dict[str, Dict[str, float]]:
             for dept in DEPARTMENT_CONFIG
         }
 
-        for row in db.query(Appointment).all():
+        q_appt = db.query(Appointment)
+        if tenant_id is not None:
+            q_appt = q_appt.filter(Appointment.tenant_id == int(tenant_id))
+        for row in q_appt.all():
             dept = str(row.department or "").strip()
             if dept in state:
                 state[dept]["appointments_load"] += _safe_int(row.patient_count, 0)
 
-        for row in db.query(ORBooking).all():
+        q_or = db.query(ORBooking)
+        if tenant_id is not None:
+            q_or = q_or.filter(ORBooking.tenant_id == int(tenant_id))
+        for row in q_or.all():
             dept = str(row.department or "").strip()
             if dept in state and str(row.status or "").strip().lower() in ["pending", "scheduled", "priority review"]:
                 state[dept]["or_pending_count"] += 1
 
-        for row in db.query(StaffShift).all():
+        q_shifts = db.query(StaffShift)
+        if tenant_id is not None:
+            q_shifts = q_shifts.filter(StaffShift.tenant_id == int(tenant_id))
+        for row in q_shifts.all():
             dept = str(row.department or "").strip()
             if dept not in state:
                 continue
@@ -180,14 +189,23 @@ def _build_recommendations(df: pd.DataFrame) -> List[str]:
     return recommendations
 
 
-def _load_entities():
+def _load_entities(*, tenant_id: int | None = None):
     """Load entities used for actionable plans."""
 
     db = SessionLocal()
     try:
-        appts = db.query(Appointment).all()
-        or_rows = db.query(ORBooking).all()
-        shifts = db.query(StaffShift).all()
+        q_appts = db.query(Appointment)
+        q_or = db.query(ORBooking)
+        q_shifts = db.query(StaffShift)
+
+        if tenant_id is not None:
+            q_appts = q_appts.filter(Appointment.tenant_id == int(tenant_id))
+            q_or = q_or.filter(ORBooking.tenant_id == int(tenant_id))
+            q_shifts = q_shifts.filter(StaffShift.tenant_id == int(tenant_id))
+
+        appts = q_appts.all()
+        or_rows = q_or.all()
+        shifts = q_shifts.all()
         return appts, or_rows, shifts
     finally:
         db.close()
@@ -292,7 +310,8 @@ def _select_appointment_reschedules(
         a
         for a in appts
         if str(a.department or "").strip() == department
-        and str(a.status or "").strip().lower() in {"scheduled", "review required", "reschedule suggested", ""}
+        and str(a.status or "").strip().lower()
+        in {"scheduled", "review required", "reschedule suggested", "open", "busy", ""}
     ]
     candidates.sort(key=lambda a: _safe_int(a.patient_count, 0), reverse=True)
     picked = candidates[:limit]
@@ -329,10 +348,10 @@ def _select_or_escalations(or_rows: List[ORBooking], department: str, limit: int
     ]
 
 
-def optimize_resources(predicted_patients: float):
+def optimize_resources(predicted_patients: float, *, tenant_id: int | None = None):
     predicted_patients = float(predicted_patients)
-    operational_state = _load_operational_state()
-    appts, or_rows, shifts = _load_entities()
+    operational_state = _load_operational_state(tenant_id=tenant_id)
+    appts, or_rows, shifts = _load_entities(tenant_id=tenant_id)
 
     department_rows = []
     for department, cfg in DEPARTMENT_CONFIG.items():
@@ -351,9 +370,13 @@ def optimize_resources(predicted_patients: float):
         doctors_required = max(1, _safe_ceil(department_patients / 8))
         nurses_required = max(1, _safe_ceil(department_patients / 4))
 
-        bed_shortage = max(0, beds_required - cfg["beds_capacity"])
-        doctor_shortage = max(0, doctors_required - max(cfg["doctors_capacity"], doctor_staff_count))
-        nurse_shortage = max(0, nurses_required - max(cfg["nurses_capacity"], nurse_staff_count))
+        effective_bed_capacity = cfg["beds_capacity"]
+        effective_doctor_capacity = min(cfg["doctors_capacity"], doctor_staff_count) if doctor_staff_count > 0 else 0
+        effective_nurse_capacity = min(cfg["nurses_capacity"], nurse_staff_count) if nurse_staff_count > 0 else 0
+
+        bed_shortage = max(0, beds_required - effective_bed_capacity)
+        doctor_shortage = max(0, doctors_required - effective_doctor_capacity)
+        nurse_shortage = max(0, nurses_required - effective_nurse_capacity)
 
         status = _department_status(
             required_beds=beds_required,
@@ -373,6 +396,9 @@ def optimize_resources(predicted_patients: float):
                 "beds_capacity": cfg["beds_capacity"],
                 "doctors_capacity": cfg["doctors_capacity"],
                 "nurses_capacity": cfg["nurses_capacity"],
+                "effective_beds_capacity": effective_bed_capacity,
+                "effective_doctors_capacity": effective_doctor_capacity,
+                "effective_nurses_capacity": effective_nurse_capacity,
                 "doctor_staff_count": doctor_staff_count,
                 "nurse_staff_count": nurse_staff_count,
                 "beds_required": beds_required,
@@ -465,6 +491,3 @@ def optimize_resources(predicted_patients: float):
         "recommendations": recommendations,
         "actions": actions,
     }
-
-
-

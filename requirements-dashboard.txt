@@ -1,0 +1,16 @@
+streamlit==1.35.0; python_version < "3.13"
+streamlit>=1.54.0; python_version >= "3.13"
+
+# data + charts
+pandas>=2.2.2
+numpy>=1.26.4; python_version < "3.13"
+numpy==2.2.6; python_version >= "3.13"
+plotly==5.22.0
+# Not required by runtime dashboard; optional for offline analysis.
+# matplotlib==3.8.4
+
+# http
+requests==2.31.0
+
+# config
+python-dotenv==1.0.1

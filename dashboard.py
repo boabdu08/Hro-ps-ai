@@ -28,15 +28,11 @@ from staff_sections import (
     show_my_shifts,
     show_or_bookings,
 )
-from ui_components import inject_base_styles, sidebar_status_card
+from ui_components import inject_base_styles, page_header, scoped_key, sidebar_status_card
 from api_client import get_unread_notification_count
-from database import init_db
 
 st.set_page_config(page_title="HRO Command Center", layout="wide")
 inject_base_styles()
-
-# Ensure DB tables exist even if the dashboard is run before the API.
-init_db()
 
 if "user" not in st.session_state:
     st.session_state.user = None
@@ -46,18 +42,52 @@ if "token" not in st.session_state:
 
 
 def login_view():
-    st.title("🏥 HRO — AI Hospital System")
-    st.caption("AI-powered hospital operations, forecasting, approvals, and staff coordination.")
+    page_header(
+        "HRO‑PS Command Center",
+        "Premium hospital operations intelligence — forecasting, optimization, alerts, approvals.",
+        meta_right=f"API: {api_base_url()}",
+    )
 
-    st.caption(f"API: {api_base_url()}")
+    left, right = st.columns([1.05, 1])
+    with left:
+        st.markdown(
+            """
+            <div class="hro-surface" style="padding:18px;">
+              <div style="font-size:1.05rem; font-weight:800; margin-bottom:6px;">Sign in</div>
+              <div style="color:#5B667A; margin-bottom:14px;">Use your hospital account to access your role-based workspace.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-    # SaaS: select tenant (optional; defaults to DEFAULT_TENANT_SLUG)
-    tenant_slug = st.text_input("Tenant (slug)", value=os.getenv("DEFAULT_TENANT_SLUG", "demo-hospital"))
+        # SaaS: select tenant (optional; defaults to DEFAULT_TENANT_SLUG)
+        tenant_slug = st.text_input(
+            "Tenant (slug)",
+            value=os.getenv("DEFAULT_TENANT_SLUG", "demo-hospital"),
+            key=scoped_key("login", "tenant_slug"),
+        )
+        username = st.text_input("Username", key=scoped_key("login", "username"))
+        password = st.text_input("Password", type="password", key=scoped_key("login", "password"))
 
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
+        login_clicked = st.button("Login", type="primary", key=scoped_key("login", "submit"))
+    with right:
+        st.markdown(
+            """
+            <div class="hro-surface" style="padding:18px;">
+              <div style="font-size:1.05rem; font-weight:800; margin-bottom:10px;">What you can do</div>
+              <ul style="margin: 0 0 0 18px; color:#0B1220; opacity:0.92; line-height: 1.75;">
+                <li>Forecast patient demand and detect pressure early</li>
+                <li>Optimize beds, staffing, and department allocations</li>
+                <li>Manage alerts, notifications, and operational messaging</li>
+                <li>Approve recommendations with full audit visibility</li>
+              </ul>
+              <div style="margin-top:14px; color:#5B667A; font-size:0.92rem;">Tip: start with <b>Command Center</b> for a full system snapshot.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-    if st.button("Login"):
+    if login_clicked:
         # NOTE: login_user_api currently only accepts (username, password);
         # for tenant-aware login we pass tenant_slug through env for now.
         if tenant_slug.strip():
@@ -76,20 +106,15 @@ def login_view():
 
 
 def show_header(user):
-    st.markdown(
-        f"""
-        <div class="hro-header">
-            <div>👤 {user['name']} ({user['role']})</div>
-            <div>🏥 HRO Command Center</div>
-            <div>🕒 {datetime.now().strftime('%H:%M')}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    page_header(
+        "HRO‑PS Command Center",
+        f"{user.get('name','-')} • {user.get('role','-').title()} • {user.get('department','-')}",
+        meta_right=datetime.now().strftime("%a %d %b • %H:%M"),
     )
 
 
 def sidebar_navigation(role):
-    st.sidebar.title("🧭 Navigation")
+    st.sidebar.markdown("### Navigation")
 
     if role == "admin":
         pages = [
@@ -127,7 +152,13 @@ def sidebar_navigation(role):
             "Messages",
         ]
 
-    return st.sidebar.radio("Go to", pages)
+    # Streamlit warns on empty labels even if collapsed.
+    return st.sidebar.radio(
+        "Navigation",
+        pages,
+        label_visibility="collapsed",
+        key=scoped_key("sidebar", "navigation", role),
+    )
 
 
 @st.cache_data(ttl=20, show_spinner=False)
@@ -173,11 +204,13 @@ def show_sidebar_context(user):
     else:
         sidebar_status_card("System Status", [ctx.get("reason", "Context unavailable")])
 
-    if st.sidebar.button("Logout"):
+    if st.sidebar.button("Logout", key=scoped_key("sidebar", "logout")):
         st.session_state.user = None
         st.session_state.token = ""
         if "API_TOKEN" in os.environ:
             os.environ.pop("API_TOKEN", None)
+        if "TENANT_SLUG" in os.environ:
+            os.environ.pop("TENANT_SLUG", None)
         st.rerun()
 
 

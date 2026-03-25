@@ -21,18 +21,38 @@ def clean_dataframe(df):
     return df
 
 
+def _get_or_create_default_tenant_id(db) -> int:
+    """Resolve tenant_id for ingestion.
+
+    Ingestion endpoints are admin-only, but they must still attach rows to a
+    tenant to keep the runtime DB-first dashboard working.
+
+    Historically some ingestion code inserted rows with tenant_id=None when the
+    tenants table wasn't seeded yet. That breaks /patient_flow/latest which is
+    tenant-scoped.
+    """
+
+    settings = get_settings()
+    slug = (settings.default_tenant_slug or "demo-hospital").strip() or "demo-hospital"
+    tenant = db.query(Tenant).filter(Tenant.slug == slug).first()
+    if tenant is None:
+        tenant = Tenant(name="Demo Hospital", slug=slug)
+        db.add(tenant)
+        db.commit()
+        db.refresh(tenant)
+    return int(tenant.id)
+
+
 def ingest_patient_flow(file):
     df = pd.read_csv(file)
     validate_columns(df, REQUIRED_PATIENT_COLS)
     df = clean_dataframe(df)
     db = SessionLocal()
     try:
-        settings = get_settings()
-        tenant = db.query(Tenant).filter(Tenant.slug == settings.default_tenant_slug).first()
-        tenant_id = int(tenant.id) if tenant else None
+        tenant_id = _get_or_create_default_tenant_id(db)
         for _, row in df.iterrows():
             db.add(PatientFlow(
-                tenant_id=tenant_id,
+                tenant_id=int(tenant_id),
                 datetime=str(row.get("datetime", "")) if row.get("datetime", "") != "" else None,
                 patients=float(row["patients"]),
                 day_of_week=int(row.get("day_of_week", 0)) if str(row.get("day_of_week", "")).strip() != "" else None,
@@ -52,12 +72,10 @@ def ingest_appointments(file):
     df = clean_dataframe(df)
     db = SessionLocal()
     try:
-        settings = get_settings()
-        tenant = db.query(Tenant).filter(Tenant.slug == settings.default_tenant_slug).first()
-        tenant_id = int(tenant.id) if tenant else None
+        tenant_id = _get_or_create_default_tenant_id(db)
         for _, row in df.iterrows():
             db.add(Appointment(
-                tenant_id=tenant_id,
+                tenant_id=int(tenant_id),
                 appointment_id=str(row.get("appointment_id", "")).strip(),
                 department=str(row["department"]).strip(),
                 doctor=str(row.get("doctor", "")).strip(),
@@ -77,12 +95,10 @@ def ingest_or(file):
     df = clean_dataframe(df)
     db = SessionLocal()
     try:
-        settings = get_settings()
-        tenant = db.query(Tenant).filter(Tenant.slug == settings.default_tenant_slug).first()
-        tenant_id = int(tenant.id) if tenant else None
+        tenant_id = _get_or_create_default_tenant_id(db)
         for _, row in df.iterrows():
             db.add(ORBooking(
-                tenant_id=tenant_id,
+                tenant_id=int(tenant_id),
                 booking_id=str(row.get("booking_id", "")).strip(),
                 room=str(row.get("room", "")).strip(),
                 doctor=str(row.get("doctor", "")).strip(),
@@ -95,5 +111,6 @@ def ingest_or(file):
         db.commit()
     finally:
         db.close()
+
 
 

@@ -1,7 +1,9 @@
 import os
 import pandas as pd
+from sqlalchemy import text
 from database import engine, SessionLocal, Base
 from settings import get_settings
+from auth import hash_password, verify_password
 from models import (
     PatientFlow,
     Appointment,
@@ -29,6 +31,26 @@ def _get_or_create_default_tenant_id() -> int:
     return int(row.id)
 
 
+def _should_skip_table(table_name: str) -> bool:
+    """Idempotent seeding guard.
+
+    Default behavior: if a table already has rows, skip seeding it.
+    Override by setting env SEED_FORCE=true.
+    """
+
+    force = str(os.getenv("SEED_FORCE", "")).strip().lower() in {"1", "true", "yes", "y", "on"}
+    if force:
+        return False
+
+    try:
+        # Use a cheap COUNT(*) to detect existing data.
+        count = db.execute(text(f"SELECT COUNT(1) FROM {table_name}")).scalar()  # type: ignore[arg-type]
+        return int(count or 0) > 0
+    except Exception:
+        # If we can't determine, do not skip.
+        return False
+
+
 def safe_value(value):
     if pd.isna(value):
         return None
@@ -38,6 +60,9 @@ def safe_value(value):
 def seed_patients_flow():
     try:
         tenant_id = _get_or_create_default_tenant_id()
+        if _should_skip_table("patients_flow"):
+            print("patients_flow already has rows; skipping (set SEED_FORCE=true to override).")
+            return
         df = pd.read_csv("clean_data.csv")
         for _, row in df.iterrows():
             record = PatientFlow(
@@ -61,6 +86,9 @@ def seed_patients_flow():
 def seed_appointments():
     try:
         tenant_id = _get_or_create_default_tenant_id()
+        if _should_skip_table("appointments"):
+            print("appointments already has rows; skipping (set SEED_FORCE=true to override).")
+            return
         df = pd.read_csv("appointments.csv")
         for _, row in df.iterrows():
             record = Appointment(
@@ -84,6 +112,9 @@ def seed_appointments():
 def seed_or_bookings():
     try:
         tenant_id = _get_or_create_default_tenant_id()
+        if _should_skip_table("or_bookings"):
+            print("or_bookings already has rows; skipping (set SEED_FORCE=true to override).")
+            return
         df = pd.read_csv("or_bookings.csv")
         for _, row in df.iterrows():
             record = ORBooking(
@@ -108,6 +139,9 @@ def seed_or_bookings():
 def seed_staff_shifts():
     try:
         tenant_id = _get_or_create_default_tenant_id()
+        if _should_skip_table("staff_shifts"):
+            print("staff_shifts already has rows; skipping (set SEED_FORCE=true to override).")
+            return
         df = pd.read_csv("shifts.csv")
         for _, row in df.iterrows():
             record = StaffShift(
@@ -131,15 +165,27 @@ def seed_staff_shifts():
 def seed_users():
     try:
         tenant_id = _get_or_create_default_tenant_id()
+        # idempotent: skip usernames that already exist for this tenant.
+        existing = {
+            str(u.username).strip()
+            for u in db.query(User).filter(User.tenant_id == int(tenant_id)).all()
+            if u.username
+        }
         df = pd.read_csv("users.csv")
         for _, row in df.iterrows():
+            username = str(safe_value(row.get("username")) or "").strip()
+            if not username or username in existing:
+                continue
+
+            raw_password = str(safe_value(row.get("password")) or "").strip()
+            hashed = hash_password(raw_password) if raw_password else ""
             record = User(
                 tenant_id=int(tenant_id),
-                username=safe_value(row.get("username")),
+                username=username,
                 name=safe_value(row.get("name")),
                 role=safe_value(row.get("role")),
                 department=safe_value(row.get("department")),
-                password=safe_value(row.get("password")),
+                password=hashed,
             )
             db.add(record)
         db.commit()
@@ -149,22 +195,82 @@ def seed_users():
         print("Error seeding users:", e)
 
 
+def ensure_demo_auth_users():
+    """Ensure demo tenant + baseline demo users exist with bcrypt passwords.
+
+    This hardens local-dev and fresh deployments even if users.csv changes.
+    Default password (required by task): 123456.
+    """
+
+    tenant_id = _get_or_create_default_tenant_id()
+    desired = [
+        {"username": "admin1", "name": "Hospital Admin", "role": "admin", "department": "Management"},
+        {"username": "doctor1", "name": "Dr. Ahmed", "role": "doctor", "department": "ER"},
+        {"username": "nurse1", "name": "Nurse Mona", "role": "nurse", "department": "General Ward"},
+    ]
+
+    pwd = "123456"
+    hashed = hash_password(pwd)
+
+    existing = {u.username: u for u in db.query(User).filter(User.tenant_id == int(tenant_id)).all()}
+    changed = 0
+    for u in desired:
+        row = existing.get(u["username"])
+        if row is None:
+            db.add(
+                User(
+                    tenant_id=int(tenant_id),
+                    username=u["username"],
+                    name=u["name"],
+                    role=u["role"],
+                    department=u["department"],
+                    password=hashed,
+                )
+            )
+            changed += 1
+        else:
+            # Ensure password matches expected demo password (123456), and is hashed.
+            if (not row.password) or ("$" not in str(row.password)) or (not verify_password(pwd, str(row.password))):
+                row.password = hashed
+                changed += 1
+            row.name = row.name or u["name"]
+            row.role = row.role or u["role"]
+            row.department = row.department or u["department"]
+
+    if changed:
+        db.commit()
+        print(f"demo auth users ensured/updated: {changed}")
+
+
 def seed_recommendation_log():
     try:
         if not os.path.exists("recommendation_log.csv"):
             print("recommendation_log.csv not found. Skipping recommendation log seeding.")
             return
 
+        tenant_id = _get_or_create_default_tenant_id()
         df = pd.read_csv("recommendation_log.csv")
         if df.empty:
             print("recommendation_log.csv is empty. Skipping recommendation log seeding.")
             return
 
+        existing_ids = {
+            str(r.recommendation_id).strip()
+            for r in db.query(RecommendationRecord)
+            .filter(RecommendationRecord.tenant_id == int(tenant_id))
+            .all()
+            if r.recommendation_id
+        }
+
         # Repo schema stores recommendations in RecommendationRecord.
         # CSV columns vary by version; we map to the closest supported fields.
         for _, row in df.iterrows():
+            rec_id = str(safe_value(row.get("recommendation_id") or "")).strip()
+            if not rec_id or rec_id in existing_ids:
+                continue
             record = RecommendationRecord(
-                recommendation_id=str(safe_value(row.get("recommendation_id") or "")).strip() or None,
+                tenant_id=int(tenant_id),
+                recommendation_id=rec_id,
                 timestamp=str(safe_value(row.get("timestamp") or "")).strip() or None,
                 rec_type=str(safe_value(row.get("type") or row.get("rec_type") or "general")).strip() or "general",
                 message=str(safe_value(row.get("message") or row.get("recommendation") or "")).strip() or "",
@@ -174,8 +280,6 @@ def seed_recommendation_log():
                 execution_note=str(safe_value(row.get("execution_note") or "")).strip() or "",
                 affected_entities=str(safe_value(row.get("affected_files") or row.get("affected_entities") or "")).strip() or "",
             )
-            if not record.recommendation_id:
-                continue
             db.add(record)
 
         db.commit()
@@ -191,11 +295,16 @@ def seed_audit_log():
             print("audit_log.csv not found. Skipping audit log seeding.")
             return
 
+        tenant_id = _get_or_create_default_tenant_id()
         df = pd.read_csv("audit_log.csv")
         # Repo schema stores audit events in AuditEvent.
         for _, row in df.iterrows():
+            audit_id = str(safe_value(row.get("audit_id") or "")).strip()
+            if not audit_id:
+                continue
             record = AuditEvent(
-                audit_id=str(safe_value(row.get("audit_id") or "")).strip() or None,
+                tenant_id=int(tenant_id),
+                audit_id=audit_id,
                 timestamp=str(safe_value(row.get("timestamp") or "")).strip() or None,
                 action=str(safe_value(row.get("action") or "")).strip() or "",
                 actor=str(safe_value(row.get("actor") or "")).strip() or "",
@@ -203,8 +312,6 @@ def seed_audit_log():
                 status=str(safe_value(row.get("status") or "")).strip() or "",
                 details=str(safe_value(row.get("details") or "")).strip() or "",
             )
-            if not record.audit_id:
-                continue
             db.add(record)
         db.commit()
         print("audit_log seeded successfully.")
@@ -220,6 +327,7 @@ if __name__ == "__main__":
         seed_or_bookings()
         seed_staff_shifts()
         seed_users()
+        ensure_demo_auth_users()
         seed_recommendation_log()
         seed_audit_log()
         print("CSV to PostgreSQL seeding completed.")

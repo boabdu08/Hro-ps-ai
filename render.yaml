@@ -3,13 +3,22 @@ services:
     name: hro-ps-api
     env: python
     plan: starter
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn api:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -r requirements-api.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET_KEY
+        sync: false
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: API_BASE_URL
+        # For the dashboard service to call this API. In Render, set this to the
+        # public URL of this service, e.g. https://hro-ps-api.onrender.com
+        sync: false
+      - key: CORS_ORIGINS
+        # Comma-separated list of allowed dashboard origins
         sync: false
       - key: DEFAULT_TENANT_SLUG
         value: demo-hospital
@@ -18,17 +27,35 @@ services:
       - key: ARTIFACT_DIR
         value: "."
 
+  - type: web
+    name: hro-ps-dashboard
+    env: python
+    plan: starter
+    buildCommand: pip install -r requirements-dashboard.txt
+    startCommand: streamlit run dashboard.py --server.port $PORT --server.address 0.0.0.0 --server.headless true
+    envVars:
+      - key: API_BASE_URL
+        # Set to the public URL of the API service
+        sync: false
+      - key: DEFAULT_TENANT_SLUG
+        value: demo-hospital
+      - key: TENANT_MODE_ENABLED
+        value: "true"
+
   - type: worker
     name: hro-ps-worker
     env: python
     plan: starter
-    buildCommand: pip install -r requirements.txt
+    # Worker depends on the API stack (db, auth). Keep it slim.
+    buildCommand: pip install -r requirements-api.txt
     startCommand: python worker.py
     envVars:
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET_KEY
         sync: false
+      - key: JWT_ALGORITHM
+        value: HS256
       - key: DEFAULT_TENANT_SLUG
         value: demo-hospital
       - key: TENANT_MODE_ENABLED

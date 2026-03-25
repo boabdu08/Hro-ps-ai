@@ -51,7 +51,17 @@ def login_user_api(username, password):
     # SaaS: allow optional tenant selection (dashboard sets TENANT_SLUG env var).
     tenant_slug = os.getenv("TENANT_SLUG", "").strip()
     if tenant_slug:
-        payload["tenant_slug"] = tenant_slug
+        # Canonical key for UI is `tenant`.
+        payload["tenant"] = tenant_slug
+
+    # Debug log (safe): don't print password.
+    try:
+        dbg = payload.copy()
+        if "password" in dbg:
+            dbg["password"] = "***"
+        print(f"LOGIN request -> {url} payload={dbg}")
+    except Exception:
+        pass
     return _safe_post(url, payload=payload, timeout=10)
 
 
@@ -68,6 +78,19 @@ def get_latest_sequence():
     if not data:
         return None
     return data.get("sequence")
+
+
+def get_patient_flow_history(limit: int = 500):
+    """Fetch recent patient flow rows for historical charts.
+
+    Returns payload:
+      {"rows": [{"datetime": ..., "patients": ..., ...}, ...]}
+    """
+
+    limit = int(limit) if limit is not None else 500
+    if limit <= 0:
+        limit = 500
+    return _safe_get(f"{API_BASE_URL}/patient_flow/history", params={"limit": limit}, timeout=20)
 
 
 def get_prediction(sequence):

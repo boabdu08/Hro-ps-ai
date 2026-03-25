@@ -11,23 +11,23 @@ from api_client import (
     resolve_alert_api,
     update_notification_preferences,
 )
-from ui_components import badge, empty_state, section_header
+from ui_components import alert_box, empty_state, page_header, section_header, status_badge
 
 
 def _priority_badge(priority: str):
     prio = str(priority or "").lower()
     if prio == "critical":
-        badge("CRITICAL", "#ef4444")
+        status_badge("CRITICAL", "critical")
     elif prio == "high":
-        badge("HIGH", "#f59e0b")
+        status_badge("HIGH", "warning")
     elif prio == "medium":
-        badge("MEDIUM", "#3b82f6")
+        status_badge("MEDIUM", "info")
     else:
-        badge("LOW", "#64748b")
+        status_badge("LOW", "neutral")
 
 
 def _render_preferences():
-    section_header("⚙️ Notification Preferences", "Control what you receive in-app.")
+    page_header("Preferences", "Notification settings for your in-app workflow.")
     pref = (get_notification_preferences() or {}).get("preferences") or {}
 
     receive_in_app = st.toggle("Receive in-app notifications", value=bool(pref.get("receive_in_app", True)))
@@ -51,7 +51,7 @@ def show_alerts_center(user: dict):
     role = str(user.get("role", "")).lower()
     department = str(user.get("department", "All Departments")).strip()
 
-    section_header("🚨 Smart Alerts", "System-generated alerts from optimization/forecast signals.")
+    page_header("Alerts", "Operational alerts driven by forecast and optimization signals.")
     data = get_alerts(active_only=True, department=None, limit=100) or {}
     alerts = data.get("alerts", []) if isinstance(data, dict) else []
 
@@ -62,7 +62,13 @@ def show_alerts_center(user: dict):
     # Quick summary
     critical_count = len([a for a in alerts if str(a.get("priority", "")).lower() == "critical"])
     warning_count = len([a for a in alerts if str(a.get("priority", "")).lower() in {"high"}])
-    st.caption(f"Showing {len(alerts)} alerts | Critical: {critical_count} | High: {warning_count}")
+    meta1, meta2, meta3 = st.columns(3)
+    with meta1:
+        status_badge(f"Active alerts: {len(alerts)}", "info")
+    with meta2:
+        status_badge(f"Critical: {critical_count}", "critical" if critical_count else "neutral")
+    with meta3:
+        status_badge(f"High: {warning_count}", "warning" if warning_count else "neutral")
 
     for a in alerts:
         title = str(a.get("title", "Alert"))
@@ -75,15 +81,15 @@ def show_alerts_center(user: dict):
         rec = str(a.get("recommendation_summary", "")).strip()
 
         with st.container(border=True):
-            st.markdown(f"### {title}")
+            st.markdown(f"#### {title}")
             _priority_badge(prio)
-            if dept:
-                st.caption(f"Department: {dept} | Source: {source} | Created: {created_at}")
-            else:
-                st.caption(f"Source: {source} | Created: {created_at}")
+            st.caption(
+                (f"Department: {dept} | " if dept else "")
+                + f"Source: {source} | Created: {created_at}"
+            )
             st.write(msg)
             if rec:
-                st.info(f"Recommendations: {rec}")
+                alert_box(f"Recommendation: {rec}", level="info")
 
             col1, col2, col3 = st.columns([1, 1, 2])
             with col1:
@@ -114,10 +120,10 @@ def show_alerts_center(user: dict):
 
 
 def show_notifications_center(user: dict):
-    section_header("🔔 Notifications Center", "Your personal in-app notification inbox.")
+    page_header("Notifications", "Your personal in-app notification inbox.")
     unread_meta = get_unread_notification_count() or {}
     unread_count = int(unread_meta.get("unread_count") or 0)
-    badge(f"Unread: {unread_count}", "#ef4444" if unread_count else "#10b981")
+    status_badge(f"Unread: {unread_count}", "critical" if unread_count else "success")
 
     unread_only = st.toggle("Show unread only", value=False)
     data = get_notifications(unread_only=unread_only, limit=100) or {}
@@ -141,13 +147,13 @@ def show_notifications_center(user: dict):
         status = str(n.get("status", "delivered"))
 
         with st.container(border=True):
-            st.markdown(f"### {title}")
+            st.markdown(f"#### {title}")
             st.caption(f"Status: {status} | Created: {created_at}")
             st.write(body)
             if read_at:
-                badge("READ", "#10b981")
+                status_badge("READ", "success")
             else:
-                badge("UNREAD", "#ef4444")
+                status_badge("UNREAD", "critical")
 
             if not read_at:
                 if st.button("Mark as read", key=f"read_{nid}"):

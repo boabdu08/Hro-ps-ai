@@ -23,9 +23,9 @@ def get_json(url: str, token: str) -> dict:
 def main():
     base = "http://127.0.0.1:8000"
 
-    admin = post_json(f"{base}/auth/login", {"username": "admin1", "password": "1234"})
-    doctor = post_json(f"{base}/auth/login", {"username": "doctor1", "password": "1234"})
-    nurse = post_json(f"{base}/auth/login", {"username": "nurse2", "password": "1234"})
+    admin = post_json(f"{base}/auth/login", {"tenant": "demo-hospital", "username": "admin1", "password": "123456"})
+    doctor = post_json(f"{base}/auth/login", {"tenant": "demo-hospital", "username": "doctor1", "password": "123456"})
+    nurse = post_json(f"{base}/auth/login", {"tenant": "demo-hospital", "username": "nurse1", "password": "123456"})
 
     admin_tok = admin["access_token"]
     doctor_tok = doctor["access_token"]

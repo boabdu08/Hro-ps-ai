@@ -102,7 +102,7 @@ def _forecast_next_hour(sequence: np.ndarray) -> float:
 
 
 def _persist_optimization_run(db, tenant_id: int, predicted_patients: float) -> dict:
-    result = optimize_resources(predicted_patients)
+    result = optimize_resources(predicted_patients, tenant_id=int(tenant_id))
     summary = result.get("summary", {}) if isinstance(result, dict) else {}
 
     run = OptimizationRun(
