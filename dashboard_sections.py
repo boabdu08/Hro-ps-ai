@@ -533,22 +533,53 @@ def show_optimization():
                 empty_state("No explicit actions generated.")
 
 
-def _build_demo_capacity_map(prediction: float) -> pd.DataFrame:
-    """Deterministic department capacity map for UI (demo until real dept capacity model exists)."""
+def _build_capacity_from_allocations(allocations: list[dict]) -> pd.DataFrame:
+    """Build a capacity/coverage view from real optimizer output.
 
-    hospital_map = pd.DataFrame({
-        "Department": ["ER", "ICU", "General Ward", "Surgery", "Radiology"],
-        "Capacity": [30, 20, 80, 10, 15],
-        "Occupied": [
-            int(prediction * 0.30),
-            int(prediction * 0.10),
-            int(prediction * 0.45),
-            int(prediction * 0.10),
-            int(prediction * 0.05),
-        ],
-    })
-    hospital_map["Available"] = hospital_map["Capacity"] - hospital_map["Occupied"]
-    return hospital_map
+    This replaces the old deterministic "demo capacity map".
+
+    We interpret:
+      - beds_required as the modeled requirement for next-hour load
+      - bed_shortage as the deficit against available beds
+
+    Derived fields:
+      - beds_available_est = max(0, beds_required - bed_shortage)
+
+    The goal is to show *real, API-backed* content everywhere (no placeholders).
+    """
+
+    if not allocations:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(allocations)
+    if df.empty or "department" not in df.columns:
+        return pd.DataFrame()
+
+    # Normalize numeric fields.
+    for col in ["predicted_patients", "beds_required", "bed_shortage"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+        else:
+            df[col] = 0
+
+    df["beds_available_est"] = (df["beds_required"] - df["bed_shortage"]).clip(lower=0)
+
+    out_cols = [
+        c
+        for c in [
+            "department",
+            "status",
+            "predicted_patients",
+            "beds_required",
+            "beds_available_est",
+            "bed_shortage",
+            "doctor_shortage",
+            "nurse_shortage",
+            "priority_score",
+        ]
+        if c in df.columns
+    ]
+    return df[out_cols].sort_values(by="priority_score", ascending=False) if "priority_score" in df.columns else df[out_cols]
 
 
 def render_operations(*, key_prefix: str = "ops"):
@@ -631,9 +662,12 @@ def render_operations(*, key_prefix: str = "ops"):
             st.caption("Open Forecast page for the full 24-hour curve.")
 
         with st.container(border=True):
-            section_header("Demo capacity map")
-            hospital_map = _build_demo_capacity_map(float(ctx["prediction"]))
-            modern_table(hospital_map, key=scoped_key(key_prefix, "capacity_table"))
+            section_header("Capacity context", "Derived from the latest optimization run")
+            capacity_df = _build_capacity_from_allocations(list(allocations or []))
+            if capacity_df.empty:
+                empty_state("Capacity context not available.")
+            else:
+                modern_table(capacity_df, key=scoped_key(key_prefix, "capacity_table"))
 
 
 def render_simulation(*, key_prefix: str = "sim"):
@@ -677,22 +711,33 @@ def render_simulation(*, key_prefix: str = "sim"):
                 section_header("Recommended resources")
                 st.json(sim["recommended_resources"])
 
-    hospital_map = _build_demo_capacity_map(prediction)
+    # Capacity view derived from allocations.
+    optimization = ctx.get("optimization") or {}
+    allocations = optimization.get("department_allocations", [])
+    capacity_df = _build_capacity_from_allocations(list(allocations or []))
     with st.container(border=True):
-        section_header("Capacity overview")
-        modern_table(hospital_map, key=scoped_key(key_prefix, "capacity_table"))
+        section_header("Capacity context", "Derived from the latest optimization run")
+        if capacity_df.empty:
+            empty_state("Capacity context not available.")
+        else:
+            modern_table(capacity_df, key=scoped_key(key_prefix, "capacity_table"))
 
-    fig_dept = px.bar(
-        hospital_map,
-        x="Department",
-        y=["Capacity", "Occupied", "Available"],
-        barmode="group",
-        title="Department Capacity Overview",
-    )
-    fig_dept.update_layout(height=380)
-    with st.container(border=True):
-        section_header("Department capacity chart")
-        st.plotly_chart(fig_dept, use_container_width=True, key=scoped_key(key_prefix, "fig_dept"))
+    if not capacity_df.empty:
+        # Visualize requirement vs availability estimate.
+        chart_df = capacity_df.copy()
+        # Align naming in chart.
+        if "beds_available_est" in chart_df.columns:
+            fig_dept = px.bar(
+                chart_df,
+                x="department",
+                y=[c for c in ["beds_required", "beds_available_est", "bed_shortage"] if c in chart_df.columns],
+                barmode="group",
+                title="",
+            )
+            fig_dept.update_layout(height=380, xaxis_title="")
+            with st.container(border=True):
+                section_header("Beds requirement vs availability")
+                st.plotly_chart(fig_dept, use_container_width=True, key=scoped_key(key_prefix, "fig_dept"))
 
 
 def render_digital_twin(*, key_prefix: str = "twin"):

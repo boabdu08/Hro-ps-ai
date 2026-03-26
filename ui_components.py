@@ -383,6 +383,33 @@ def inject_base_styles():
           color: white !important;
         }
 
+        /* Secondary buttons: ensure adequate contrast across themes.
+           Use a very subtle tint to visually separate from cards/inputs.
+           NOTE: keep primary buttons untouched. */
+        .stButton > button:not([kind="primary"]) {
+          background: rgba(59,130,246,0.08) !important;
+        }
+
+        /* Improve readability for Plotly charts (axes, legend) across themes */
+        .js-plotly-plot .plotly .xtick text,
+        .js-plotly-plot .plotly .ytick text,
+        .js-plotly-plot .plotly .gtitle,
+        .js-plotly-plot .plotly .legend text {
+          fill: var(--text) !important;
+          color: var(--text) !important;
+        }
+
+        /* Improve table readability in Streamlit's dataframe (best-effort selectors) */
+        div[data-testid="stDataFrame"] [role="columnheader"],
+        div[data-testid="stDataFrame"] [role="gridcell"] {
+          color: var(--text) !important;
+          background-color: var(--bg-elev) !important;
+        }
+        div[data-testid="stDataFrame"] [role="columnheader"] {
+          color: var(--text) !important;
+          border-bottom: 1px solid var(--border) !important;
+        }
+
         /* Tabs */
         .stTabs [data-baseweb="tab"] {
           font-weight: 720 !important;
@@ -651,6 +678,8 @@ def sidebar_status_card(title: str, lines: list[str]):
         """,
         unsafe_allow_html=True,
     )
+
+
 
 
 

@@ -3,11 +3,10 @@ fastapi==0.111.0
 uvicorn[standard]==0.30.1
 
 # UI
-# Streamlit 1.35 pins numpy<2 which breaks modern Python local dev (3.13) where
-# many environments already use NumPy 2.x.
-# Keep prod/runtime pinned via python version marker.
-streamlit==1.35.0; python_version < "3.13"
-streamlit>=1.54.0; python_version >= "3.13"
+# Keep Streamlit on a single modern version across environments.
+# This avoids stale/incorrect frontend chunk resolution issues caused by
+# mismatched Streamlit frontend builds.
+streamlit>=1.54.0
 
 # Data
 # NOTE: this repo's deployment runtime is Python 3.11 (runtime.txt).

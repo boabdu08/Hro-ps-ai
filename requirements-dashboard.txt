@@ -1,5 +1,4 @@
-streamlit==1.35.0; python_version < "3.13"
-streamlit>=1.54.0; python_version >= "3.13"
+streamlit>=1.54.0
 
 # data + charts
 pandas>=2.2.2

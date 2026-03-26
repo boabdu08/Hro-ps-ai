@@ -87,21 +87,91 @@ def _sync_theme_local_storage(theme: str) -> None:
         f"""
         <script>
         (function() {{
+          const root = (function() {{
+            try {{ return window.parent || window; }} catch (e) {{ return window; }}
+          }})();
           const key = 'hro_theme';
-          const url = new URL(window.location.href);
+          const url = new URL(root.location.href);
           const urlTheme = url.searchParams.get('theme');
-          const stored = window.localStorage.getItem(key);
+          const stored = root.localStorage.getItem(key);
 
           // If the URL doesn't have theme but localStorage does, promote it into the URL.
           if ((!urlTheme || urlTheme === '') && stored && (stored === 'light' || stored === 'dark')) {{
             url.searchParams.set('theme', stored);
-            window.location.replace(url.toString());
+            root.location.replace(url.toString());
             return;
           }}
 
           // Keep localStorage aligned with the app's chosen theme.
-          window.localStorage.setItem(key, '{safe_theme}');
+          root.localStorage.setItem(key, '{safe_theme}');
         }})();
+        </script>
+        """,
+        height=0,
+    )
+
+
+def _inject_dynamic_import_recovery() -> None:
+    """Mitigate stale Streamlit chunk cache issues.
+
+    In some deployments (especially reverse proxies / CDNs / aggressive browser
+    caches), Streamlit's lazily loaded JS chunks (/static/js/index.<hash>.js)
+    can get out of sync with the base HTML.
+
+    Symptom:
+      TypeError: Failed to fetch dynamically imported module
+
+    This recovery script:
+      - listens for that specific error
+      - performs a one-time cache-bust reload by adding/updating ?_cb=<ts>
+
+    It is intentionally conservative (one reload max per page load).
+    """
+
+    components.html(
+        """
+        <script>
+        (function() {
+          try {
+            const root = (function() {
+              try { return window.parent || window; } catch (e) { return window; }
+            })();
+
+            const KEY = 'hro_import_recovery_attempted';
+            const attempted = root.sessionStorage.getItem(KEY);
+
+            function shouldRecover(msg) {
+              if (!msg) return false;
+              const t = String(msg);
+              return (
+                t.includes('Failed to fetch dynamically imported module') ||
+                t.includes('Importing a module script failed')
+              );
+            }
+
+            function recoverOnce() {
+              if (attempted === '1') return;
+              root.sessionStorage.setItem(KEY, '1');
+              const url = new URL(root.location.href);
+              url.searchParams.set('_cb', String(Date.now()));
+              // Replace (not assign) so back button doesn't loop.
+              root.location.replace(url.toString());
+            }
+
+            root.addEventListener('error', function(e) {
+              // error.message is often the relevant string; for module errors it may be generic.
+              if (shouldRecover(e && e.message)) recoverOnce();
+            }, true);
+
+            root.addEventListener('unhandledrejection', function(e) {
+              const reason = e && e.reason;
+              const msg = (reason && (reason.message || reason.toString && reason.toString())) || '';
+              if (shouldRecover(msg)) recoverOnce();
+            });
+          } catch (err) {
+            // Never break the app for recovery logic.
+          }
+        })();
         </script>
         """,
         height=0,
@@ -117,6 +187,7 @@ def _init_theme_from_url() -> None:
 _init_theme_from_url()
 inject_base_styles()
 _sync_theme_local_storage(get_theme_mode())
+_inject_dynamic_import_recovery()
 
 if "user" not in st.session_state:
     st.session_state.user = None
