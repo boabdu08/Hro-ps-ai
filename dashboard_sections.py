@@ -181,11 +181,6 @@ def get_live_context():
 
 
 def show_overview():
-    page_header(
-        "Command Center",
-        "Live operational snapshot: current status, forecast risk, and recommended actions.",
-    )
-
     ctx = get_live_context()
     if not ctx["ready"]:
         empty_state(ctx["reason"])
@@ -195,115 +190,155 @@ def show_overview():
     optimization = ctx["optimization"]
     summary = optimization.get("summary", {})
 
-    # Top KPIs
-    c1, c2, c3, c4, c5 = st.columns(5)
-    with c1:
-        kpi_card("Patient load (now)", ctx["current_patients"], status="info")
-    with c2:
-        kpi_card("Forecast (next hour)", int(ctx["prediction"]), status="normal")
-    with c3:
-        kpi_card(
-            "Beds needed",
-            int(summary.get("beds_needed_total", result["recommended_resources"]["beds_needed"])),
-            delta="System-wide",
-            status="warning",
-        )
-    with c4:
-        kpi_card("Doctors needed", int(result["recommended_resources"]["doctors_needed"]), status="normal")
-    with c5:
-        emergency_level = result.get("emergency_level", "LOW")
-        status = "critical" if emergency_level == "HIGH" else "warning" if emergency_level == "MEDIUM" else "success"
-        kpi_card("Risk signal", emergency_level, delta="Emergency pressure", status=status)
+    # ------------------------------------------------------------
+    # SUMMARY (3-second understanding)
+    # ------------------------------------------------------------
+    section_header("Summary", "Current load, short-horizon forecast, and capacity signal")
 
-    # Executive status banner
+    # KPI row: 4–6 top metrics
     emergency_level = result.get("emergency_level", "LOW")
+    risk_status = "critical" if emergency_level == "HIGH" else "warning" if emergency_level == "MEDIUM" else "success"
+    beds_needed_total = int(summary.get("beds_needed_total", result["recommended_resources"]["beds_needed"]))
+    doctors_needed_total = int(summary.get("doctors_needed_total", result["recommended_resources"]["doctors_needed"]))
+
+    k1, k2, k3, k4, k5 = st.columns(5)
+    with k1:
+        kpi_card("Total patients", ctx["current_patients"], status="info")
+    with k2:
+        kpi_card("Next-hour forecast", int(ctx["prediction"]), status="normal")
+    with k3:
+        kpi_card("24h peak", int(ctx.get("peak") or ctx["prediction"]), status="warning" if float(ctx.get("peak") or 0) >= 120 else "normal")
+    with k4:
+        kpi_card("Beds needed", beds_needed_total, delta="system-wide", status="warning")
+    with k5:
+        kpi_card("Risk signal", emergency_level, delta="pressure", status=risk_status)
+
+    # Decision banner
     if emergency_level == "HIGH":
         alert_box(
-            "Emergency surge signal detected. Immediate capacity review recommended (beds, staffing, intake rules).",
+            "Emergency surge risk is HIGH. Review department shortages and initiate surge coverage.",
             "critical",
         )
     elif emergency_level == "MEDIUM":
         alert_box(
-            "Moderate emergency pressure detected. Monitor staffing and bed usage closely and prepare surge coverage.",
+            "Moderate pressure expected. Prepare backup coverage and monitor bed utilization.",
             "warning",
         )
     else:
         alert_box(
-            "Operational status stable. No major emergency pressure detected for the next hour.",
+            "System stable. Continue standard operations; keep an eye on forecast trend.",
             "success",
         )
 
-    # Command center composition: Forecast + Alerts + Recommendations
-    left, right = st.columns([1.6, 1])
+    # ------------------------------------------------------------
+    # CORE ANALYTICS (main story)
+    # ------------------------------------------------------------
+    section_header("Core analytics", "Trend + forecast quality at a glance")
+    left, right = st.columns(2)
+
+    forecast_values = list(ctx.get("forecast_values") or [])
 
     with left:
         with st.container(border=True):
-            section_header("24-hour demand outlook", "AI multistep forecast (peak detection)")
-            forecast_values = ctx.get("forecast_values", [])
+            section_header("24-hour demand outlook", "Expected arrivals over the next day")
             if forecast_values:
                 forecast_df = pd.DataFrame({
                     "hour": list(range(1, len(forecast_values) + 1)),
                     "forecast": forecast_values,
                 })
-                fig = px.area(
-                    forecast_df,
-                    x="hour",
-                    y="forecast",
-                    title="",
-                )
-                fig.update_traces(
-                    line=dict(color="rgba(91,92,255,0.95)", width=3),
-                    fillcolor="rgba(91,92,255,0.14)",
-                )
+                fig = px.area(forecast_df, x="hour", y="forecast", title="")
                 fig.update_layout(
-                    height=320,
-                    xaxis_title="Next hours",
+                    height=330,
+                    xaxis_title="Hours ahead",
                     yaxis_title="Predicted patients",
-                    margin=dict(l=10, r=10, t=10, b=10),
+                    margin=dict(l=8, r=8, t=8, b=8),
                 )
-                st.plotly_chart(fig, use_container_width=True, key=scoped_key("overview", "forecast_24h"))
+                st.plotly_chart(fig, use_container_width=True, key=scoped_key("overview", "core_forecast_24h"))
             else:
                 empty_state("Forecast values unavailable.")
 
+    with right:
         with st.container(border=True):
-            section_header("Department pressure", "Where capacity constraints are most likely")
-            allocations = optimization.get("department_allocations", [])
+            section_header("Actual vs forecast (recent window)", "Are we tracking reality?")
+            if not ctx["df"].empty and forecast_values:
+                df = ctx["df"].copy().reset_index(drop=True)
+                actual = df["patients"].tail(len(forecast_values)).values.astype(float)
+                forecast_vals = np.array(forecast_values, dtype=float)
+                min_len = int(min(len(actual), len(forecast_vals)))
+                compare_df = pd.DataFrame({
+                    "time_index": list(range(min_len)),
+                    "Actual": actual[:min_len],
+                    "Forecast": forecast_vals[:min_len],
+                })
+                fig_compare = px.line(compare_df, x="time_index", y=["Actual", "Forecast"], title="")
+                fig_compare.update_layout(height=330, xaxis_title="Recent window", yaxis_title="Patients")
+                st.plotly_chart(fig_compare, use_container_width=True, key=scoped_key("overview", "core_actual_vs_forecast"))
+            else:
+                empty_state("Need historical data to compare actual vs forecast.")
+
+    # ------------------------------------------------------------
+    # ACTION (interactive control + before/after)
+    # ------------------------------------------------------------
+    section_header("Action", "Run a quick what-if simulation and see expected impact")
+    with st.container(border=True):
+        c1, c2, c3 = st.columns(3)
+        demand = c1.slider("Demand increase (%)", 0, 100, 20, key=scoped_key("overview_action", "demand"))
+        beds = c2.slider("Available beds", 50, 300, 120, key=scoped_key("overview_action", "beds"))
+        doctors = c3.slider("Available doctors", 5, 50, 15, key=scoped_key("overview_action", "doctors"))
+
+        sim = simulate(float(ctx["prediction"]), beds, doctors, demand)
+        if sim:
+            before, after = st.columns(2)
+            with before:
+                section_header("Current state", "Baseline forecast + resources")
+                kpi_card("Forecast", int(ctx["prediction"]), status="info")
+                kpi_card("Beds needed", beds_needed_total, status="warning")
+                kpi_card("Doctors needed", doctors_needed_total, status="normal")
+
+            with after:
+                section_header("Simulated state", "Your scenario")
+                kpi_card("Simulated patients", int(sim.get("simulated_patients") or 0), status="info")
+                level = str(sim.get("emergency_level", "LOW"))
+                lvl_status = "critical" if level == "HIGH" else "warning" if level == "MEDIUM" else "success"
+                kpi_card("Emergency signal", level, status=lvl_status)
+                shortage = int(sim.get("doctor_shortage") or 0)
+                kpi_card("Doctor shortage", shortage, status="warning" if shortage > 0 else "success")
+
+            if int(sim.get("doctor_shortage") or 0) == 0:
+                st.success("Scenario looks feasible: no doctor shortage detected for your inputs.")
+            else:
+                st.warning("Scenario indicates a staffing shortage. Consider increasing doctor availability.")
+
+    # ------------------------------------------------------------
+    # INSIGHTS (rankings + copilot)
+    # ------------------------------------------------------------
+    section_header("Insights", "Where pressure concentrates + what to do next")
+    i_left, i_right = st.columns([1.25, 1])
+
+    allocations = optimization.get("department_allocations", [])
+    with i_left:
+        with st.container(border=True):
+            section_header("Department pressure (top 5)", "Focus areas based on modeled shortages")
             if allocations:
                 alloc_df = pd.DataFrame(allocations)
+                if "priority_score" in alloc_df.columns:
+                    alloc_df = alloc_df.sort_values(by="priority_score", ascending=False)
                 show_cols = [c for c in ["department", "status", "priority_score", "bed_shortage", "doctor_shortage", "nurse_shortage"] if c in alloc_df.columns]
-                modern_table(alloc_df[show_cols] if show_cols else alloc_df, key=scoped_key("overview", "dept_pressure_table"))
+                modern_table(alloc_df.head(5)[show_cols] if show_cols else alloc_df.head(5), key=scoped_key("overview", "insights_pressure_top5"))
             else:
                 empty_state("No department allocation data available.")
 
-    with right:
+    with i_right:
         with st.container(border=True):
-            section_header("Active alerts", "Operational signals requiring attention")
-            # Dashboard avoids direct DB reads; alert list is served by API on Notifications page.
-            st.caption("Open Notifications → Alerts for the full triage view.")
-            # Provide an executive hint from the risk signal.
-            if emergency_level in {"HIGH", "MEDIUM"}:
-                alert_box("Elevated risk detected. Review Alerts and pending Approvals.", "warning" if emergency_level == "MEDIUM" else "critical")
-            else:
-                alert_box("No critical alerts detected in the current signal.", "success")
-
-        with st.container(border=True):
-            section_header("Recommendations", "AI-generated operational actions")
-            recs = optimization.get("recommendations", [])
+            section_header("AI Copilot", "Quick recommendations (from existing optimizer output)")
+            recs = list(optimization.get("recommendations", []) or [])
             if recs:
-                for rec in recs[:6]:
+                for rec in recs[:5]:
                     alert_box(str(rec), "info")
             else:
                 empty_state("No recommendations currently available.")
 
-    allocations = optimization.get("department_allocations", [])
-    if allocations:
-        section_header("Department Pressure Ranking", "Top departments by modeled pressure score")
-        alloc_df = pd.DataFrame(allocations).head(5)
-        show_cols = [
-            c for c in ["department", "predicted_patients", "status", "priority_score"]
-            if c in alloc_df.columns
-        ]
-        modern_table(alloc_df[show_cols], key=scoped_key("overview", "dept_pressure_ranking_table"))
+            st.caption("Need details? Open Optimization → Action plan, or Notifications → Alerts.")
 
 
 def show_forecast():

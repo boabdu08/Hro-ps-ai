@@ -1,8 +1,9 @@
 from datetime import datetime
 
-import streamlit as st
-
 import os
+
+import streamlit as st
+import streamlit.components.v1 as components
 
 from api_client import api_base_url, login_user_api
 from approval_sections import show_admin_approval_panel
@@ -28,11 +29,94 @@ from staff_sections import (
     show_my_shifts,
     show_or_bookings,
 )
-from ui_components import inject_base_styles, page_header, scoped_key, sidebar_status_card
+from ui_components import (
+    UI_BUILD_ID,
+    get_theme_mode,
+    inject_base_styles,
+    page_header,
+    scoped_key,
+    set_theme_mode,
+    sidebar_status_card,
+)
 from api_client import get_unread_notification_count
 
 st.set_page_config(page_title="HRO Command Center", layout="wide")
+
+
+def _get_query_param(name: str) -> str | None:
+    """Best-effort getter for query params across Streamlit versions."""
+
+    try:
+        value = st.query_params.get(name)
+        if isinstance(value, list):
+            return value[0] if value else None
+        return str(value) if value is not None else None
+    except Exception:
+        try:
+            qp = st.experimental_get_query_params()
+            value = qp.get(name)
+            return value[0] if isinstance(value, list) and value else None
+        except Exception:
+            return None
+
+
+def _set_query_params(**kwargs: str) -> None:
+    """Best-effort setter for query params across Streamlit versions."""
+
+    try:
+        for k, v in kwargs.items():
+            st.query_params[k] = v
+    except Exception:
+        try:
+            st.experimental_set_query_params(**kwargs)
+        except Exception:
+            return
+
+
+def _sync_theme_local_storage(theme: str) -> None:
+    """Persist theme preference in localStorage.
+
+    Streamlit doesn't expose localStorage to Python directly, but we can keep
+    theme in sync via:
+      - query param ?theme=
+      - a tiny JS snippet that reads/writes localStorage and reloads once
+    """
+
+    safe_theme = "dark" if str(theme).lower() == "dark" else "light"
+    components.html(
+        f"""
+        <script>
+        (function() {{
+          const key = 'hro_theme';
+          const url = new URL(window.location.href);
+          const urlTheme = url.searchParams.get('theme');
+          const stored = window.localStorage.getItem(key);
+
+          // If the URL doesn't have theme but localStorage does, promote it into the URL.
+          if ((!urlTheme || urlTheme === '') && stored && (stored === 'light' || stored === 'dark')) {{
+            url.searchParams.set('theme', stored);
+            window.location.replace(url.toString());
+            return;
+          }}
+
+          // Keep localStorage aligned with the app's chosen theme.
+          window.localStorage.setItem(key, '{safe_theme}');
+        }})();
+        </script>
+        """,
+        height=0,
+    )
+
+
+def _init_theme_from_url() -> None:
+    url_theme = (_get_query_param("theme") or "").strip().lower()
+    if url_theme in {"light", "dark"}:
+        set_theme_mode(url_theme)
+
+
+_init_theme_from_url()
 inject_base_styles()
+_sync_theme_local_storage(get_theme_mode())
 
 if "user" not in st.session_state:
     st.session_state.user = None
@@ -45,7 +129,7 @@ def login_view():
     page_header(
         "HRO‑PS Command Center",
         "Premium hospital operations intelligence — forecasting, optimization, alerts, approvals.",
-        meta_right=f"API: {api_base_url()}",
+        meta_right=f"UI: {UI_BUILD_ID} • API: {api_base_url()}",
     )
 
     left, right = st.columns([1.05, 1])
@@ -54,7 +138,7 @@ def login_view():
             """
             <div class="hro-surface" style="padding:18px;">
               <div style="font-size:1.05rem; font-weight:800; margin-bottom:6px;">Sign in</div>
-              <div style="color:#5B667A; margin-bottom:14px;">Use your hospital account to access your role-based workspace.</div>
+              <div style="color:var(--text-2); margin-bottom:14px;">Use your hospital account to access your role-based workspace.</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -75,13 +159,15 @@ def login_view():
             """
             <div class="hro-surface" style="padding:18px;">
               <div style="font-size:1.05rem; font-weight:800; margin-bottom:10px;">What you can do</div>
-              <ul style="margin: 0 0 0 18px; color:#0B1220; opacity:0.92; line-height: 1.75;">
+              <ul style="margin: 0 0 0 18px; color:var(--text); opacity:0.92; line-height: 1.75;">
                 <li>Forecast patient demand and detect pressure early</li>
                 <li>Optimize beds, staffing, and department allocations</li>
                 <li>Manage alerts, notifications, and operational messaging</li>
                 <li>Approve recommendations with full audit visibility</li>
               </ul>
-              <div style="margin-top:14px; color:#5B667A; font-size:0.92rem;">Tip: start with <b>Command Center</b> for a full system snapshot.</div>
+              <div style="margin-top:14px; color:var(--text-2); font-size:0.92rem;">
+                Tip: start with <b>Command Center</b> for a full system snapshot.
+              </div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -106,11 +192,38 @@ def login_view():
 
 
 def show_header(user):
-    page_header(
-        "HRO‑PS Command Center",
-        f"{user.get('name','-')} • {user.get('role','-').title()} • {user.get('department','-')}",
-        meta_right=datetime.now().strftime("%a %d %b • %H:%M"),
-    )
+    # System identity header (story-driven). Theme toggle lives top-right.
+    with st.container(border=True):
+        left, right = st.columns([0.78, 0.22], vertical_alignment="bottom")
+        with left:
+            st.markdown(
+                """
+                <div style="font-size:1.35rem; font-weight:820; letter-spacing:-0.02em;">Hospital Resource Optimization</div>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.caption(
+                f"Decision dashboard • {user.get('name','-')} • {str(user.get('role','-')).title()} • {user.get('department','-')}"
+            )
+        with right:
+            current_mode = get_theme_mode()
+            # Visible build/version indicator so we can verify the right UI is deployed.
+            st.markdown(
+                f"<div style='display:flex; justify-content:flex-end; margin-bottom:8px;'><span class='hro-badge hro-badge-info'>UI {UI_BUILD_ID}</span></div>",
+                unsafe_allow_html=True,
+            )
+            want_dark = st.toggle(
+                "Dark mode",
+                value=(current_mode == "dark"),
+                help="Light/Dark theme (saved in localStorage).",
+                key=scoped_key("header", "theme_toggle"),
+            )
+            desired_mode = "dark" if want_dark else "light"
+            if desired_mode != current_mode:
+                set_theme_mode(desired_mode)
+                _set_query_params(theme=desired_mode)
+                st.rerun()
+            st.caption(f"{datetime.now().strftime('%a %d %b • %H:%M')} • UI {UI_BUILD_ID}")
 
 
 def sidebar_navigation(role):
@@ -233,7 +346,6 @@ def main_app():
             show_optimization()
 
         elif page == "Operations Center":
-            st.markdown("## ⚙️ Operations Center")
             tab_ops, tab_sim, tab_twin, tab_dept = st.tabs(
                 ["Operations", "Simulation", "Digital Twin", "Department Status"]
             )

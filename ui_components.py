@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+
 import streamlit as st
 
 
@@ -9,39 +10,106 @@ import streamlit as st
 # ------------------------------
 
 
-THEME = {
-    # Unique hybrid canvas (not pure white, not dark)
-    "bg": "#EEF0FF",
-    "bg_2": "#EEF7FF",
-    "bg_3": "#F3EEFF",
+UI_THEME_KEY = "ui_theme_mode"
+UI_BUILD_ID = "2026-03-26-ui-refresh"
 
-    # Glass-like floating surfaces
-    "surface": "rgba(255, 255, 255, 0.72)",
-    "surface_solid": "#F8F9FF",
-    "surface_2": "rgba(255, 255, 255, 0.55)",
 
-    "text": "#0B1020",
-    "muted": "#51607A",
-    "border": "rgba(15, 23, 42, 0.10)",
-    "border_strong": "rgba(91, 92, 255, 0.22)",
+# ------------------------------
+# Design system tokens
+# Apple/Stripe-inspired medical palette
+# ------------------------------
 
-    "shadow": "0 18px 45px rgba(15, 23, 42, 0.10)",
-    "shadow_sm": "0 10px 26px rgba(15, 23, 42, 0.10)",
 
-    "radius": "18px",
-    "radius_sm": "14px",
+TOKENS_LIGHT = {
+    # Canvas
+    "bg": "#F7F9FB",  # soft off-white
+    "bg_elev": "#FFFFFF",
+    "bg_muted": "#F1F5F9",  # slate-100
 
-    # Brand colors
-    "primary": "#5B5CFF",       # blue‑violet
-    "primary_2": "#3E3BFF",
-    "accent_teal": "#22D3EE",
+    # Text
+    "text": "#1F2937",  # gray-800
+    "text_2": "#6B7280",  # gray-500
+    "text_3": "#9CA3AF",  # gray-400
+
+    # Brand
+    "primary": "#3B82F6",  # blue-500
+    "secondary": "#14B8A6",  # teal-500
+    "accent": "#6366F1",  # indigo-500
 
     # Status
-    "success": "#2DD4BF",
+    "success": "#22C55E",
+    "warning": "#F59E0B",
+    "critical": "#EF4444",
+    "info": "#3B82F6",
+
+    # Borders + elevation
+    "border": "rgba(15, 23, 42, 0.10)",
+    "border_strong": "rgba(59, 130, 246, 0.25)",
+    "shadow_sm": "0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 1px rgba(15, 23, 42, 0.04)",
+    "shadow": "0 10px 28px rgba(15, 23, 42, 0.10)",
+    "shadow_hover": "0 14px 36px rgba(15, 23, 42, 0.14)",
+
+    # Radius
+    "radius_card": "16px",
+    "radius_btn": "10px",
+    "radius_input": "10px",
+}
+
+
+TOKENS_DARK = {
+    # Canvas
+    "bg": "#0B1220",  # deep slate
+    "bg_elev": "#0F172A",  # slate-900
+    "bg_muted": "#111C31",
+
+    # Text
+    "text": "#E5E7EB",  # gray-200
+    "text_2": "rgba(229, 231, 235, 0.72)",
+    "text_3": "rgba(229, 231, 235, 0.55)",
+
+    # Brand
+    "primary": "#60A5FA",  # blue-400
+    "secondary": "#2DD4BF",  # teal-400
+    "accent": "#818CF8",  # indigo-400
+
+    # Status
+    "success": "#34D399",
     "warning": "#FBBF24",
     "critical": "#FB7185",
     "info": "#60A5FA",
+
+    # Borders + elevation
+    "border": "rgba(148, 163, 184, 0.14)",
+    "border_strong": "rgba(96, 165, 250, 0.35)",
+    "shadow_sm": "0 1px 2px rgba(0, 0, 0, 0.30)",
+    "shadow": "0 12px 32px rgba(0, 0, 0, 0.42)",
+    "shadow_hover": "0 16px 44px rgba(0, 0, 0, 0.52)",
+
+    # Radius
+    "radius_card": "16px",
+    "radius_btn": "10px",
+    "radius_input": "10px",
 }
+
+
+def get_theme_mode() -> str:
+    """Return current UI theme mode: 'light' or 'dark'."""
+
+    mode = (st.session_state.get(UI_THEME_KEY) or "light").strip().lower()
+    return "dark" if mode == "dark" else "light"
+
+
+def set_theme_mode(mode: str) -> None:
+    mode = (mode or "light").strip().lower()
+    st.session_state[UI_THEME_KEY] = "dark" if mode == "dark" else "light"
+
+
+def theme_tokens() -> dict:
+    return TOKENS_DARK if get_theme_mode() == "dark" else TOKENS_LIGHT
+
+
+def plotly_template_name() -> str:
+    return "plotly_dark" if get_theme_mode() == "dark" else "plotly_white"
 
 
 def _escape_html(text: str) -> str:
@@ -56,217 +124,365 @@ def _escape_html(text: str) -> str:
 
 
 def inject_base_styles():
+    """Inject global CSS for a calm medical SaaS aesthetic.
+
+    NOTE: This function is intentionally pure-UI; it should not affect business logic.
+    """
+
+    tokens = theme_tokens()
+
+    # Best-effort plotly theming (presentation-only).
+    try:
+        import plotly.io as pio
+
+        pio.templates.default = plotly_template_name()
+    except Exception:
+        pass
+
     st.markdown(
         """
         <style>
-        /* ------------------------------
-           Global premium identity shell
-           ------------------------------ */
+        :root {
+          --bg: """ + tokens["bg"] + """;
+          --bg-elev: """ + tokens["bg_elev"] + """;
+          --bg-muted: """ + tokens["bg_muted"] + """;
+          --text: """ + tokens["text"] + """;
+          --text-2: """ + tokens["text_2"] + """;
+          --text-3: """ + tokens["text_3"] + """;
+          --primary: """ + tokens["primary"] + """;
+          --secondary: """ + tokens["secondary"] + """;
+          --accent: """ + tokens["accent"] + """;
+          --success: """ + tokens["success"] + """;
+          --warning: """ + tokens["warning"] + """;
+          --critical: """ + tokens["critical"] + """;
+          --border: """ + tokens["border"] + """;
+          --border-strong: """ + tokens["border_strong"] + """;
+          --shadow-sm: """ + tokens["shadow_sm"] + """;
+          --shadow: """ + tokens["shadow"] + """;
+          --shadow-hover: """ + tokens["shadow_hover"] + """;
+          --radius-card: """ + tokens["radius_card"] + """;
+          --radius-btn: """ + tokens["radius_btn"] + """;
+          --radius-input: """ + tokens["radius_input"] + """;
+          --trans-fast: 140ms;
+          --trans-med: 220ms;
+        }
 
-        /* Canvas gradient (unique identity) */
+        /* Canvas */
+        html, body {
+          background: var(--bg) !important;
+          color: var(--text) !important;
+        }
+
+        /* Canvas */
         .stApp {
-            background:
-              radial-gradient(1200px 520px at 15% 10%, rgba(91,92,255,0.18), rgba(91,92,255,0.00) 60%),
-              radial-gradient(900px 420px at 90% 20%, rgba(34,211,238,0.14), rgba(34,211,238,0.00) 65%),
-              radial-gradient(900px 520px at 35% 95%, rgba(168,85,247,0.10), rgba(168,85,247,0.00) 55%),
-              linear-gradient(180deg, """ + THEME["bg"] + """ 0%, """ + THEME["bg_2"] + """ 40%, """ + THEME["bg_3"] + """ 100%);
+          background: linear-gradient(180deg, var(--bg) 0%, var(--bg) 65%, var(--bg-muted) 100%) !important;
+          color: var(--text) !important;
+          transition: background var(--trans-med) ease, color var(--trans-med) ease;
         }
 
-        /* App spacing */
-        .main {padding-top: 0.25rem;}
-        .block-container {padding-top: 1.2rem; padding-bottom: 2.5rem; max-width: 1280px;}
+        /* Some Streamlit builds wrap content in these containers */
+        div[data-testid="stAppViewContainer"],
+        div[data-testid="stAppViewContainer"] > .main {
+          background: transparent !important;
+          color: var(--text) !important;
+        }
 
-        /* Base typography polish */
+        /* Layout rhythm */
+        .main { padding-top: 0.25rem; }
+        .block-container { padding-top: 1.1rem; padding-bottom: 2.8rem; max-width: 1320px; }
+
+        /* Typography polish */
         html, body, [class*="css"]  {
-            font-feature-settings: "kern" 1, "liga" 1;
-            -webkit-font-smoothing: antialiased;
-            text-rendering: optimizeLegibility;
+          font-feature-settings: "kern" 1, "liga" 1;
+          -webkit-font-smoothing: antialiased;
+          text-rendering: optimizeLegibility;
         }
 
-        /* Card system (glass surfaces) */
-        .hro-surface {
-            background: """ + THEME["surface"] + """;
-            border: 1px solid """ + THEME["border"] + """;
-            border-radius: """ + THEME["radius"] + """;
-            box-shadow: """ + THEME["shadow"] + """;
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
+        /* Make markdown headings calmer + consistent */
+        .stMarkdown h2, .stMarkdown h3 {
+          letter-spacing: -0.01em;
+          color: var(--text);
+        }
+        .stMarkdown h3 { margin-top: 0.25rem; }
+        .stMarkdown p, .stMarkdown li { color: var(--text); }
+        .stCaption { color: var(--text-2) !important; }
+
+        /* Section headers */
+        .hro-section {
+          display:flex;
+          align-items:flex-end;
+          justify-content:space-between;
+          gap: 12px;
+          margin: 14px 0 10px 0;
+        }
+        .hro-section-title {
+          font-size: 1.05rem;
+          font-weight: 820;
+          letter-spacing: -0.015em;
+          margin: 0;
+          color: var(--text);
+        }
+        .hro-section-subtitle {
+          margin-top: 4px;
+          color: var(--text-2);
+          font-size: 0.92rem;
         }
 
-        .hro-surface-sm {
-            background: """ + THEME["surface_2"] + """;
-            border: 1px solid """ + THEME["border"] + """;
-            border-radius: """ + THEME["radius_sm"] + """;
-            box-shadow: """ + THEME["shadow_sm"] + """;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-        }
-
+        /* Page header */
         .hro-page-header {
-            display:flex; justify-content:space-between; align-items:flex-end;
-            gap: 12px;
-            padding: 18px 18px;
-            margin-bottom: 14px;
-            background:
-                linear-gradient(135deg, rgba(91,92,255,0.16), rgba(34,211,238,0.10));
-            border: 1px solid """ + THEME["border_strong"] + """;
-            border-radius: 18px;
-            box-shadow: """ + THEME["shadow_sm"] + """;
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
+          display:flex; justify-content:space-between; align-items:flex-end;
+          gap: 12px;
+          padding: 18px 18px;
+          margin-bottom: 14px;
+          background: linear-gradient(135deg, rgba(59,130,246,0.10), rgba(20,184,166,0.08));
+          border: 1px solid var(--border-strong);
+          border-radius: var(--radius-card);
+          box-shadow: var(--shadow-sm);
         }
-
         .hro-page-title {
-            font-size: 1.5rem;
-            font-weight: 750;
-            letter-spacing: -0.02em;
-            color: """ + THEME["text"] + """;
-            margin: 0;
+          font-size: 1.55rem;
+          font-weight: 780;
+          letter-spacing: -0.02em;
+          color: var(--text);
+          margin: 0;
         }
-
         .hro-page-subtitle {
-            color: """ + THEME["muted"] + """;
-            margin-top: 0.35rem;
-            font-size: 0.95rem;
+          color: var(--text-2);
+          margin-top: 0.35rem;
+          font-size: 0.96rem;
+        }
+        .hro-header-meta {
+          text-align: right;
+          color: var(--text-2);
+          font-size: 0.9rem;
         }
 
-        .hro-header-meta {
-            text-align: right;
-            color: """ + THEME["muted"] + """;
-            font-size: 0.9rem;
+        /* Section surfaces (used by components) */
+        .hro-surface {
+          background: var(--bg-elev);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-card);
+          box-shadow: var(--shadow-sm);
         }
 
         /* KPI card */
         .hro-kpi {
-            padding: 16px 16px;
-            border-radius: 18px;
-            background: """ + THEME["surface"] + """;
-            border: 1px solid """ + THEME["border"] + """;
-            box-shadow: """ + THEME["shadow_sm"] + """;
-            min-height: 110px;
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+          padding: 16px 16px;
+          border-radius: var(--radius-card);
+          background: var(--bg-elev);
+          border: 1px solid var(--border);
+          box-shadow: var(--shadow-sm);
+          min-height: 112px;
+          transition: transform var(--trans-fast) ease, box-shadow var(--trans-fast) ease, border-color var(--trans-fast) ease;
         }
         .hro-kpi:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 22px 52px rgba(15, 23, 42, 0.14);
-            border-color: rgba(91,92,255,0.22);
+          transform: translateY(-2px);
+          box-shadow: var(--shadow-hover);
+          border-color: var(--border-strong);
         }
         .hro-kpi-title {
-            color: """ + THEME["muted"] + """;
-            font-size: 0.9rem;
-            margin-bottom: 6px;
-            font-weight: 600;
+          color: var(--text-2);
+          font-size: 0.86rem;
+          margin-bottom: 6px;
+          font-weight: 650;
         }
         .hro-kpi-value {
-            color: """ + THEME["text"] + """;
-            font-size: 2.05rem;
-            font-weight: 800;
-            letter-spacing: -0.03em;
-            line-height: 1.15;
+          color: var(--text);
+          font-size: 2.05rem;
+          font-weight: 820;
+          letter-spacing: -0.03em;
+          line-height: 1.15;
         }
         .hro-kpi-delta {
-            margin-top: 8px;
-            color: """ + THEME["muted"] + """;
-            font-size: 0.9rem;
+          margin-top: 8px;
+          color: var(--text-2);
+          font-size: 0.9rem;
         }
 
-        /* Status accent line */
-        .hro-accent-normal {border-left: 6px solid rgba(91,92,255,0.85);}
-        .hro-accent-success {border-left: 6px solid rgba(45,212,191,0.85);}
-        .hro-accent-warning {border-left: 6px solid rgba(251,191,36,0.90);}
-        .hro-accent-critical {border-left: 6px solid rgba(251,113,133,0.92);}
+        /* Status accent */
+        .hro-accent-normal { border-left: 6px solid rgba(59,130,246,0.85); }
+        .hro-accent-success { border-left: 6px solid rgba(34,197,94,0.85); }
+        .hro-accent-warning { border-left: 6px solid rgba(245,158,11,0.88); }
+        .hro-accent-critical { border-left: 6px solid rgba(239,68,68,0.88); }
 
         /* Badges */
         .hro-badge {
-            display:inline-flex;
-            align-items:center;
-            gap: 6px;
-            padding: 4px 10px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-            border: 1px solid rgba(0,0,0,0.06);
+          display:inline-flex;
+          align-items:center;
+          gap: 6px;
+          padding: 4px 10px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 750;
+          letter-spacing: 0.02em;
+          border: 1px solid var(--border);
         }
-        .hro-badge-neutral {background: rgba(2, 6, 23, 0.06); color: """ + THEME["text"] + """;}
-        .hro-badge-info {background: rgba(91,92,255,0.14); color: #2b2c7f; border-color: rgba(91,92,255,0.25);}
-        .hro-badge-success {background: rgba(45,212,191,0.16); color: #115e59; border-color: rgba(45,212,191,0.30);}
-        .hro-badge-warning {background: rgba(251,191,36,0.18); color: #78350f; border-color: rgba(251,191,36,0.34);}
-        .hro-badge-critical {background: rgba(251,113,133,0.16); color: #881337; border-color: rgba(251,113,133,0.30);}
+        .hro-badge-neutral { background: rgba(148,163,184,0.14); color: var(--text); }
+        .hro-badge-info { background: rgba(59,130,246,0.14); color: var(--text); border-color: rgba(59,130,246,0.22); }
+        .hro-badge-success { background: rgba(34,197,94,0.14); color: var(--text); border-color: rgba(34,197,94,0.20); }
+        .hro-badge-warning { background: rgba(245,158,11,0.14); color: var(--text); border-color: rgba(245,158,11,0.22); }
+        .hro-badge-critical { background: rgba(239,68,68,0.14); color: var(--text); border-color: rgba(239,68,68,0.22); }
 
         /* Alert cards */
         .hro-alert {
-            padding: 14px 14px;
-            border-radius: 16px;
-            background: """ + THEME["surface"] + """;
-            border: 1px solid """ + THEME["border"] + """;
-            box-shadow: """ + THEME["shadow_sm"] + """;
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
+          padding: 14px 14px;
+          border-radius: var(--radius-card);
+          background: var(--bg-elev);
+          border: 1px solid var(--border);
+          box-shadow: var(--shadow-sm);
         }
-        .hro-alert-title {font-weight: 800; margin: 0 0 4px 0;}
-        .hro-alert-body {color: """ + THEME["text"] + """; opacity: 0.92;}
-        .hro-alert-meta {margin-top: 8px; color: """ + THEME["muted"] + """; font-size: 0.88rem;}
+        .hro-alert-body { color: var(--text); opacity: 0.95; }
+        .hro-alert-meta { margin-top: 8px; color: var(--text-2); font-size: 0.88rem; }
 
         /* Empty states */
         .hro-empty {
-            text-align:center;
-            padding: 38px 18px;
-            border: 1px dashed rgba(148, 163, 184, 0.6);
-            border-radius: 18px;
-            background: rgba(255,255,255,0.5);
-            color: """ + THEME["muted"] + """;
+          text-align:center;
+          padding: 34px 18px;
+          border: 1px dashed rgba(148, 163, 184, 0.55);
+          border-radius: var(--radius-card);
+          background: rgba(148, 163, 184, 0.08);
+          color: var(--text-2);
         }
 
         /* Streamlit native component polish */
-        /* Inputs */
         div[data-baseweb="input"] > div,
         div[data-baseweb="textarea"] > div,
         div[data-baseweb="select"] > div {
-            border-radius: 14px !important;
-            border: 1px solid """ + THEME["border"] + """ !important;
-            background: rgba(255,255,255,0.70) !important;
-            box-shadow: none !important;
-            backdrop-filter: blur(10px);
+          border-radius: var(--radius-input) !important;
+          border: 1px solid var(--border) !important;
+          background: var(--bg-elev) !important;
+          box-shadow: none !important;
+          transition: border-color var(--trans-fast) ease;
+        }
+        div[data-baseweb="input"] > div:focus-within,
+        div[data-baseweb="textarea"] > div:focus-within,
+        div[data-baseweb="select"] > div:focus-within {
+          border-color: var(--border-strong) !important;
+          box-shadow: 0 0 0 3px rgba(59,130,246,0.16) !important;
         }
 
-        /* Buttons */
         .stButton > button {
-            border-radius: 14px !important;
-            border: 1px solid rgba(91,92,255,0.25) !important;
-            padding: 0.55rem 0.85rem !important;
-            font-weight: 700 !important;
-            transition: transform 140ms ease, box-shadow 140ms ease;
+          border-radius: var(--radius-btn) !important;
+          border: 1px solid var(--border) !important;
+          background: var(--bg-elev) !important;
+          color: var(--text) !important;
+          padding: 0.56rem 0.88rem !important;
+          font-weight: 750 !important;
+          transition: transform var(--trans-fast) ease, box-shadow var(--trans-fast) ease, border-color var(--trans-fast) ease;
         }
         .stButton > button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 14px 32px rgba(15, 23, 42, 0.14);
+          transform: translateY(-1px);
+          box-shadow: var(--shadow-hover);
+          border-color: var(--border-strong) !important;
+        }
+
+        /* Primary buttons (Streamlit adds kind of inline styles; we reinforce) */
+        .stButton > button[kind="primary"] {
+          background: var(--primary) !important;
+          border-color: rgba(0,0,0,0.00) !important;
+          color: white !important;
         }
 
         /* Tabs */
         .stTabs [data-baseweb="tab"] {
-            font-weight: 700 !important;
+          font-weight: 720 !important;
+          color: var(--text-2) !important;
+          border-radius: 10px !important;
+          padding-top: 10px !important;
+          padding-bottom: 10px !important;
+        }
+        .stTabs [data-baseweb="tab"][aria-selected="true"] {
+          color: var(--text) !important;
+          background: rgba(59,130,246,0.10) !important;
         }
 
         /* Dataframe container */
         div[data-testid="stDataFrame"] {
-            border-radius: 16px;
-            overflow: hidden;
-            border: 1px solid """ + THEME["border"] + """;
+          border-radius: var(--radius-card);
+          overflow: hidden;
+          border: 1px solid var(--border);
+          box-shadow: var(--shadow-sm);
+          background: var(--bg-elev);
         }
 
-        /* Sidebar refinement */
-        section[data-testid="stSidebar"] {
-            background:
-              linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.35));
-            border-right: 1px solid rgba(15,23,42,0.08);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+        /* Better default look for st.container(border=True) */
+        div[data-testid="stVerticalBlockBorderWrapper"] {
+          border-radius: var(--radius-card) !important;
+          border: 1px solid var(--border) !important;
+          box-shadow: var(--shadow-sm) !important;
+          background: var(--bg-elev) !important;
         }
+
+        /* Sidebar */
+        section[data-testid="stSidebar"] {
+          background: linear-gradient(180deg, rgba(148,163,184,0.08), rgba(148,163,184,0.03)) !important;
+          border-right: 1px solid var(--border);
+        }
+
+        /* Build badge (verification aid) */
+        .hro-build-badge {
+          position: fixed;
+          right: 14px;
+          bottom: 12px;
+          z-index: 9999;
+          padding: 6px 10px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: 0.02em;
+          color: var(--text);
+          background: rgba(148, 163, 184, 0.16);
+          border: 1px solid var(--border);
+          box-shadow: var(--shadow-sm);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          opacity: 0.82;
+          pointer-events: none;
+        }
+
+        /* Sidebar navigation (radio) */
+        section[data-testid="stSidebar"] div[role="radiogroup"] label {
+          border-radius: 12px;
+          padding: 10px 10px;
+          margin: 4px 0;
+          transition: background var(--trans-fast) ease, border-color var(--trans-fast) ease;
+          border: 1px solid transparent;
+        }
+        section[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
+          background: rgba(59,130,246,0.10);
+        }
+
+        /* Active nav item (best-effort across Streamlit/BaseWeb versions) */
+        section[data-testid="stSidebar"] label[data-baseweb="radio"][aria-checked="true"],
+        section[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {
+          background: rgba(59,130,246,0.14);
+          border-color: var(--border-strong);
+        }
+
+        /* Subtle motion for charts */
+        @keyframes hroFadeUp {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0px); }
+        }
+        div[data-testid="stPlotlyChart"], div[data-testid="stDataFrame"] {
+          animation: hroFadeUp 180ms ease-out;
+        }
+
+        /* Responsiveness */
+        @media (max-width: 900px) {
+          .block-container { padding-left: 1rem; padding-right: 1rem; }
+          .hro-page-header { flex-direction: column; align-items:flex-start; }
+          .hro-header-meta { text-align:left; }
+        }
+
         </style>
         """,
+        unsafe_allow_html=True,
+    )
+
+    # Visible indicator so we can confirm the updated UI is actually being rendered.
+    st.markdown(
+        f"<div class='hro-build-badge'>UI {UI_BUILD_ID}</div>",
         unsafe_allow_html=True,
     )
 
@@ -289,10 +505,22 @@ def page_header(title: str, subtitle: str | None = None, *, meta_right: str | No
 
 
 def section_header(title: str, subtitle: str | None = None):
-    # Keep compatibility with existing calls, but use a more premium layout.
-    st.markdown(f"### {title}")
-    if subtitle:
-        st.caption(subtitle)
+    """Consistent section header (visual hierarchy).
+
+    Pure UI wrapper; safe to use broadly.
+    """
+
+    st.markdown(
+        f"""
+        <div class="hro-section">
+          <div>
+            <div class="hro-section-title">{_escape_html(title)}</div>
+            {f'<div class="hro-section-subtitle">{_escape_html(subtitle)}</div>' if subtitle else ''}
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def kpi_card(title, value, delta=None, status="normal"):
@@ -336,7 +564,7 @@ def alert_box(message, level="info"):
         f"""
         <div class="hro-alert">
             <div class="hro-alert-title"><span class="hro-badge {badge_class}">{label}</span></div>
-            <div class="hro-alert-body">{message}</div>
+            <div class="hro-alert-body">{_escape_html(str(message))}</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -403,9 +631,9 @@ def empty_state(message="No data available"):
     st.markdown(
         f"""
         <div class="hro-empty">
-            <div style="font-size:2rem; margin-bottom:8px;">📭</div>
-            <div style="font-weight:700; color: {THEME['text']}; opacity:0.75; margin-bottom:6px;">No items yet</div>
-            <div>{message}</div>
+            <div style="font-size:1.75rem; margin-bottom:8px;">🩺</div>
+            <div style="font-weight:800; color: var(--text); opacity:0.82; margin-bottom:6px;">Nothing to show yet</div>
+            <div style="color: var(--text-2);">{message}</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -416,13 +644,18 @@ def sidebar_status_card(title: str, lines: list[str]):
     body = "".join([f"<div style='margin-bottom:6px'>{line}</div>" for line in lines])
     st.sidebar.markdown(
         f"""
-        <div style="background:{THEME['surface']}; color:{THEME['text']}; padding:14px; border-radius:14px; margin-bottom:12px; border:1px solid {THEME['border']}; box-shadow:{THEME['shadow_sm']};">
+        <div style="background:var(--bg-elev); color:var(--text); padding:14px; border-radius:14px; margin-bottom:12px; border:1px solid var(--border); box-shadow:var(--shadow-sm);">
             <div style="font-weight:800; margin-bottom:8px;">{title}</div>
             {body}
         </div>
         """,
         unsafe_allow_html=True,
     )
+
+
+
+
+
 
 
 

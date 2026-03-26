@@ -1,10 +1,10 @@
 [theme]
-# Unique premium identity (hybrid: not white, not dark)
-# Note: Streamlit theme is limited; the real identity comes from CSS injected in ui_components.py.
-primaryColor = "#5B5CFF"               # blue‑violet brand
-backgroundColor = "#EEF0FF"            # soft lavender canvas
-secondaryBackgroundColor = "#F8F9FF"   # soft surface
-textColor = "#0B1020"                  # deep ink
+# Baseline theme (kept neutral) so our injected design tokens can fully control look.
+# NOTE: Dark/Light switching is implemented in Python + injected CSS (ui_components.py).
+primaryColor = "#3B82F6"               # brand blue
+backgroundColor = "#F7F9FB"            # light canvas
+secondaryBackgroundColor = "#FFFFFF"   # elevated surface
+textColor = "#1F2937"                  # ink
 font = "sans serif"
 
 [server]
