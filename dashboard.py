@@ -33,6 +33,7 @@ from ui_components import (
     UI_BUILD_ID,
     get_theme_mode,
     inject_base_styles,
+    inject_page_context,
     page_header,
     scoped_key,
     set_theme_mode,
@@ -405,6 +406,10 @@ def main_app():
     show_header(user)
     show_sidebar_context(user)
     page = sidebar_navigation(role)
+
+    # UI-only page scoping so we can apply Command Center polish without
+    # changing architecture, routing, or component hierarchy.
+    inject_page_context(page)
 
     if role == "admin":
         if page == "Command Center":

@@ -180,6 +180,131 @@ def inject_base_styles():
           transition: background var(--trans-med) ease, color var(--trans-med) ease;
         }
 
+        /* =========================================================
+           Command Center premium polish
+
+           IMPORTANT:
+           - Applies ONLY when html[data-hro-page="command-center"] is set.
+           - Does NOT change layout, routing, business logic, or component hierarchy.
+           ========================================================= */
+
+        html[data-hro-page="command-center"] .stApp {
+          /* Light/Dark resolved by existing CSS variables (tokens). */
+          background:
+            radial-gradient(1100px circle at 18% -10%, rgba(59,130,246,0.16), transparent 48%),
+            radial-gradient(900px circle at 86% 8%, rgba(20,184,166,0.12), transparent 52%),
+            linear-gradient(180deg, var(--bg) 0%, var(--bg) 55%, var(--bg-muted) 100%) !important;
+        }
+
+        /* Add subtle "clinical depth" to Command Center surfaces */
+        html[data-hro-page="command-center"] div[data-testid="stVerticalBlockBorderWrapper"],
+        html[data-hro-page="command-center"] .hro-kpi,
+        html[data-hro-page="command-center"] .hro-page-header,
+        html[data-hro-page="command-center"] div[data-testid="stDataFrame"] {
+          border-color: rgba(59,130,246,0.18) !important;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 14px 40px rgba(15, 23, 42, 0.08) !important;
+        }
+
+        html[data-hro-page="command-center"] div[data-testid="stVerticalBlockBorderWrapper"] {
+          /* Soft surface highlight (works in both themes due to alpha) */
+          background:
+            linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.00) 26%),
+            var(--bg-elev) !important;
+        }
+
+        /* Command Center: more visible navigation + active state */
+        html[data-hro-page="command-center"] section[data-testid="stSidebar"] {
+          background:
+            radial-gradient(900px circle at 20% 0%, rgba(59,130,246,0.14), transparent 52%),
+            linear-gradient(180deg, rgba(148,163,184,0.10), rgba(148,163,184,0.04)) !important;
+        }
+
+        html[data-hro-page="command-center"] section[data-testid="stSidebar"] div[role="radiogroup"] label {
+          border: 1px solid rgba(148,163,184,0.10);
+        }
+
+        html[data-hro-page="command-center"] section[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
+          background: rgba(59,130,246,0.12) !important;
+          border-color: rgba(59,130,246,0.22) !important;
+        }
+
+        html[data-hro-page="command-center"] section[data-testid="stSidebar"] label[data-baseweb="radio"][aria-checked="true"],
+        html[data-hro-page="command-center"] section[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {
+          background: rgba(59,130,246,0.18) !important;
+          border-color: rgba(96,165,250,0.40) !important;
+          box-shadow: 0 10px 24px rgba(0,0,0,0.10);
+        }
+
+        /* Command Center DARK: make sidebar + tabs unambiguously readable */
+        html[data-hro-page="command-center"][data-hro-theme="dark"] section[data-testid="stSidebar"] div[role="radiogroup"] label {
+          background: rgba(255,255,255,0.03);
+          border-color: rgba(148,163,184,0.16);
+          color: var(--text) !important;
+          font-weight: 760;
+        }
+        html[data-hro-page="command-center"][data-hro-theme="dark"] section[data-testid="stSidebar"] div[role="radiogroup"] label * {
+          color: var(--text) !important;
+        }
+        html[data-hro-page="command-center"][data-hro-theme="dark"] section[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
+          background: rgba(96,165,250,0.16) !important;
+          border-color: rgba(96,165,250,0.35) !important;
+        }
+        html[data-hro-page="command-center"][data-hro-theme="dark"] section[data-testid="stSidebar"] label[data-baseweb="radio"][aria-checked="true"],
+        html[data-hro-page="command-center"][data-hro-theme="dark"] section[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {
+          background: linear-gradient(180deg, rgba(96,165,250,0.22), rgba(96,165,250,0.14)) !important;
+          border-color: rgba(96,165,250,0.55) !important;
+          box-shadow: 0 0 0 1px rgba(96,165,250,0.22), 0 18px 42px rgba(0,0,0,0.42);
+        }
+
+        /* Command Center: clearer tabs on dark mode + remove flat look on light */
+        html[data-hro-page="command-center"] .stTabs [data-baseweb="tab"] {
+          background: rgba(148,163,184,0.08) !important;
+          border: 1px solid rgba(148,163,184,0.14) !important;
+          margin-right: 6px;
+        }
+        html[data-hro-page="command-center"] .stTabs [data-baseweb="tab"][aria-selected="true"] {
+          background: rgba(59,130,246,0.18) !important;
+          border-color: rgba(96,165,250,0.45) !important;
+          box-shadow: 0 12px 28px rgba(0,0,0,0.14);
+        }
+
+        html[data-hro-page="command-center"][data-hro-theme="dark"] .stTabs [data-baseweb="tab"] {
+          color: var(--text) !important;
+          background: rgba(255,255,255,0.04) !important;
+          border-color: rgba(148,163,184,0.18) !important;
+        }
+        html[data-hro-page="command-center"][data-hro-theme="dark"] .stTabs [data-baseweb="tab"][aria-selected="true"] {
+          background: linear-gradient(180deg, rgba(96,165,250,0.24), rgba(96,165,250,0.16)) !important;
+          border-color: rgba(96,165,250,0.65) !important;
+          box-shadow: 0 0 0 1px rgba(96,165,250,0.22), 0 18px 44px rgba(0,0,0,0.44);
+        }
+        html[data-hro-page="command-center"][data-hro-theme="dark"] .stTabs [data-baseweb="tab-list"] {
+          border-bottom: 1px solid rgba(148,163,184,0.18) !important;
+        }
+
+        /* Command Center: charts feel native (no "white box" effect) */
+        html[data-hro-page="command-center"] .js-plotly-plot .plotly,
+        html[data-hro-page="command-center"] .js-plotly-plot .plotly .main-svg {
+          background: transparent !important;
+        }
+        html[data-hro-page="command-center"] .js-plotly-plot .plotly .bg {
+          fill: rgba(0,0,0,0) !important;
+        }
+        html[data-hro-page="command-center"] .js-plotly-plot .plotly .modebar {
+          background: transparent !important;
+        }
+        html[data-hro-page="command-center"] .js-plotly-plot .plotly .modebar-btn path {
+          fill: var(--text-2) !important;
+        }
+
+        /* Command Center: table row hover & header tone (best-effort) */
+        html[data-hro-page="command-center"] div[data-testid="stDataFrame"] [role="columnheader"] {
+          background: rgba(59,130,246,0.08) !important;
+        }
+        html[data-hro-page="command-center"] div[data-testid="stDataFrame"] [role="row"]:hover [role="gridcell"] {
+          background: rgba(59,130,246,0.07) !important;
+        }
+
         /* Some Streamlit builds wrap content in these containers */
         div[data-testid="stAppViewContainer"],
         div[data-testid="stAppViewContainer"] > .main {
@@ -514,6 +639,51 @@ def inject_base_styles():
     )
 
 
+def inject_page_context(page_name: str) -> None:
+    """Set a page context attribute on the top document for CSS scoping.
+
+    This is a UI-only mechanism that lets us apply Command Center-specific
+    visual polish without affecting other pages.
+    """
+
+    try:
+        import streamlit.components.v1 as components
+
+        safe = str(page_name or "").strip().lower()
+        safe = safe.replace("&", "and")
+        safe = re.sub(r"[^a-z0-9\-\s]", "", safe)
+        safe = re.sub(r"\s+", "-", safe).strip("-")
+        if safe in {"command-center", "overview", "operations-center"}:
+            safe = "command-center"
+        if not safe:
+            safe = "unknown"
+
+        components.html(
+            f"""
+            <script>
+            (function() {{
+              try {{
+                const root = (function() {{
+                  try {{ return window.parent || window; }} catch (e) {{ return window; }}
+                }})();
+                const theme = (function() {{
+                  try {{
+                    const t = root.localStorage.getItem('hro_theme');
+                    return (t === 'dark' || t === 'light') ? t : null;
+                  }} catch (e) {{ return null; }}
+                }})();
+                root.document.documentElement.setAttribute('data-hro-page', '{safe}');
+                if (theme) root.document.documentElement.setAttribute('data-hro-theme', theme);
+              }} catch (e) {{}}
+            }})();
+            </script>
+            """,
+            height=0,
+        )
+    except Exception:
+        return
+
+
 def page_header(title: str, subtitle: str | None = None, *, meta_right: str | None = None):
     """Premium page header wrapper."""
 
@@ -678,6 +848,8 @@ def sidebar_status_card(title: str, lines: list[str]):
         """,
         unsafe_allow_html=True,
     )
+
+
 
 
 
