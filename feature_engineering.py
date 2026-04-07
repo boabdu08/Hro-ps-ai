@@ -55,7 +55,7 @@ def main():
     with open(METADATA_FILE, "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
 
-    print("✅ Feature engineering completed successfully.")
+    print("Feature engineering completed successfully.")
     print(f"Saved: {OUTPUT_FILE}")
     print(f"Metadata: {METADATA_FILE}")
     print(f"Shape: {df.shape}")

@@ -1,16 +1,16 @@
 {
-  "lstm_weight": 0.9,
-  "arimax_weight": 0.1,
+  "lstm_weight": 1.0,
+  "arimax_weight": 0.0,
   "selection_metric": "validation_rmse",
   "validation_metrics": {
-    "MAE": 18.384127623272864,
-    "RMSE": 21.023268692797124,
-    "MAPE": 44.67117873536678
+    "MAE": 4.645725334522336,
+    "RMSE": 7.352719648111633,
+    "MAPE": 6.104985708623469
   },
   "test_metrics": {
-    "MAE": 17.15782861464769,
-    "RMSE": 19.840764194025358,
-    "MAPE": 39.30024626637079
+    "MAE": 4.9899135086887565,
+    "RMSE": 9.931300070700793,
+    "MAPE": 5.343036625482426
   },
   "alignment_note": "LSTM and ARIMAX outputs aligned using the shortest common tail length."
 }

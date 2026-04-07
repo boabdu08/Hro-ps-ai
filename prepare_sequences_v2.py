@@ -154,7 +154,7 @@ def main():
     with open(FEATURE_INFO_FILE, "w", encoding="utf-8") as f:
         json.dump({"feature_columns": FEATURE_COLUMNS}, f, indent=2)
 
-    print("✅ Sequences prepared successfully.")
+    print("Sequences prepared successfully.")
     print(f"Train: {X_train.shape}, {y_train.shape}")
     print(f"Val:   {X_val.shape}, {y_val.shape}")
     print(f"Test:  {X_test.shape}, {y_test.shape}")

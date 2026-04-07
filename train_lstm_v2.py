@@ -86,7 +86,7 @@ def main():
     callbacks = [
         EarlyStopping(
             monitor="val_loss",
-            patience=12,
+            patience=20,
             restore_best_weights=True,
             verbose=1,
         ),
@@ -109,7 +109,7 @@ def main():
         X_train,
         y_train,
         validation_data=(X_val, y_val),
-        epochs=100,
+        epochs=400,
         batch_size=32,
         callbacks=callbacks,
         verbose=1,
@@ -156,10 +156,10 @@ def main():
 
     print("LSTM Validation metrics:", val_metrics)
     print("LSTM Test metrics:", test_metrics)
-    print(f"✅ LSTM model saved to {MODEL_FILE}")
-    print(f"✅ LSTM metrics saved to {METRICS_FILE}")
-    print(f"✅ Validation outputs saved to {VAL_OUTPUTS_FILE}")
-    print(f"✅ Test outputs saved to {TEST_OUTPUTS_FILE}")
+    print(f"LSTM model saved to {MODEL_FILE}")
+    print(f"LSTM metrics saved to {METRICS_FILE}")
+    print(f"Validation outputs saved to {VAL_OUTPUTS_FILE}")
+    print(f"Test outputs saved to {TEST_OUTPUTS_FILE}")
 
 
 if __name__ == "__main__":

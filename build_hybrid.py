@@ -149,10 +149,10 @@ def main():
     print("Hybrid validation metrics:", hybrid_val_metrics)
     print("Hybrid test metrics:", hybrid_test_metrics)
     print(f"Best weights -> LSTM: {best_lstm_weight} | ARIMAX: {best_arimax_weight}")
-    print(f"✅ Saved {HYBRID_CONFIG_FILE}")
-    print(f"✅ Saved {HYBRID_METRICS_FILE}")
-    print(f"✅ Saved {FORECAST_EVAL_FILE}")
-    print(f"✅ Saved {FORECAST_DETAILED_FILE}")
+    print(f"Saved {HYBRID_CONFIG_FILE}")
+    print(f"Saved {HYBRID_METRICS_FILE}")
+    print(f"Saved {FORECAST_EVAL_FILE}")
+    print(f"Saved {FORECAST_DETAILED_FILE}")
 
 
 if __name__ == "__main__":

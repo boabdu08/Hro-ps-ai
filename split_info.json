@@ -30,24 +30,24 @@
     "trend_feature"
   ],
   "target_column": "patients",
-  "total_rows_after_engineering": 2976,
-  "train_rows": 2083,
-  "val_rows": 446,
-  "test_rows": 447,
-  "train_end_index": 2083,
-  "val_end_index": 2529,
+  "total_rows_after_engineering": 8760,
+  "train_rows": 6132,
+  "val_rows": 1314,
+  "test_rows": 1314,
+  "train_end_index": 6132,
+  "val_end_index": 7446,
   "X_train_shape": [
-    2059,
+    6108,
     24,
     26
   ],
   "X_val_shape": [
-    422,
+    1290,
     24,
     26
   ],
   "X_test_shape": [
-    423,
+    1290,
     24,
     26
   ]

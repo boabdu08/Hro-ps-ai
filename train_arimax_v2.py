@@ -161,10 +161,10 @@ def main():
 
     print("Validation metrics:", val_metrics)
     print("Test metrics:", test_metrics)
-    print(f"✅ ARIMAX model saved to {MODEL_FILE}")
-    print(f"✅ Validation outputs saved to {VAL_OUTPUTS_FILE}")
-    print(f"✅ Test outputs saved to {TEST_OUTPUTS_FILE}")
-    print(f"✅ Metrics saved to {METRICS_FILE}")
+    print(f"ARIMAX model saved to {MODEL_FILE}")
+    print(f"Validation outputs saved to {VAL_OUTPUTS_FILE}")
+    print(f"Test outputs saved to {TEST_OUTPUTS_FILE}")
+    print(f"Metrics saved to {METRICS_FILE}")
 
 
 if __name__ == "__main__":
