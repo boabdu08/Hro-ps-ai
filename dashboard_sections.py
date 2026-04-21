@@ -875,7 +875,7 @@ def show_evaluation_panel():
         f"MAE = {best_model_row['MAE']:.4f}, "
         f"MAPE = {best_model_row['MAPE']:.2f}%"
     )
-
+o
     fig_metrics = px.bar(
         eval_df,
         x="Model",
