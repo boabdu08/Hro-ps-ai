@@ -344,7 +344,7 @@ def show_overview():
 def show_forecast():
     page_header(
         "Forecasting",
-        "Demand outlook across the next 24 hours — trends, peaks, and actual vs predicted.",
+        "Demand outlook across the next 72 hours — trends, peaks, and actual vs predicted.",
     )
 
     ctx = get_live_context()
@@ -352,8 +352,14 @@ def show_forecast():
         empty_state(ctx["reason"])
         return
 
+    # IMPORTANT: the Forecast page uses a 72-hour horizon.
+    # Command Center / Overview must remain 24h and uses ctx["forecast_values"].
     df = ctx["df"]
-    predictions = ctx["forecast_values"]
+    predictions = generate_multistep_forecast(
+        last_sequence=ctx["last_sequence"],
+        predict_fn=get_prediction,
+        steps=72,
+    )
 
     if len(predictions) == 0:
         empty_state("Forecast unavailable.")
@@ -367,14 +373,14 @@ def show_forecast():
     # Summary KPIs
     peak = float(max(predictions))
     next_hour = float(predictions[0])
-    avg_24h = float(np.mean(predictions))
+    avg_72h = float(np.mean(predictions))
     k1, k2, k3, k4 = st.columns(4)
     with k1:
         kpi_card("Next hour", int(next_hour), status="info")
     with k2:
-        kpi_card("24h peak", int(peak), status="warning" if peak >= 100 else "normal")
+        kpi_card("72h peak", int(peak), status="warning" if peak >= 100 else "normal")
     with k3:
-        kpi_card("24h average", int(avg_24h), status="normal")
+        kpi_card("72h average", int(avg_72h), status="normal")
     with k4:
         trend = float(predictions[-1] - predictions[0])
         kpi_card("Trend", f"{trend:+.1f}", delta="end − start", status="warning" if trend > 5 else "success" if trend < -5 else "normal")
@@ -404,10 +410,10 @@ def show_forecast():
             x="hour",
             y="forecast",
             markers=True,
-            title="24-Hour AI Forecast",
+            title="72-Hour AI Forecast",
         )
         fig_forecast.update_layout(height=350, xaxis_title="Next hours", yaxis_title="Predicted patients")
-        st.plotly_chart(fig_forecast, use_container_width=True, key=scoped_key("forecast", "forecast_24h"))
+        st.plotly_chart(fig_forecast, use_container_width=True, key=scoped_key("forecast", "forecast_72h"))
 
     if not df.empty:
         actual = df["patients"].tail(len(predictions)).values.astype(float)
@@ -749,10 +755,46 @@ def render_digital_twin(*, key_prefix: str = "twin"):
         return
 
     key_prefix = str(key_prefix or "twin").strip() or "twin"
-    forecast_values = list(ctx.get("forecast_values") or [])
+    # IMPORTANT: the Digital Twin runs a 72-hour horizon probe.
+    # This must not affect Command Center's 24-hour context.
+    forecast_values = generate_multistep_forecast(
+        last_sequence=ctx["last_sequence"],
+        predict_fn=get_prediction,
+        steps=72,
+    )
     if not forecast_values:
         empty_state("Forecast values unavailable.")
         return
+
+    # Department-level view selector.
+    # The optimizer already produces department allocations for the current (next-hour) prediction;
+    # we use those allocations as stable weights to decompose the system curve by department.
+    optimization = ctx.get("optimization") or {}
+    allocations = list(optimization.get("department_allocations", []) or [])
+    alloc_df = pd.DataFrame(allocations) if allocations else pd.DataFrame()
+    dept_options = ["All"]
+    weights: dict[str, float] = {}
+    if not alloc_df.empty and "department" in alloc_df.columns:
+        depts = [str(d) for d in alloc_df["department"].dropna().unique().tolist()]
+        depts = sorted(depts)
+        dept_options += depts
+
+        # Compute weights from optimizer's expected share.
+        if "predicted_patients" in alloc_df.columns:
+            alloc_df["predicted_patients"] = pd.to_numeric(alloc_df["predicted_patients"], errors="coerce").fillna(0.0)
+            denom = float(alloc_df["predicted_patients"].sum())
+            if denom > 0:
+                for _, row in alloc_df.iterrows():
+                    dept = str(row.get("department"))
+                    weights[dept] = float(row.get("predicted_patients") or 0.0) / denom
+
+    selected_dept = st.selectbox(
+        "View forecast",
+        dept_options,
+        index=0,
+        key=scoped_key(key_prefix, "dept_selector"),
+        help="All = system curve. Per-department uses optimizer allocation shares to decompose the 72h curve.",
+    )
 
     horizon = st.select_slider(
         "Twin horizon (hours ahead)",
@@ -769,19 +811,32 @@ def render_digital_twin(*, key_prefix: str = "twin"):
         kpi_card(f"+{horizon}h", int(predicted_at_h), status="normal")
     with c3:
         peak = float(max(forecast_values))
-        kpi_card("24h peak", int(peak), status="warning" if peak >= 120 else "normal")
+        kpi_card("72h peak", int(peak), status="warning" if peak >= 120 else "normal")
+
+    series_name = "forecast"
+    plot_values = list(forecast_values)
+    if selected_dept != "All" and weights:
+        w = float(weights.get(str(selected_dept), 0.0))
+        # Ensure we still display a curve even if weights missing.
+        plot_values = [float(v) * w for v in forecast_values]
+        series_name = f"{selected_dept}"
 
     twin_df = pd.DataFrame({
         "hour": list(range(1, len(forecast_values) + 1)),
-        "forecast": forecast_values,
+        series_name: plot_values,
     })
-    fig = px.area(twin_df, x="hour", y="forecast", title="")
+    fig = px.area(twin_df, x="hour", y=series_name, title="")
     fig.update_traces(
         line=dict(color="rgba(91,92,255,0.95)", width=3),
         fillcolor="rgba(91,92,255,0.14)",
     )
     fig.update_layout(height=320, xaxis_title="Next hours", yaxis_title="Predicted patients", margin=dict(l=10, r=10, t=10, b=10))
     st.plotly_chart(fig, use_container_width=True, key=scoped_key(key_prefix, "forecast_curve"))
+
+    # Peak pressure across the full 72-hour window (multi-step)
+    if plot_values:
+        peak_h = int(np.argmax(np.array(plot_values, dtype=float)) + 1)
+        st.caption(f"Peak within 72h occurs at +{peak_h}h (based on the selected view).")
 
 
 def render_department_status(*, key_prefix: str = "dept"):
@@ -818,17 +873,82 @@ def render_department_status(*, key_prefix: str = "dept"):
         return
 
     r = row.iloc[0].to_dict()
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        kpi_card("Status", str(r.get("status", "-")).upper(), status="warning" if str(r.get("status", "")).lower() in {"warning", "critical"} else "success")
-    with c2:
-        kpi_card("Bed shortage", int(r.get("bed_shortage") or 0), status="warning" if int(r.get("bed_shortage") or 0) > 0 else "success")
-    with c3:
-        kpi_card("Doctor shortage", int(r.get("doctor_shortage") or 0), status="warning" if int(r.get("doctor_shortage") or 0) > 0 else "success")
-    with c4:
-        kpi_card("Nurse shortage", int(r.get("nurse_shortage") or 0), status="warning" if int(r.get("nurse_shortage") or 0) > 0 else "success")
 
-    show_cols = [c for c in ["department", "status", "priority_score", "bed_shortage", "doctor_shortage", "nurse_shortage"] if c in alloc_df.columns]
+    # Refactored: drive Department Status from optimization results.
+    # Flow: current hospital state (available via optimizer inputs) + forecast (optimizer's modeled demand)
+    # -> required resources -> shortages = needed - available.
+    def _n(x):
+        try:
+            return float(pd.to_numeric(x, errors="coerce"))
+        except Exception:
+            return 0.0
+
+    beds_needed = int(_n(r.get("beds_required")))
+    doctors_needed = int(_n(r.get("doctors_required")))
+    nurses_needed = int(_n(r.get("nurses_required")))
+
+    bed_shortage = int(max(0, _n(r.get("bed_shortage"))))
+    doctor_shortage = int(max(0, _n(r.get("doctor_shortage"))))
+    nurse_shortage = int(max(0, _n(r.get("nurse_shortage"))))
+
+    # Available = needed - shortage (best-effort; true availability is internal to the optimizer).
+    beds_available = int(max(0, beds_needed - bed_shortage))
+    doctors_available = int(max(0, doctors_needed - doctor_shortage))
+    nurses_available = int(max(0, nurses_needed - nurse_shortage))
+
+    # Pressure/status derived from real shortage magnitudes.
+    total_shortage = bed_shortage * 3 + doctor_shortage * 2 + nurse_shortage * 2
+    if bed_shortage > 0 or doctor_shortage > 0 or nurse_shortage > 0:
+        computed_status = "warning" if total_shortage < 10 else "critical"
+    else:
+        computed_status = "stable"
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        status_color = "success" if computed_status == "stable" else "warning" if computed_status == "warning" else "critical"
+        kpi_card("Status", computed_status.upper(), status=status_color)
+    with c2:
+        kpi_card("Pressure score", int(total_shortage), status="warning" if computed_status != "stable" else "success")
+    with c3:
+        kpi_card("Priority", f"{_n(r.get('priority_score')):.1f}" if r.get("priority_score") is not None else "-", status="info")
+
+    section_header("Resources", "Needed vs available vs shortage (optimization-driven)")
+    r1, r2, r3 = st.columns(3)
+    with r1:
+        with st.container(border=True):
+            st.subheader("Beds")
+            st.metric("Needed", beds_needed)
+            st.metric("Available", beds_available)
+            st.metric("Shortage", bed_shortage)
+    with r2:
+        with st.container(border=True):
+            st.subheader("Doctors")
+            st.metric("Needed", doctors_needed)
+            st.metric("Available", doctors_available)
+            st.metric("Shortage", doctor_shortage)
+    with r3:
+        with st.container(border=True):
+            st.subheader("Nurses")
+            st.metric("Needed", nurses_needed)
+            st.metric("Available", nurses_available)
+            st.metric("Shortage", nurse_shortage)
+
+    # Keep the table grounded in optimizer output, but include required fields when present.
+    show_cols = [
+        c
+        for c in [
+            "department",
+            "status",
+            "priority_score",
+            "beds_required",
+            "bed_shortage",
+            "doctors_required",
+            "doctor_shortage",
+            "nurses_required",
+            "nurse_shortage",
+        ]
+        if c in alloc_df.columns
+    ]
     with st.container(border=True):
         section_header("All departments")
         modern_table(alloc_df[show_cols] if show_cols else alloc_df, key=scoped_key(key_prefix, "alloc_table"))
