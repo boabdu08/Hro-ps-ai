@@ -28,6 +28,8 @@ from settings import get_settings
 
 from models import Alert, Notification, OptimizationRun, PatientFlow, PipelineRun, Tenant, User
 
+from ops_live import build_live_state, shift_times_for_type
+
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +79,239 @@ def _insert_synthetic_patient_flow(db, tenant_id: int) -> dict:
     )
     db.commit()
     return row
+
+
+def _ensure_hourly_ops_demo_data(db, tenant_id: int) -> dict:
+    """Hourly live-ops simulator.
+
+    For demo mode (no real hospital integration yet), we keep operational tables
+    aligned with *today/current hour* so Shifts/Appointments/OR/Department Status
+    look live.
+
+    IMPORTANT: We keep this idempotent and lightweight:
+    - Do NOT delete existing rows (avoid breaking audits)
+    - Insert only if table is empty for today
+    """
+
+    live = build_live_state()
+    today = live.today
+
+    # Ensure operational rows that exist in DB appear as "today" for live demo.
+    # We do not delete historical rows; this is a view-level behavior elsewhere,
+    # but the optimizer filters by date. So we need at least one matching record.
+    try:
+        from models import Appointment, ORBooking, StaffShift
+
+        # Only apply when tables have rows but none for today.
+        any_shift = db.query(StaffShift).filter(StaffShift.tenant_id == int(tenant_id)).first()
+        if any_shift is not None:
+            today_count = (
+                db.query(StaffShift)
+                .filter(StaffShift.tenant_id == int(tenant_id), StaffShift.shift_date == today)
+                .count()
+            )
+            if int(today_count or 0) == 0:
+                # Reuse latest shift rows by copying (keeps history intact).
+                latest = (
+                    db.query(StaffShift)
+                    .filter(StaffShift.tenant_id == int(tenant_id))
+                    .order_by(StaffShift.id.desc())
+                    .limit(20)
+                    .all()
+                )
+                for s in latest:
+                    start, end = shift_times_for_type(str(s.shift_type or ""))
+                    db.add(
+                        StaffShift(
+                            tenant_id=int(tenant_id),
+                            staff_username=s.staff_username,
+                            name=s.name,
+                            role=s.role,
+                            department=s.department,
+                            shift_date=today,
+                            shift_type=s.shift_type,
+                            shift_start_time=start,
+                            shift_end_time=end,
+                            status=s.status,
+                        )
+                    )
+                db.commit()
+
+        any_appt = db.query(Appointment).filter(Appointment.tenant_id == int(tenant_id)).first()
+        if any_appt is not None:
+            today_count = (
+                db.query(Appointment)
+                .filter(Appointment.tenant_id == int(tenant_id), Appointment.date == today)
+                .count()
+            )
+            if int(today_count or 0) == 0:
+                latest = (
+                    db.query(Appointment)
+                    .filter(Appointment.tenant_id == int(tenant_id))
+                    .order_by(Appointment.id.desc())
+                    .limit(20)
+                    .all()
+                )
+                for a in latest:
+                    db.add(
+                        Appointment(
+                            tenant_id=int(tenant_id),
+                            appointment_id=a.appointment_id,
+                            department=a.department,
+                            doctor=a.doctor,
+                            date=today,
+                            time_slot=a.time_slot,
+                            patient_count=a.patient_count,
+                            status=a.status,
+                        )
+                    )
+                db.commit()
+
+        any_or = db.query(ORBooking).filter(ORBooking.tenant_id == int(tenant_id)).first()
+        if any_or is not None:
+            today_count = (
+                db.query(ORBooking)
+                .filter(ORBooking.tenant_id == int(tenant_id), ORBooking.date == today)
+                .count()
+            )
+            if int(today_count or 0) == 0:
+                latest = (
+                    db.query(ORBooking)
+                    .filter(ORBooking.tenant_id == int(tenant_id))
+                    .order_by(ORBooking.id.desc())
+                    .limit(20)
+                    .all()
+                )
+                for r in latest:
+                    db.add(
+                        ORBooking(
+                            tenant_id=int(tenant_id),
+                            booking_id=r.booking_id,
+                            room=r.room,
+                            doctor=r.doctor,
+                            department=r.department,
+                            date=today,
+                            time_slot=r.time_slot,
+                            procedure=r.procedure,
+                            status=r.status,
+                        )
+                    )
+                db.commit()
+    except Exception:
+        db.rollback()
+
+    # Staff shifts: ensure shift_start/end fields are populated (existing rows may be missing).
+    # We do a small update-in-place on today's shifts.
+    try:
+        from models import StaffShift
+
+        shifts = (
+            db.query(StaffShift)
+            .filter(StaffShift.tenant_id == int(tenant_id), StaffShift.shift_date == today)
+            .all()
+        )
+        for s in shifts:
+            if (not getattr(s, "shift_start_time", None)) or (not getattr(s, "shift_end_time", None)):
+                start, end = shift_times_for_type(str(s.shift_type or ""))
+                s.shift_start_time = start
+                s.shift_end_time = end
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    # Patient tracking: if empty, seed a minimal live state.
+    # This enables realistic bed occupancy calculations.
+    seeded = {"today": today, "patient_tracking_seeded": False}
+    try:
+        from models import PatientTracking
+
+        count_today = (
+            db.query(PatientTracking)
+            .filter(PatientTracking.tenant_id == int(tenant_id))
+            .count()
+        )
+        if int(count_today or 0) == 0:
+            now_str = live.now.strftime("%Y-%m-%d %H:%M:%S")
+            demo_rows = [
+                # ER: mix of waiting + admitted
+                {
+                    "patient_id": "P-ER-001",
+                    "patient_name_or_anonymized_id": "ER-001",
+                    "entry_datetime": now_str,
+                    "entry_method": "emergency",
+                    "department": "ER",
+                    "assigned_bed_id": "ER-B01",
+                    "admission_status": "admitted",
+                    "length_of_stay_hours": 2.0,
+                    "payment_status": "pending",
+                    "current_status": "inside_hospital",
+                },
+                {
+                    "patient_id": "P-ER-002",
+                    "patient_name_or_anonymized_id": "ER-002",
+                    "entry_datetime": now_str,
+                    "entry_method": "walk-in",
+                    "department": "ER",
+                    "assigned_bed_id": "",
+                    "admission_status": "waiting",
+                    "length_of_stay_hours": 0.5,
+                    "payment_status": "pending",
+                    "current_status": "inside_hospital",
+                },
+                # ICU
+                {
+                    "patient_id": "P-ICU-001",
+                    "patient_name_or_anonymized_id": "ICU-001",
+                    "entry_datetime": now_str,
+                    "entry_method": "referral",
+                    "department": "ICU",
+                    "assigned_bed_id": "ICU-B03",
+                    "admission_status": "admitted",
+                    "length_of_stay_hours": 12.0,
+                    "payment_status": "unpaid",
+                    "current_status": "inside_hospital",
+                },
+                # General Ward
+                {
+                    "patient_id": "P-GW-001",
+                    "patient_name_or_anonymized_id": "GW-001",
+                    "entry_datetime": now_str,
+                    "entry_method": "appointment",
+                    "department": "General Ward",
+                    "assigned_bed_id": "GW-B12",
+                    "admission_status": "admitted",
+                    "length_of_stay_hours": 24.0,
+                    "payment_status": "pending",
+                    "current_status": "inside_hospital",
+                },
+            ]
+
+            for r in demo_rows:
+                db.add(
+                    PatientTracking(
+                        tenant_id=int(tenant_id),
+                        patient_id=r.get("patient_id"),
+                        patient_name_or_anonymized_id=r.get("patient_name_or_anonymized_id"),
+                        national_id_or_card_id_optional=r.get("national_id_or_card_id_optional"),
+                        entry_datetime=r.get("entry_datetime"),
+                        entry_method=r.get("entry_method"),
+                        department=r.get("department"),
+                        assigned_bed_id=r.get("assigned_bed_id"),
+                        admission_status=r.get("admission_status"),
+                        length_of_stay_hours=float(r.get("length_of_stay_hours") or 0.0),
+                        discharge_datetime=r.get("discharge_datetime"),
+                        payment_status=r.get("payment_status"),
+                        current_status=r.get("current_status"),
+                        notes=r.get("notes"),
+                    )
+                )
+
+            db.commit()
+            seeded["patient_tracking_seeded"] = True
+    except Exception:
+        db.rollback()
+
+    return seeded
 
 
 def _build_sequence_from_db_rows(rows: list[PatientFlow]) -> np.ndarray:
@@ -216,6 +451,11 @@ def run_pipeline_once() -> dict:
             run.step = "synthetic_data"
             db.commit()
             info["synthetic_row"] = _insert_synthetic_patient_flow(db, tenant_id)
+
+        # Step 1b: operational demo data (hourly live state)
+        run.step = "ops_demo_state"
+        db.commit()
+        info["ops_demo_state"] = _ensure_hourly_ops_demo_data(db, tenant_id)
 
         # Step 2: forecast
         run.step = "forecast"

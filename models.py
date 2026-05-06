@@ -79,7 +79,105 @@ class StaffShift(Base):
     department = Column(String, nullable=True)
     shift_date = Column(String, nullable=True)
     shift_type = Column(String, nullable=True)
+    # New: realistic shift time ranges (for live operations filtering)
+    shift_start_time = Column(String, nullable=True)
+    shift_end_time = Column(String, nullable=True)
     status = Column(String, nullable=True)
+
+
+class StaffMaster(Base):
+    """Staff master data.
+
+    This is the canonical registry of doctors/nurses and their department
+    assignment. We keep it separate from StaffShift (schedule) so:
+    - a staff member can exist even if not scheduled today
+    - schedule rows can be generated/updated hourly without duplicating master data
+    """
+
+    __tablename__ = "staff_master"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True)
+
+    staff_id = Column(String, nullable=False, index=True)
+    staff_name = Column(String, nullable=True)
+    role = Column(String, nullable=True)  # doctor|nurse
+    department = Column(String, nullable=True)
+    specialty = Column(String, nullable=True)
+    qualification_level = Column(String, nullable=True)
+    available_for_shift = Column(Boolean, nullable=True, default=True)
+    max_hours_per_week = Column(Integer, nullable=True)
+    notes = Column(Text, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "staff_id", name="uq_staff_master_tenant_staff_id"),
+        Index("ix_staff_master_tenant_role", "tenant_id", "role"),
+        Index("ix_staff_master_tenant_dept", "tenant_id", "department"),
+    )
+
+
+class StaffSchedule(Base):
+    """Full staff schedule (doctors + nurses).
+
+    Required columns per task:
+      staff_id, staff_name, role, department,
+      shift_date, shift_type, shift_start_time, shift_end_time,
+      status, notes
+    """
+
+    __tablename__ = "staff_schedule"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True)
+
+    staff_id = Column(String, nullable=True)
+    staff_name = Column(String, nullable=True)
+    role = Column(String, nullable=True)
+    department = Column(String, nullable=True)
+
+    shift_date = Column(String, nullable=True)
+    shift_type = Column(String, nullable=True)  # Morning|Evening|Night
+    shift_start_time = Column(String, nullable=True)
+    shift_end_time = Column(String, nullable=True)
+
+    status = Column(String, nullable=True)  # Assigned|Available|Absent|On Leave
+    notes = Column(Text, nullable=True)
+
+    __table_args__ = (
+        Index("ix_staff_schedule_tenant_date", "tenant_id", "shift_date"),
+        Index("ix_staff_schedule_tenant_dept", "tenant_id", "department"),
+        Index("ix_staff_schedule_tenant_role", "tenant_id", "role"),
+    )
+
+
+class PatientTracking(Base):
+    """Track each patient from entry to exit for live occupancy/crowding logic."""
+
+    __tablename__ = "patient_tracking"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True)
+
+    patient_id = Column(String, nullable=True, index=True)
+    patient_name_or_anonymized_id = Column(String, nullable=True)
+    national_id_or_card_id_optional = Column(String, nullable=True)
+
+    entry_datetime = Column(String, nullable=True)
+    entry_method = Column(String, nullable=True)  # appointment|walk-in|emergency|referral
+    department = Column(String, nullable=True)
+
+    assigned_bed_id = Column(String, nullable=True)
+    admission_status = Column(String, nullable=True)  # waiting|admitted|transferred|discharged
+    length_of_stay_hours = Column(Float, nullable=True)
+    discharge_datetime = Column(String, nullable=True)
+    payment_status = Column(String, nullable=True)  # paid|unpaid|pending
+    current_status = Column(String, nullable=True)  # inside_hospital|discharged
+    notes = Column(Text, nullable=True)
+
+    __table_args__ = (
+        Index("ix_patient_tracking_tenant_status", "tenant_id", "current_status"),
+        Index("ix_patient_tracking_tenant_dept", "tenant_id", "department"),
+    )
 
 
 class User(Base):

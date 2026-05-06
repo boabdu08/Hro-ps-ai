@@ -15,7 +15,16 @@ from artifacts import artifact_diagnostics, load_manifest
 from feature_spec import FEATURE_COLUMNS, ARIMAX_EXOG_COLUMNS, SEQUENCE_LENGTH
 from evaluation_service import compare_models
 from database import get_db, init_db, engine, SessionLocal
-from db_migrations import ensure_alerts_notifications, ensure_message_extensions, ensure_multi_tenant, ensure_pipeline_runs
+from db_migrations import (
+    ensure_alerts_notifications,
+    ensure_message_extensions,
+    ensure_multi_tenant,
+    ensure_pipeline_runs,
+    ensure_operations_tables,
+)
+
+# NEW: ops-aware 72h forecasting inference (kept separate from legacy 24h pipeline).
+from forecast_inference_ops72h import forecast_ops72h
 from models import Alert, Notification, NotificationPreference, Tenant, User, PatientFlow, MessageLog, MessageRead, OptimizationRun, PipelineRun
 from resource_optimizer import optimize_resources
 from schemas import LoginRequest
@@ -79,6 +88,7 @@ def _startup_create_tables():
     ensure_message_extensions(engine)
     ensure_alerts_notifications(engine)
     ensure_pipeline_runs(engine)
+    ensure_operations_tables(engine)
 
     # Local-ready: ensure demo tenant + auth users exist.
     # This makes fresh DBs usable without manually running seed scripts.

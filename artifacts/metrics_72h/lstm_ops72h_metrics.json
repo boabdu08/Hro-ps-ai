@@ -1,0 +1,36 @@
+{
+  "model": "LSTM",
+  "val": {
+    "MAE": 8.679898262023926,
+    "RMSE": 12.372487439256922,
+    "MAPE": 9.909601274250551
+  },
+  "test": {
+    "MAE": 4.073336124420166,
+    "RMSE": 12.366237427972989,
+    "MAPE": 95.5940018716801
+  },
+  "feature_cols": [
+    "patients",
+    "hour",
+    "day_of_week",
+    "month",
+    "week_number",
+    "season",
+    "is_weekend",
+    "holiday",
+    "appointments_count",
+    "or_bookings_count",
+    "doctors_available",
+    "nurses_available",
+    "occupied_beds",
+    "waiting_patients",
+    "lag_1",
+    "lag_24",
+    "roll_mean_3",
+    "roll_mean_6",
+    "roll_mean_24"
+  ],
+  "sequence_length": 24,
+  "model_path": "D:\\hro-ps-ai\\artifacts\\models_72h\\lstm_ops72h.keras"
+}

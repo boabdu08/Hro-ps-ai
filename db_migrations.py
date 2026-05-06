@@ -297,3 +297,94 @@ def ensure_pipeline_runs(engine: Engine) -> None:
         )
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_pipeline_runs_tenant_started ON pipeline_runs(tenant_id, started_at)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_pipeline_runs_tenant_status ON pipeline_runs(tenant_id, status)"))
+
+
+def ensure_operations_tables(engine: Engine) -> None:
+    """Create/extend operational tables for live hospital state (idempotent).
+
+    We use lightweight SQL migrations because the repo doesn't use Alembic.
+    This function is safe to run on every startup.
+    """
+
+    with engine.begin() as conn:
+        # Staff master data
+        conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS staff_master (
+                    id SERIAL PRIMARY KEY,
+                    tenant_id INTEGER NULL,
+                    staff_id VARCHAR NOT NULL,
+                    staff_name VARCHAR NULL,
+                    role VARCHAR NULL,
+                    department VARCHAR NULL,
+                    specialty VARCHAR NULL,
+                    qualification_level VARCHAR NULL,
+                    available_for_shift BOOLEAN NULL DEFAULT TRUE,
+                    max_hours_per_week INTEGER NULL,
+                    notes TEXT NULL,
+                    CONSTRAINT uq_staff_master_tenant_staff_id UNIQUE (tenant_id, staff_id)
+                )
+                """
+            )
+        )
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_staff_master_tenant_role ON staff_master(tenant_id, role)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_staff_master_tenant_dept ON staff_master(tenant_id, department)"))
+
+        # Full staff schedule (new table; do not break existing staff_shifts)
+        conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS staff_schedule (
+                    id SERIAL PRIMARY KEY,
+                    tenant_id INTEGER NULL,
+                    staff_id VARCHAR NULL,
+                    staff_name VARCHAR NULL,
+                    role VARCHAR NULL,
+                    department VARCHAR NULL,
+                    shift_date VARCHAR NULL,
+                    shift_type VARCHAR NULL,
+                    shift_start_time VARCHAR NULL,
+                    shift_end_time VARCHAR NULL,
+                    status VARCHAR NULL,
+                    notes TEXT NULL
+                )
+                """
+            )
+        )
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_staff_schedule_tenant_date ON staff_schedule(tenant_id, shift_date)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_staff_schedule_tenant_dept ON staff_schedule(tenant_id, department)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_staff_schedule_tenant_role ON staff_schedule(tenant_id, role)"))
+
+        # Patient tracking
+        conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS patient_tracking (
+                    id SERIAL PRIMARY KEY,
+                    tenant_id INTEGER NULL,
+                    patient_id VARCHAR NULL,
+                    patient_name_or_anonymized_id VARCHAR NULL,
+                    national_id_or_card_id_optional VARCHAR NULL,
+                    entry_datetime VARCHAR NULL,
+                    entry_method VARCHAR NULL,
+                    department VARCHAR NULL,
+                    assigned_bed_id VARCHAR NULL,
+                    admission_status VARCHAR NULL,
+                    length_of_stay_hours DOUBLE PRECISION NULL,
+                    discharge_datetime VARCHAR NULL,
+                    payment_status VARCHAR NULL,
+                    current_status VARCHAR NULL,
+                    notes TEXT NULL
+                )
+                """
+            )
+        )
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_patient_tracking_tenant_status ON patient_tracking(tenant_id, current_status)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_patient_tracking_tenant_dept ON patient_tracking(tenant_id, department)"))
+
+        # Extend existing staff_shifts table with shift_start_time/shift_end_time if missing.
+        if not _has_column(engine, "staff_shifts", "shift_start_time"):
+            conn.execute(text("ALTER TABLE staff_shifts ADD COLUMN shift_start_time VARCHAR NULL"))
+        if not _has_column(engine, "staff_shifts", "shift_end_time"):
+            conn.execute(text("ALTER TABLE staff_shifts ADD COLUMN shift_end_time VARCHAR NULL"))

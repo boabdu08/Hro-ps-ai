@@ -7,6 +7,8 @@ from database import SessionLocal
 from models import Appointment, ORBooking, StaffShift
 from ui_components import empty_state, modern_table, page_header, scoped_key, section_header
 
+from ops_live import build_live_state, dedupe_keep_latest, normalize_appointment_status, shift_times_for_type
+
 
 def _normalize(value, default=""):
     if value is None:
@@ -42,18 +44,51 @@ def _load_shifts_df() -> pd.DataFrame:
     try:
         _bootstrap_shifts_from_csv_if_needed(db)
         rows = db.query(StaffShift).all()
-        return pd.DataFrame([
+        df = pd.DataFrame([
             {
+                "id": int(row.id) if getattr(row, "id", None) is not None else None,
                 "staff_username": _normalize(row.staff_username),
                 "name": _normalize(row.name),
                 "role": _normalize(row.role),
                 "department": _normalize(row.department),
                 "shift_date": _normalize(row.shift_date),
                 "shift_type": _normalize(row.shift_type),
+                "shift_start_time": _normalize(getattr(row, "shift_start_time", "")),
+                "shift_end_time": _normalize(getattr(row, "shift_end_time", "")),
                 "status": _normalize(row.status),
             }
             for row in rows
         ])
+        if df.empty:
+            return df
+
+        # --- Live demo behavior ---
+        # 1) Remove duplicates (logical keys) and keep latest.
+        df = dedupe_keep_latest(
+            df,
+            logical_keys=["staff_username", "shift_date", "shift_type", "department"],
+            latest_by="id",
+        )
+
+        # 2) Update dates to today's date for live demo mode.
+        live = build_live_state()
+        df["shift_date"] = live.today
+
+        # 3) Ensure shift time ranges exist and align to shift_type.
+        def _fill_times(row):
+            stime = str(row.get("shift_start_time") or "").strip()
+            etime = str(row.get("shift_end_time") or "").strip()
+            if stime and etime:
+                return stime, etime
+            return shift_times_for_type(str(row.get("shift_type") or ""))
+
+        times = df.apply(lambda r: _fill_times(r), axis=1, result_type="expand")
+        if isinstance(times, pd.DataFrame) and times.shape[1] == 2:
+            df["shift_start_time"] = times[0]
+            df["shift_end_time"] = times[1]
+
+        # Hide internal id from UI.
+        return df.drop(columns=["id"], errors="ignore")
     finally:
         db.close()
 
@@ -63,8 +98,9 @@ def _load_or_df() -> pd.DataFrame:
     try:
         _bootstrap_or_from_csv_if_needed(db)
         rows = db.query(ORBooking).all()
-        return pd.DataFrame([
+        df = pd.DataFrame([
             {
+                "id": int(row.id) if getattr(row, "id", None) is not None else None,
                 "booking_id": _normalize(row.booking_id),
                 "room": _normalize(row.room),
                 "doctor": _normalize(row.doctor),
@@ -76,6 +112,26 @@ def _load_or_df() -> pd.DataFrame:
             }
             for row in rows
         ])
+        if df.empty:
+            return df
+
+        # Dedupe: booking_id OR room+date+time_slot+procedure
+        df = dedupe_keep_latest(
+            df,
+            logical_keys=["booking_id"],
+            latest_by="id",
+        )
+        # Some datasets may have empty booking_id; apply a second-pass dedupe.
+        df = dedupe_keep_latest(
+            df,
+            logical_keys=["room", "date", "time_slot", "procedure"],
+            latest_by="id",
+        )
+
+        # Live demo: always show today's bookings
+        live = build_live_state()
+        df["date"] = live.today
+        return df.drop(columns=["id"], errors="ignore")
     finally:
         db.close()
 
@@ -87,6 +143,7 @@ def _load_appointments_df() -> pd.DataFrame:
         rows = db.query(Appointment).all()
         df = pd.DataFrame([
             {
+                "id": int(row.id) if getattr(row, "id", None) is not None else None,
                 "appointment_id": _normalize(row.appointment_id),
                 "department": _normalize(row.department),
                 "doctor": _normalize(row.doctor),
@@ -99,7 +156,17 @@ def _load_appointments_df() -> pd.DataFrame:
         ])
         if not df.empty:
             df["patient_count"] = pd.to_numeric(df["patient_count"], errors="coerce").fillna(0)
-        return df
+            # Dedupe: appointment_id OR dept+doctor+date+time_slot
+            df = dedupe_keep_latest(df, logical_keys=["appointment_id"], latest_by="id")
+            df = dedupe_keep_latest(df, logical_keys=["department", "doctor", "date", "time_slot"], latest_by="id")
+
+            # Live demo: update to today's date
+            live = build_live_state()
+            df["date"] = live.today
+
+            # Normalize appointment statuses to the new meaningful set
+            df["status"] = df["status"].apply(normalize_appointment_status)
+        return df.drop(columns=["id"], errors="ignore")
     finally:
         db.close()
 
@@ -176,6 +243,8 @@ def show_admin_appointments_overview():
     fig = px.pie(summary, names="department", values="patient_count", title="Appointments Load by Department")
     fig.update_layout(height=400)
     st.plotly_chart(fig, use_container_width=True, key=scoped_key("appointments", "admin_overview", "chart"))
+
+
 
 
 

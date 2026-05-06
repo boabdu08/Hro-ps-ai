@@ -892,6 +892,8 @@ def render_department_status(*, key_prefix: str = "dept"):
     nurse_shortage = int(max(0, _n(r.get("nurse_shortage"))))
 
     # Available = needed - shortage (best-effort; true availability is internal to the optimizer).
+    # Note: `effective_beds_capacity` is computed by the optimizer using PatientTracking
+    # occupancy; we keep this fallback for backward compatibility.
     beds_available = int(max(0, beds_needed - bed_shortage))
     doctors_available = int(max(0, doctors_needed - doctor_shortage))
     nurses_available = int(max(0, nurses_needed - nurse_shortage))
@@ -940,7 +942,11 @@ def render_department_status(*, key_prefix: str = "dept"):
             "department",
             "status",
             "priority_score",
+            "current_patients",
+            "waiting_patients",
+            "occupied_beds",
             "beds_required",
+            "effective_beds_capacity",
             "bed_shortage",
             "doctors_required",
             "doctor_shortage",

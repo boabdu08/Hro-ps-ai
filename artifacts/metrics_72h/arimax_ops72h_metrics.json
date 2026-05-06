@@ -1,0 +1,33 @@
+{
+  "model": "ARIMAX",
+  "val": {
+    "MAE": 14.608744188643453,
+    "RMSE": 19.383913667314214,
+    "MAPE": 15.127681966122816
+  },
+  "test": {
+    "MAE": 195.63311721468455,
+    "RMSE": 229.36897379203535,
+    "MAPE": 18878.85139803542
+  },
+  "exog_cols": [
+    "hour",
+    "day_of_week",
+    "month",
+    "week_number",
+    "season",
+    "is_weekend",
+    "holiday",
+    "appointments_count",
+    "or_bookings_count",
+    "doctors_available",
+    "nurses_available",
+    "occupied_beds",
+    "waiting_patients",
+    "lag_1",
+    "lag_24",
+    "roll_mean_3",
+    "roll_mean_6",
+    "roll_mean_24"
+  ]
+}

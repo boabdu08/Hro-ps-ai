@@ -18,7 +18,9 @@ import numpy as np
 import pandas as pd
 
 from database import SessionLocal
-from models import Appointment, ORBooking, StaffShift
+from models import Appointment, ORBooking, PatientTracking, StaffShift
+
+from ops_live import build_live_state, is_time_in_shift
 
 
 DEPARTMENT_CONFIG = {
@@ -90,12 +92,22 @@ def _department_status(required_beds, beds_capacity, warning_ratio, critical_rat
 def _load_operational_state(*, tenant_id: int | None = None) -> Dict[str, Dict[str, float]]:
     db = SessionLocal()
     try:
+        # NOTE: This function drives live Department Status and Optimization inputs.
+        # We filter to *today/current hour* to reflect real operational state.
+        live = build_live_state()
+        today = live.today
+        now = live.now
+
         state = {
             dept: {
                 "appointments_load": 0,
                 "or_pending_count": 0,
                 "doctor_staff_count": 0,
                 "nurse_staff_count": 0,
+                # Patient tracking signals
+                "current_patients": 0,
+                "waiting_patients": 0,
+                "occupied_beds": 0,
             }
             for dept in DEPARTMENT_CONFIG
         }
@@ -103,6 +115,8 @@ def _load_operational_state(*, tenant_id: int | None = None) -> Dict[str, Dict[s
         q_appt = db.query(Appointment)
         if tenant_id is not None:
             q_appt = q_appt.filter(Appointment.tenant_id == int(tenant_id))
+        # Live mode: only today's appointments
+        q_appt = q_appt.filter(Appointment.date == today)
         for row in q_appt.all():
             dept = str(row.department or "").strip()
             if dept in state:
@@ -111,6 +125,8 @@ def _load_operational_state(*, tenant_id: int | None = None) -> Dict[str, Dict[s
         q_or = db.query(ORBooking)
         if tenant_id is not None:
             q_or = q_or.filter(ORBooking.tenant_id == int(tenant_id))
+        # Live mode: only today's OR bookings
+        q_or = q_or.filter(ORBooking.date == today)
         for row in q_or.all():
             dept = str(row.department or "").strip()
             if dept in state and str(row.status or "").strip().lower() in ["pending", "scheduled", "priority review"]:
@@ -119,18 +135,45 @@ def _load_operational_state(*, tenant_id: int | None = None) -> Dict[str, Dict[s
         q_shifts = db.query(StaffShift)
         if tenant_id is not None:
             q_shifts = q_shifts.filter(StaffShift.tenant_id == int(tenant_id))
+        # Live mode: only today's shift schedule and only staff whose shift is active now.
+        q_shifts = q_shifts.filter(StaffShift.shift_date == today)
         for row in q_shifts.all():
             dept = str(row.department or "").strip()
             if dept not in state:
                 continue
+            # IMPORTANT: status semantics updated per requirements.
+            # Only count staff that are operationally available now.
             status = str(row.status or "").strip().lower()
-            if status in ["off", "cancelled", "cancelled shift"]:
+            if status in {"absent", "on leave", "off", "cancelled", "cancelled shift"}:
+                continue
+            # Filter to current shift window (Morning/Evening/Night)
+            if not is_time_in_shift(now=now, shift_type=str(row.shift_type or "")):
                 continue
             role = str(row.role or "").strip().lower()
             if role == "doctor":
                 state[dept]["doctor_staff_count"] += 1
             elif role == "nurse":
                 state[dept]["nurse_staff_count"] += 1
+
+        # Patient tracking (live occupancy)
+        q_pt = db.query(PatientTracking)
+        if tenant_id is not None:
+            q_pt = q_pt.filter(PatientTracking.tenant_id == int(tenant_id))
+        for row in q_pt.all():
+            dept = str(row.department or "").strip()
+            if dept not in state:
+                continue
+
+            current_status = str(row.current_status or "").strip().lower()
+            admission_status = str(row.admission_status or "").strip().lower()
+            bed_id = str(row.assigned_bed_id or "").strip()
+
+            if current_status == "inside_hospital":
+                state[dept]["current_patients"] += 1
+                if admission_status == "waiting":
+                    state[dept]["waiting_patients"] += 1
+                if bed_id:
+                    state[dept]["occupied_beds"] += 1
 
         return state
     finally:
@@ -360,6 +403,9 @@ def optimize_resources(predicted_patients: float, *, tenant_id: int | None = Non
         or_pending_count = _safe_int(state.get("or_pending_count", 0))
         doctor_staff_count = _safe_int(state.get("doctor_staff_count", 0))
         nurse_staff_count = _safe_int(state.get("nurse_staff_count", 0))
+        current_patients = _safe_int(state.get("current_patients", 0))
+        waiting_patients = _safe_int(state.get("waiting_patients", 0))
+        occupied_beds = _safe_int(state.get("occupied_beds", 0))
 
         pressure_modifier = _compute_pressure_modifier(appointments_load, or_pending_count)
         department_patients_base = predicted_patients * cfg["share"]
@@ -370,7 +416,9 @@ def optimize_resources(predicted_patients: float, *, tenant_id: int | None = Non
         doctors_required = max(1, _safe_ceil(department_patients / 8))
         nurses_required = max(1, _safe_ceil(department_patients / 4))
 
-        effective_bed_capacity = cfg["beds_capacity"]
+        # Live bed capacity: occupied beds reduce available beds.
+        # Note: cfg["beds_capacity"] is the physical capacity; PatientTracking determines occupancy.
+        effective_bed_capacity = max(0, int(cfg["beds_capacity"]) - int(occupied_beds))
         effective_doctor_capacity = min(cfg["doctors_capacity"], doctor_staff_count) if doctor_staff_count > 0 else 0
         effective_nurse_capacity = min(cfg["nurses_capacity"], nurse_staff_count) if nurse_staff_count > 0 else 0
 
@@ -393,6 +441,10 @@ def optimize_resources(predicted_patients: float, *, tenant_id: int | None = Non
                 "pressure_modifier": round(pressure_modifier, 3),
                 "appointments_load": appointments_load,
                 "or_pending_count": or_pending_count,
+                # Real-state signals (computed from PatientTracking + schedule)
+                "current_patients": current_patients,
+                "waiting_patients": waiting_patients,
+                "occupied_beds": occupied_beds,
                 "beds_capacity": cfg["beds_capacity"],
                 "doctors_capacity": cfg["doctors_capacity"],
                 "nurses_capacity": cfg["nurses_capacity"],

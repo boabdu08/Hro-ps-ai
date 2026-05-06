@@ -1,0 +1,24 @@
+{
+  "feature_cols": [
+    "patients",
+    "hour",
+    "day_of_week",
+    "month",
+    "week_number",
+    "season",
+    "is_weekend",
+    "holiday",
+    "appointments_count",
+    "or_bookings_count",
+    "doctors_available",
+    "nurses_available",
+    "occupied_beds",
+    "waiting_patients",
+    "lag_1",
+    "lag_24",
+    "roll_mean_3",
+    "roll_mean_6",
+    "roll_mean_24"
+  ],
+  "sequence_length": 24
+}
