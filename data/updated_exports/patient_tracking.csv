@@ -1,0 +1,5 @@
+patient_id,patient_name_or_anonymized_id,national_id_or_card_id_optional,entry_datetime,entry_method,department,assigned_bed_id,admission_status,length_of_stay_hours,discharge_datetime,payment_status,current_status,notes
+P-ER-001,ER-001,,2026-05-05 21:37:58,emergency,ER,ER-B01,admitted,2.0,,pending,inside_hospital,
+P-ER-002,ER-002,,2026-05-05 21:37:58,walk-in,ER,,waiting,0.5,,pending,inside_hospital,
+P-ICU-001,ICU-001,,2026-05-05 21:37:58,referral,ICU,ICU-B03,admitted,12.0,,unpaid,inside_hospital,
+P-GW-001,GW-001,,2026-05-05 21:37:58,appointment,General Ward,GW-B12,admitted,24.0,,pending,inside_hospital,

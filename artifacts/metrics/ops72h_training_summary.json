@@ -1,0 +1,52 @@
+{
+  "forecast_horizon_hours": 72,
+  "generated_at": "2026-05-07T16:18:17.383884",
+  "overall_forecast_path": "artifacts\\forecast_outputs\\ops72h_overall_forecast.csv",
+  "department_forecast_path": "artifacts\\forecast_outputs\\ops72h_department_forecast.csv",
+  "metrics_csv_path": "artifacts\\metrics\\ops72h_model_metrics.csv",
+  "best_model": "Hybrid",
+  "weights": {
+    "lstm": 0.8,
+    "arimax": 0.2
+  },
+  "hybrid_config": {
+    "lstm_weight": 0.8,
+    "arimax_weight": 0.2,
+    "selection_metric": "validation_rmse",
+    "validation": {
+      "LSTM": {
+        "MAE": 9.826088174713982,
+        "RMSE": 13.550620290152175,
+        "MAPE": 12.031344221683229
+      },
+      "ARIMAX": {
+        "MAE": 20.409525153922072,
+        "RMSE": 25.114722022714663,
+        "MAPE": 30.243876600066667
+      },
+      "Hybrid": {
+        "MAE": 8.61239521832817,
+        "RMSE": 12.00938538806851,
+        "MAPE": 10.673970780275384
+      }
+    },
+    "test": {
+      "LSTM": {
+        "MAE": 2.0000320381526318,
+        "RMSE": 8.977826251800765,
+        "MAPE": 181.1051095501297
+      },
+      "ARIMAX": {
+        "MAE": 4.2318111413904225,
+        "RMSE": 8.142294086890937,
+        "MAPE": 401.4761668530459
+      },
+      "Hybrid": {
+        "MAE": 2.241339246687908,
+        "RMSE": 7.796905945814352,
+        "MAPE": 205.39497727097392
+      }
+    },
+    "alignment_note": "Aligned on shortest tail overlap between model outputs."
+  }
+}

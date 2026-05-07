@@ -38,6 +38,7 @@ ARTIFACT_DIR = Path("artifacts").resolve()
 DATA_DIR = ARTIFACT_DIR / "datasets"
 MODEL_DIR = ARTIFACT_DIR / "models_72h"
 METRICS_DIR = ARTIFACT_DIR / "metrics_72h"
+UPDATED_EXPORT_DIR = Path("data") / "updated_exports"
 
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
@@ -73,6 +74,92 @@ def _time_slot_to_hour_start(date_str: str, time_slot: str) -> pd.Timestamp | No
         return None
 
 
+def _add_standard_time_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Ensure training-time features required by the 72h model scripts exist."""
+
+    out = df.copy()
+    out["datetime"] = pd.to_datetime(out["datetime"], errors="coerce")
+    out = out.dropna(subset=["datetime"]).sort_values("datetime").reset_index(drop=True)
+    out["patients"] = pd.to_numeric(out.get("patients", 0.0), errors="coerce").fillna(0.0)
+
+    out["hour"] = out["datetime"].dt.hour.astype(int)
+    out["day_of_week"] = out["datetime"].dt.dayofweek.astype(int)
+    out["month"] = out["datetime"].dt.month.astype(int)
+    out["week_number"] = out["datetime"].dt.isocalendar().week.astype(int)
+    out["is_weekend"] = (out["day_of_week"] >= 5).astype(int)
+    out["season"] = ((out["month"] % 12) // 3).astype(int)
+    out["holiday"] = pd.to_numeric(out.get("holiday", 0), errors="coerce").fillna(0).astype(int)
+
+    for col in ["appointments_count", "or_bookings_count", "doctors_available", "nurses_available", "occupied_beds", "waiting_patients"]:
+        if col not in out.columns:
+            out[col] = 0.0
+        out[col] = pd.to_numeric(out[col], errors="coerce").fillna(0.0)
+
+    y = out["patients"].astype(float)
+    out["lag_1"] = y.shift(1).fillna(0.0)
+    out["lag_24"] = y.shift(24).fillna(0.0)
+    for w in [3, 6, 24]:
+        out[f"roll_mean_{w}"] = y.shift(1).rolling(w, min_periods=1).mean().fillna(0.0)
+    return out
+
+
+def _build_ops_hourly_frame_from_exports() -> OpsHourlyFrame | None:
+    """Load Phase-2 exported datasets before falling back to DB tables.
+
+    This keeps training reproducible from the manually reviewable CSVs while the
+    existing DB-first runtime remains available as fallback.
+    """
+
+    overall_path = UPDATED_EXPORT_DIR / "ops_hourly_overall.csv"
+    if not overall_path.exists():
+        overall_path = UPDATED_EXPORT_DIR / "patient_flow_hourly_updated.csv"
+    if not overall_path.exists():
+        return None
+
+    try:
+        overall = pd.read_csv(overall_path)
+    except Exception:
+        return None
+    if overall.empty or "datetime" not in overall.columns or "patients" not in overall.columns:
+        return None
+
+    overall = _add_standard_time_features(overall)
+    if len(overall) < 24 * 14:
+        return None
+
+    by_dept_path = UPDATED_EXPORT_DIR / "ops_hourly_by_department.csv"
+    if by_dept_path.exists():
+        try:
+            by_department = pd.read_csv(by_dept_path)
+        except Exception:
+            by_department = pd.DataFrame()
+    else:
+        by_department = pd.DataFrame()
+
+    if by_department.empty or not {"datetime", "department", "patients"}.issubset(by_department.columns):
+        shares = {"ER": 0.30, "ICU": 0.10, "General Ward": 0.45, "Surgery": 0.10, "Radiology": 0.05}
+        by_department = pd.concat(
+            [
+                pd.DataFrame(
+                    {
+                        "datetime": overall["datetime"],
+                        "department": dept,
+                        "patients": overall["patients"].astype(float) * share,
+                    }
+                )
+                for dept, share in shares.items()
+            ],
+            ignore_index=True,
+        )
+    else:
+        by_department["datetime"] = pd.to_datetime(by_department["datetime"], errors="coerce")
+        by_department = by_department.dropna(subset=["datetime"])
+        by_department["patients"] = pd.to_numeric(by_department["patients"], errors="coerce").fillna(0.0)
+
+    departments = sorted([str(d) for d in by_department["department"].dropna().unique().tolist()])
+    return OpsHourlyFrame(overall=overall.reset_index(drop=True), by_department=by_department.reset_index(drop=True), departments=departments)
+
+
 @dataclass
 class OpsHourlyFrame:
     overall: pd.DataFrame
@@ -100,6 +187,10 @@ def build_ops_hourly_frame(*, tenant_id: int | None = None) -> OpsHourlyFrame:
 
     Output frames have a continuous hourly index.
     """
+
+    exported = _build_ops_hourly_frame_from_exports()
+    if exported is not None:
+        return exported
 
     db = SessionLocal()
     try:

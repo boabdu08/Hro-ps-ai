@@ -13,6 +13,7 @@ We keep these separate from the legacy 24h artifacts used by Command Center.
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -157,12 +158,17 @@ def main():
         ModelCheckpoint(filepath=str(model_path), monitor="val_loss", save_best_only=True, verbose=1),
     ]
 
+    # Keep defaults production-friendly, but allow local CI/demo runs to shorten
+    # training without changing output artifact names or dashboard contracts.
+    epochs = int(os.getenv("HRO_OPS72H_LSTM_EPOCHS", "60"))
+    batch_size = int(os.getenv("HRO_OPS72H_LSTM_BATCH_SIZE", "64"))
+
     history = model.fit(
         X_train,
         Y_train,
         validation_data=(X_val, Y_val),
-        epochs=60,
-        batch_size=64,
+        epochs=epochs,
+        batch_size=batch_size,
         callbacks=callbacks,
         verbose=1,
     )

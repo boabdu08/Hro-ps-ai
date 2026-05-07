@@ -1,0 +1,4 @@
+booking_id,room,doctor,department,booking_date,time_slot,procedure,status,notes
+OR003,OR-1,Dr. Ahmed,ER,2026-05-07,13:00-14:30,Follow-up Operation,Confirmed,
+OR002,OR-2,Dr. Sara,ICU,2026-05-07,11:00-12:30,Critical Procedure,Priority Review,
+OR001,OR-1,Dr. Ahmed,ER,2026-05-07,09:00-10:30,Emergency Surgery,Confirmed,

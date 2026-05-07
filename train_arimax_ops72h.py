@@ -11,6 +11,7 @@ Artifacts are written under:
 from __future__ import annotations
 
 import json
+import os
 
 import joblib
 import numpy as np
@@ -54,6 +55,12 @@ def main():
     save_ops_hourly_dataset(frame)
 
     df = frame.overall.copy().sort_values("datetime").reset_index(drop=True)
+    max_rows = int(os.getenv("HRO_OPS72H_ARIMAX_MAX_ROWS", "12000"))
+    if max_rows > 0 and len(df) > max_rows:
+        # SARIMAX fitting can be slow on very long hourly histories. Use the
+        # most recent window by default for practical retraining while still
+        # preserving all exported datasets for review and downstream analysis.
+        df = df.tail(max_rows).reset_index(drop=True)
     target = "patients"
     exog_cols = [
         "hour",

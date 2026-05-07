@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -26,6 +29,76 @@ from ui_components import (
     section_header,
     status_badge,
 )
+
+
+OPS72H_OVERALL_FORECAST_PATH = Path("artifacts") / "forecast_outputs" / "ops72h_overall_forecast.csv"
+OPS72H_DEPARTMENT_FORECAST_PATH = Path("artifacts") / "forecast_outputs" / "ops72h_department_forecast.csv"
+OPS72H_MODEL_METRICS_PATH = Path("artifacts") / "metrics" / "ops72h_model_metrics.csv"
+OPS72H_TRAINING_SUMMARY_PATH = Path("artifacts") / "metrics" / "ops72h_training_summary.json"
+
+
+def _load_ops72h_outputs() -> dict:
+    """Load saved 72-hour forecast artifacts for Forecast and Digital Twin tabs.
+
+    Missing or malformed files are reported to the UI by callers instead of
+    raising, so the dashboard does not crash when exports have not been generated.
+    """
+
+    required_paths = {
+        "overall forecast": OPS72H_OVERALL_FORECAST_PATH,
+        "department forecast": OPS72H_DEPARTMENT_FORECAST_PATH,
+        "model metrics": OPS72H_MODEL_METRICS_PATH,
+        "training summary": OPS72H_TRAINING_SUMMARY_PATH,
+    }
+    missing = [f"{label}: {path}" for label, path in required_paths.items() if not path.exists()]
+    if missing:
+        return {"ready": False, "missing": missing}
+
+    try:
+        overall_df = pd.read_csv(OPS72H_OVERALL_FORECAST_PATH)
+        department_df = pd.read_csv(OPS72H_DEPARTMENT_FORECAST_PATH)
+        metrics_df = pd.read_csv(OPS72H_MODEL_METRICS_PATH)
+        summary = json.loads(OPS72H_TRAINING_SUMMARY_PATH.read_text(encoding="utf-8"))
+    except Exception as exc:
+        return {"ready": False, "error": str(exc), "missing": []}
+
+    for df in [overall_df, department_df]:
+        if "datetime" in df.columns:
+            df["datetime"] = pd.to_datetime(df["datetime"], errors="coerce")
+
+    for col in ["lstm_pred", "arimax_pred", "hybrid_pred"]:
+        if col in overall_df.columns:
+            overall_df[col] = pd.to_numeric(overall_df[col], errors="coerce")
+    if "hybrid_pred" in department_df.columns:
+        department_df["hybrid_pred"] = pd.to_numeric(department_df["hybrid_pred"], errors="coerce")
+    for col in ["MAE", "RMSE", "MAPE"]:
+        if col in metrics_df.columns:
+            metrics_df[col] = pd.to_numeric(metrics_df[col], errors="coerce")
+
+    required_overall_cols = {"datetime", "hybrid_pred"}
+    required_department_cols = {"datetime", "department", "hybrid_pred"}
+    if not required_overall_cols.issubset(overall_df.columns):
+        return {"ready": False, "error": f"Overall forecast missing columns: {sorted(required_overall_cols - set(overall_df.columns))}", "missing": []}
+    if not required_department_cols.issubset(department_df.columns):
+        return {"ready": False, "error": f"Department forecast missing columns: {sorted(required_department_cols - set(department_df.columns))}", "missing": []}
+
+    return {
+        "ready": True,
+        "overall": overall_df.dropna(subset=["datetime", "hybrid_pred"]).reset_index(drop=True),
+        "department": department_df.dropna(subset=["datetime", "department", "hybrid_pred"]).reset_index(drop=True),
+        "metrics": metrics_df,
+        "summary": summary,
+    }
+
+
+def _show_ops72h_missing_state(bundle: dict) -> None:
+    missing = bundle.get("missing") or []
+    if missing:
+        st.warning("72-hour forecast outputs are not available yet. Generate them before using this tab.")
+        for item in missing:
+            st.caption(item)
+    else:
+        st.warning(f"72-hour forecast outputs could not be loaded: {bundle.get('error', 'unknown error')}")
 
 
 def _load_runtime_dataframe():
@@ -347,93 +420,119 @@ def show_forecast():
         "Demand outlook across the next 72 hours — trends, peaks, and actual vs predicted.",
     )
 
-    ctx = get_live_context()
-    if not ctx["ready"]:
-        empty_state(ctx["reason"])
+    ops72h = _load_ops72h_outputs()
+    if not ops72h.get("ready"):
+        _show_ops72h_missing_state(ops72h)
         return
 
-    # IMPORTANT: the Forecast page uses a 72-hour horizon.
-    # Command Center / Overview must remain 24h and uses ctx["forecast_values"].
-    df = ctx["df"]
-    predictions = generate_multistep_forecast(
-        last_sequence=ctx["last_sequence"],
-        predict_fn=get_prediction,
-        steps=72,
-    )
+    overall_df = ops72h["overall"].copy()
+    department_df = ops72h["department"].copy()
+    metrics_df = ops72h["metrics"].copy()
+    summary = ops72h["summary"] or {}
 
-    if len(predictions) == 0:
-        empty_state("Forecast unavailable.")
+    if overall_df.empty:
+        empty_state("72-hour overall forecast file is empty.")
         return
 
-    forecast_df = pd.DataFrame({
-        "hour": range(1, len(predictions) + 1),
-        "forecast": predictions,
-    })
+    overall_df = overall_df.sort_values("datetime").reset_index(drop=True)
+    overall_df["hour_ahead"] = np.arange(1, len(overall_df) + 1)
+    predictions = overall_df["hybrid_pred"].astype(float).tolist()
+
+    best_model = str(summary.get("best_model") or "")
+    if not best_model and not metrics_df.empty and "RMSE" in metrics_df.columns and "Model" in metrics_df.columns:
+        best_model = str(metrics_df.sort_values("RMSE", ascending=True).iloc[0]["Model"])
+    weights = summary.get("weights") or {}
+    hybrid_row = pd.DataFrame()
+    if not metrics_df.empty and "Model" in metrics_df.columns:
+        hybrid_row = metrics_df[metrics_df["Model"].astype(str).str.lower() == "hybrid"].head(1)
 
     # Summary KPIs
     peak = float(max(predictions))
     next_hour = float(predictions[0])
     avg_72h = float(np.mean(predictions))
-    k1, k2, k3, k4 = st.columns(4)
+    k1, k2, k3, k4, k5 = st.columns(5)
     with k1:
-        kpi_card("Next hour", int(next_hour), status="info")
+        kpi_card("Best model", best_model or "-", status="success" if best_model == "Hybrid" else "info")
     with k2:
-        kpi_card("72h peak", int(peak), status="warning" if peak >= 100 else "normal")
+        kpi_card("Next hour", int(next_hour), status="info")
     with k3:
-        kpi_card("72h average", int(avg_72h), status="normal")
+        kpi_card("72h peak", int(peak), status="warning" if peak >= 100 else "normal")
     with k4:
         trend = float(predictions[-1] - predictions[0])
         kpi_card("Trend", f"{trend:+.1f}", delta="end − start", status="warning" if trend > 5 else "success" if trend < -5 else "normal")
+    with k5:
+        kpi_card("72h average", int(avg_72h), status="normal")
 
-    section_header("Forecast charts")
+    m1, m2, m3, m4, m5 = st.columns(5)
+    with m1:
+        kpi_card("LSTM weight", f"{float(weights.get('lstm', 0.0)):.1f}", status="info")
+    with m2:
+        kpi_card("ARIMAX weight", f"{float(weights.get('arimax', 0.0)):.1f}", status="info")
+    if not hybrid_row.empty:
+        row = hybrid_row.iloc[0]
+        with m3:
+            kpi_card("Hybrid MAE", f"{float(row.get('MAE', 0.0)):.3f}", status="normal")
+        with m4:
+            kpi_card("Hybrid RMSE", f"{float(row.get('RMSE', 0.0)):.3f}", status="normal")
+        with m5:
+            kpi_card("Hybrid MAPE", f"{float(row.get('MAPE', 0.0)):.2f}%", status="normal")
+
+    section_header("72-hour overall hospital forecast", "Saved Hybrid forecast output from artifacts/forecast_outputs")
     col1, col2 = st.columns(2)
 
     with col1:
-        if not df.empty:
-            hist_df = df.copy().reset_index(drop=True)
-            hist_df["time_index"] = hist_df.index
-
-            fig_hist = px.line(
-                hist_df,
-                x="time_index",
-                y="patients",
-                title="Historical Patients",
-            )
-            fig_hist.update_layout(height=350, xaxis_title="Time", yaxis_title="Patients")
-            st.plotly_chart(fig_hist, use_container_width=True, key=scoped_key("forecast", "hist_patients"))
-        else:
-            empty_state("Historical data unavailable.")
+        y_cols = [c for c in ["lstm_pred", "arimax_pred", "hybrid_pred"] if c in overall_df.columns]
+        fig_forecast = px.line(
+            overall_df,
+            x="datetime",
+            y=y_cols or "hybrid_pred",
+            markers=True,
+            title="72-hour overall forecast",
+        )
+        fig_forecast.update_layout(height=380, xaxis_title="Forecast time", yaxis_title="Predicted patients")
+        st.plotly_chart(fig_forecast, use_container_width=True, key=scoped_key("forecast", "ops72h_overall_curve"))
 
     with col2:
-        fig_forecast = px.line(
-            forecast_df,
-            x="hour",
-            y="forecast",
-            markers=True,
-            title="72-Hour AI Forecast",
+        display_cols = [c for c in ["hour_ahead", "datetime", "lstm_pred", "arimax_pred", "hybrid_pred"] if c in overall_df.columns]
+        modern_table(overall_df[display_cols].head(72), key=scoped_key("forecast", "ops72h_overall_table"))
+
+    section_header("Department-level 72-hour forecast", "Hybrid forecast distributed by department")
+    if department_df.empty:
+        empty_state("Department-level forecast output is empty.")
+    else:
+        department_df = department_df.sort_values(["department", "datetime"]).reset_index(drop=True)
+        dept_options = sorted([str(d) for d in department_df["department"].dropna().unique().tolist()])
+        selected_depts = st.multiselect(
+            "Departments",
+            dept_options,
+            default=dept_options[: min(5, len(dept_options))],
+            key=scoped_key("forecast", "ops72h_department_filter"),
         )
-        fig_forecast.update_layout(height=350, xaxis_title="Next hours", yaxis_title="Predicted patients")
-        st.plotly_chart(fig_forecast, use_container_width=True, key=scoped_key("forecast", "forecast_72h"))
-
-    if not df.empty:
-        actual = df["patients"].tail(len(predictions)).values.astype(float)
-        forecast_vals = np.array(predictions, dtype=float)
-
-        min_len = min(len(actual), len(forecast_vals))
-        compare_df = pd.DataFrame({
-            "time_index": list(range(min_len)),
-            "Actual": actual[:min_len],
-            "Forecast": forecast_vals[:min_len],
-        })
-
-        fig_compare = px.line(
-            compare_df,
-            x="time_index",
-            y=["Actual", "Forecast"],
-            title="Actual vs Forecast",
+        plot_dept_df = department_df[department_df["department"].astype(str).isin(selected_depts)] if selected_depts else department_df
+        fig_dept = px.line(
+            plot_dept_df,
+            x="datetime",
+            y="hybrid_pred",
+            color="department",
+            title="72-hour department-level Hybrid forecast",
         )
-        fig_compare.update_layout(height=350, xaxis_title="Window", yaxis_title="Patients")
-        st.plotly_chart(fig_compare, use_container_width=True, key=scoped_key("forecast", "actual_vs_forecast"))
+        fig_dept.update_layout(height=420, xaxis_title="Forecast time", yaxis_title="Predicted patients")
+        st.plotly_chart(fig_dept, use_container_width=True, key=scoped_key("forecast", "ops72h_department_curve"))
+        modern_table(department_df.head(200), key=scoped_key("forecast", "ops72h_department_table"))
+
+    section_header("Model comparison", "Metrics from artifacts/metrics/ops72h_model_metrics.csv")
+    if metrics_df.empty:
+        empty_state("Model metrics output is empty.")
+    else:
+        modern_table(metrics_df.round(4), key=scoped_key("forecast", "ops72h_metrics_table"))
+        metric_cols = [c for c in ["MAE", "RMSE", "MAPE"] if c in metrics_df.columns]
+        if "Model" in metrics_df.columns and metric_cols:
+            fig_metrics = px.bar(metrics_df, x="Model", y=metric_cols, barmode="group", title="72h model comparison")
+            fig_metrics.update_layout(height=360)
+            st.plotly_chart(fig_metrics, use_container_width=True, key=scoped_key("forecast", "ops72h_metrics_chart"))
+
+    with st.expander("Training summary"):
+        st.json(summary)
 
 
 def show_optimization():
@@ -588,6 +687,404 @@ def _build_capacity_from_allocations(allocations: list[dict]) -> pd.DataFrame:
     return df[out_cols].sort_values(by="priority_score", ascending=False) if "priority_score" in df.columns else df[out_cols]
 
 
+def _build_simulation_scenario_analysis(
+    *,
+    prediction: float,
+    demand_increase_pct: float,
+    available_beds: int,
+    available_doctors: int,
+    sim: dict | None,
+    capacity_df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Build an expanded rule-based what-if table for the Simulation tab.
+
+    The Simulation tab exposes demand, beds, doctors, simulation output, and
+    optimizer-derived capacity signals. It does not expose exact live nurse pool,
+    ICU capacity, OR room slots, appointment-room capacity, or absentee rosters.
+    For those unavailable inputs, this function uses conservative proxy estimates
+    and labels them as estimates in the table rather than pretending exact data is
+    available.
+    """
+
+    demand_pct = float(demand_increase_pct or 0.0)
+    simulated_patients = float((sim or {}).get("simulated_patients") or prediction * (1.0 + demand_pct / 100.0))
+    recommended = (sim or {}).get("recommended_resources") or {}
+
+    required_beds = int(recommended.get("beds_needed") or np.ceil(simulated_patients))
+    required_doctors = int(recommended.get("doctors_needed") or np.ceil(simulated_patients / 10.0))
+    required_nurses = int(recommended.get("nurses_needed") or np.ceil(simulated_patients / 6.0))
+    available_beds = int(available_beds)
+    available_doctors = int(available_doctors)
+
+    bed_shortage = max(required_beds - available_beds, 0)
+    doctor_shortage = max(required_doctors - available_doctors, 0)
+
+    cap = capacity_df.copy() if isinstance(capacity_df, pd.DataFrame) else pd.DataFrame()
+    for col in ["bed_shortage", "doctor_shortage", "nurse_shortage", "priority_score", "predicted_patients", "beds_required", "beds_available_est"]:
+        if col in cap.columns:
+            cap[col] = pd.to_numeric(cap[col], errors="coerce").fillna(0)
+
+    capacity_nurse_shortage = int(cap["nurse_shortage"].sum()) if "nurse_shortage" in cap.columns and not cap.empty else 0
+    # Estimated available nurses because the Simulation controls do not include a nurse slider.
+    estimated_available_nurses = max(required_nurses - capacity_nurse_shortage, int(np.ceil(available_doctors * 2.5)), 0)
+    nurse_shortage = max(required_nurses - estimated_available_nurses, capacity_nurse_shortage, 0)
+
+    high_demand = demand_pct >= 20.0
+    moderate_demand = demand_pct >= 10.0
+    multiple_shortages = sum([bed_shortage > 0, doctor_shortage > 0, nurse_shortage > 0]) >= 2
+    stable_operation = not high_demand and bed_shortage == 0 and doctor_shortage == 0 and nurse_shortage == 0
+    high_capacity_low_demand = demand_pct <= 5 and available_beds >= required_beds + 20 and available_doctors >= required_doctors + 3
+    forecast_pressure_no_shortage = moderate_demand and bed_shortage == 0 and doctor_shortage == 0
+
+    current_month = pd.Timestamp.now().month
+    season_name = "winter" if current_month in {12, 1, 2} else "spring" if current_month in {3, 4, 5} else "summer" if current_month in {6, 7, 8} else "autumn"
+
+    def dept_rows(name: str) -> pd.DataFrame:
+        if cap.empty or "department" not in cap.columns:
+            return pd.DataFrame()
+        return cap[cap["department"].astype(str).str.contains(name, case=False, na=False)]
+
+    def dept_gap(name: str) -> int:
+        rows = dept_rows(name)
+        if rows.empty:
+            return 0
+        total = 0
+        for c in ["bed_shortage", "doctor_shortage", "nurse_shortage"]:
+            if c in rows.columns:
+                total += int(rows[c].sum())
+        return total
+
+    er_gap = dept_gap("ER|Emergency")
+    icu_gap = dept_gap("ICU")
+    ward_gap = dept_gap("Ward|General")
+    waiting_estimate = max(int(np.ceil(simulated_patients - prediction)), 0)
+    waiting_threshold = max(10, int(np.ceil(simulated_patients * 0.10)))
+
+    if not cap.empty and "department" in cap.columns:
+        gap_cols = [c for c in ["bed_shortage", "doctor_shortage", "nurse_shortage"] if c in cap.columns]
+        if gap_cols:
+            cap["total_gap"] = cap[gap_cols].sum(axis=1)
+            top_gap_row = cap.sort_values("total_gap", ascending=False).head(1)
+        else:
+            top_gap_row = pd.DataFrame()
+    else:
+        top_gap_row = pd.DataFrame()
+    top_dept = str(top_gap_row.iloc[0]["department"]) if not top_gap_row.empty and float(top_gap_row.iloc[0].get("total_gap", 0)) > 0 else "No single department"
+    top_dept_gap = int(top_gap_row.iloc[0].get("total_gap", 0)) if not top_gap_row.empty else 0
+
+    # Safe proxies for operational signals not exposed by Simulation controls.
+    estimated_or_bookings = max(0, int(np.ceil(simulated_patients / 18.0)))
+    estimated_or_slots = max(2, int(np.floor(available_doctors / 4.0)))
+    or_gap = max(estimated_or_bookings - estimated_or_slots, 0)
+    estimated_appointments = max(0, int(np.ceil(simulated_patients * 0.35)))
+    estimated_appointment_capacity = max(available_doctors * 3, 1)
+    appointment_gap = max(estimated_appointments - estimated_appointment_capacity, 0)
+    estimated_absent_staff = max(0, int(np.ceil((doctor_shortage + nurse_shortage) * 0.30)))
+    night_required_staff = max(1, int(np.ceil((required_doctors + required_nurses) * 0.35)))
+    night_available_staff = max(1, int(np.ceil((available_doctors + estimated_available_nurses) * 0.25)))
+    night_gap = max(night_required_staff - night_available_staff, 0)
+    discharge_delay_gap = max(bed_shortage, int(np.ceil(waiting_estimate * 0.25)) if waiting_estimate > waiting_threshold else 0)
+    resource_conflict = (bed_shortage > 0 and doctor_shortage == 0 and nurse_shortage == 0) or (bed_shortage == 0 and (doctor_shortage > 0 or nurse_shortage > 0))
+
+    def priority_label(level: str) -> str:
+        return {"Critical": "🔴 Critical", "High": "🟠 High", "Medium": "🟡 Medium", "Low": "🟢 Low"}.get(level, level)
+
+    def row(
+        scenario: str,
+        trigger: str,
+        situation: str,
+        available: str,
+        required: str,
+        gap: str,
+        action: str,
+        decision: str,
+        priority: str,
+        area: str,
+        outcome: str,
+    ) -> dict:
+        return {
+            "Scenario": scenario,
+            "Trigger / Condition": trigger,
+            "Current Situation": situation,
+            "Available Resources": available,
+            "Required Resources": required,
+            "Shortage / Gap": gap,
+            "Model Recommended Action": action,
+            "Operational Decision": decision,
+            "Priority Level": priority_label(priority),
+            "Affected Department / Area": area,
+            "Expected Outcome": outcome,
+        }
+
+    rows = [
+        row(
+            "Emergency demand surge",
+            f"Demand increased by {demand_pct:.0f}% and simulated patients = {simulated_patients:.0f}.",
+            "Emergency surge threshold reached." if high_demand else "Demand is below the emergency surge threshold.",
+            f"Doctors: {available_doctors}; beds: {available_beds}; nurses: ~{estimated_available_nurses} estimated.",
+            f"Doctors: {required_doctors}; beds: {required_beds}; nurses: {required_nurses}.",
+            f"Doctors: {doctor_shortage}; beds: {bed_shortage}; nurses: {nurse_shortage}.",
+            f"Activate emergency staff, open {max(bed_shortage, 10) if high_demand else 0} overflow beds if surge persists, and prioritize urgent patients.",
+            "Start surge protocol now." if high_demand or multiple_shortages else "Keep surge team on standby.",
+            "Critical" if multiple_shortages and high_demand else "High" if high_demand else "Low",
+            "ER / Triage / Admissions",
+            "Reduced waiting time and faster emergency throughput.",
+        ),
+        row(
+            "Bed shortage",
+            f"Available beds = {available_beds}; required beds = {required_beds}.",
+            "Admissions exceed safe bed capacity." if bed_shortage > 0 else "Bed capacity is sufficient for the current scenario.",
+            f"Beds available: {available_beds}.",
+            f"Beds required: {required_beds}.",
+            f"Bed shortage: {bed_shortage}.",
+            f"Open {bed_shortage} overflow beds, speed up discharge review, reassign beds, and transfer stable patients." if bed_shortage > 0 else "Maintain current bed plan and review occupancy hourly.",
+            "Escalate bed management." if bed_shortage > 0 else "No bed escalation required.",
+            "Critical" if bed_shortage >= 10 else "High" if bed_shortage > 0 else "Low",
+            "Admissions / General Ward / Bed Management",
+            "Lower admission delays and reduced department overcrowding.",
+        ),
+        row(
+            "Doctor shortage",
+            f"Available doctors = {available_doctors}; required doctors = {required_doctors}.",
+            "Physician coverage is below simulated need." if doctor_shortage > 0 else "Doctor coverage is sufficient for simulated demand.",
+            f"Doctors available: {available_doctors}.",
+            f"Doctors required: {required_doctors}.",
+            f"Doctor shortage: {doctor_shortage}.",
+            f"Call {doctor_shortage} on-call doctors, move doctors from stable departments, and reschedule non-urgent appointments." if doctor_shortage > 0 else "Keep current physician roster and monitor queue growth.",
+            "Activate on-call physician pool." if doctor_shortage > 0 else "No doctor reallocation required.",
+            "High" if doctor_shortage > 0 else "Low",
+            "ER / Clinics / Consultation Areas",
+            "Shorter consultation queues and faster patient processing.",
+        ),
+        row(
+            "Nurse shortage",
+            f"Estimated available nurses = {estimated_available_nurses}; required nurses = {required_nurses}.",
+            "Nurse coverage is below estimated need." if nurse_shortage > 0 else "Nurse coverage appears adequate using available signals.",
+            f"Nurses available: ~{estimated_available_nurses} estimated.",
+            f"Nurses required: {required_nurses}.",
+            f"Nurse shortage: {nurse_shortage}.",
+            f"Call {nurse_shortage} backup nurses, redistribute nurses, and extend coverage for ER/ICU/General Ward." if nurse_shortage > 0 else "Keep backup nurse roster ready and maintain current coverage.",
+            "Activate nursing backup roster." if nurse_shortage > 0 else "No nursing escalation required.",
+            "High" if nurse_shortage > 0 else "Low",
+            "Nursing / ER / ICU / General Ward",
+            "Improved bedside coverage and response time.",
+        ),
+        row(
+            "ICU pressure",
+            f"ICU shortage signal = {icu_gap}; simulated patients = {simulated_patients:.0f}.",
+            "ICU demand is approaching or exceeding capacity." if icu_gap > 0 or high_demand else "No ICU capacity breach detected from available signals.",
+            f"ICU capacity signal gap: {icu_gap}; hospital beds available: {available_beds}.",
+            "Reserve ICU beds for critical cases; exact ICU bed count unavailable in Simulation tab.",
+            f"ICU gap signal: {icu_gap}.",
+            "Reserve ICU beds for critical cases, transfer stable ICU patients when clinically safe, and prepare escalation." if icu_gap > 0 or high_demand else "Maintain ICU watch list and preserve escalation readiness.",
+            "Trigger ICU escalation huddle." if icu_gap > 0 else "Continue ICU monitoring.",
+            "Critical" if icu_gap > 0 else "Medium" if high_demand else "Low",
+            "ICU / Critical Care",
+            "Critical care capacity protected for urgent patients.",
+        ),
+        row(
+            "ER overcrowding",
+            f"Demand increase = {demand_pct:.0f}%; ER gap signal = {er_gap}; waiting estimate = {waiting_estimate}.",
+            "ER demand exceeds expected capacity." if high_demand or er_gap > 0 or waiting_estimate > waiting_threshold else "ER pressure remains manageable.",
+            f"Doctors: {available_doctors}; nurses: ~{estimated_available_nurses}; ER gap signal: {er_gap}.",
+            f"Doctors: {required_doctors}; nurses: {required_nurses}; waiting threshold: {waiting_threshold}.",
+            f"ER gap: {er_gap}; estimated waiting excess: {max(waiting_estimate - waiting_threshold, 0)}.",
+            "Open fast-track triage, add ER staff, and redirect low-acuity cases to clinics." if high_demand or er_gap > 0 else "Maintain current ER flow and keep fast-track option ready.",
+            "Open ER fast-track lane." if high_demand or er_gap > 0 else "No ER escalation required.",
+            "Critical" if er_gap > 0 and high_demand else "High" if high_demand or er_gap > 0 else "Low",
+            "ER / Triage",
+            "Lower ER waiting time and improved triage throughput.",
+        ),
+        row(
+            "General Ward overcrowding",
+            f"General Ward gap signal = {ward_gap}; bed shortage = {bed_shortage}.",
+            "Ward occupancy is high and admissions are increasing." if ward_gap > 0 or bed_shortage > 0 else "Ward pressure is within manageable limits.",
+            f"Beds available: {available_beds}; ward gap signal: {ward_gap}.",
+            f"Beds required: {required_beds}; nurses required: {required_nurses}.",
+            f"Ward gap: {ward_gap}; hospital bed shortage: {bed_shortage}.",
+            "Prepare discharge list, transfer stable patients, and delay non-urgent admissions." if ward_gap > 0 or bed_shortage > 0 else "Maintain normal ward admission plan.",
+            "Start ward decompression plan." if ward_gap > 0 or bed_shortage > 0 else "Continue routine ward operations.",
+            "High" if ward_gap > 0 or bed_shortage > 0 else "Low",
+            "General Ward / Admissions",
+            "Reduced overcrowding and better admission flow.",
+        ),
+        row(
+            "OR overload",
+            f"Estimated OR bookings = {estimated_or_bookings}; estimated OR slots = {estimated_or_slots}.",
+            "OR bookings exceed available room/time slots." if or_gap > 0 else "Estimated OR load fits current room/time capacity.",
+            f"OR slots: ~{estimated_or_slots} estimated from doctor availability.",
+            f"OR demand: ~{estimated_or_bookings} estimated cases.",
+            f"OR slot gap: {or_gap} estimated.",
+            f"Prioritize emergency surgeries, reschedule {or_gap} elective cases, and extend OR hours if possible." if or_gap > 0 else "Keep current OR schedule and reserve emergency slot buffer.",
+            "Reprioritize OR list." if or_gap > 0 else "No OR rescheduling required.",
+            "High" if or_gap > 0 else "Medium",
+            "Operating Rooms / Surgery / Anesthesia",
+            "Emergency procedures protected while elective backlog is controlled.",
+        ),
+        row(
+            "Appointment overload",
+            f"Estimated appointments = {estimated_appointments}; estimated capacity = {estimated_appointment_capacity}.",
+            "Clinic appointments exceed doctor availability." if appointment_gap > 0 else "Clinic appointment volume is within estimated doctor capacity.",
+            f"Appointment capacity: ~{estimated_appointment_capacity} visits.",
+            f"Appointment load: ~{estimated_appointments} visits.",
+            f"Appointment gap: {appointment_gap} estimated.",
+            f"Open extra slots, redistribute appointments, and reschedule {appointment_gap} low-priority visits after 4 PM." if appointment_gap > 0 else "Maintain appointment schedule and keep overflow slots available.",
+            "Open clinic overflow schedule." if appointment_gap > 0 else "No appointment rescheduling required.",
+            "High" if appointment_gap > 0 else "Low",
+            "Outpatient Clinics / Scheduling",
+            "Reduced waiting time and fewer same-day scheduling conflicts.",
+        ),
+        row(
+            "Staff absenteeism",
+            f"Estimated absent/unavailable staff = {estimated_absent_staff} based on shortage pressure.",
+            "Some staff are absent or unavailable." if estimated_absent_staff > 0 else "No absenteeism pressure inferred from current simulation.",
+            f"Doctors: {available_doctors}; nurses: ~{estimated_available_nurses} estimated.",
+            f"Doctors: {required_doctors}; nurses: {required_nurses}.",
+            f"Estimated unavailable staff impact: {estimated_absent_staff}.",
+            f"Activate backup roster for {estimated_absent_staff} staff and redistribute available staff to ER/ICU/Ward." if estimated_absent_staff > 0 else "Keep backup roster ready; no activation required.",
+            "Activate backup roster." if estimated_absent_staff > 0 else "Maintain current roster.",
+            "High" if estimated_absent_staff > 0 else "Low",
+            "Staffing Office / All Departments",
+            "Coverage restored in high-priority areas.",
+        ),
+        row(
+            "Night shift shortage",
+            f"Estimated night required staff = {night_required_staff}; estimated night available staff = {night_available_staff}.",
+            "Night shift staff coverage is below required level." if night_gap > 0 else "Estimated night coverage is adequate.",
+            f"Night staff available: ~{night_available_staff} estimated.",
+            f"Night staff required: ~{night_required_staff} estimated.",
+            f"Night shift gap: {night_gap} estimated.",
+            f"Move {night_gap} staff from evening backup pool or call night-shift reserve staff." if night_gap > 0 else "Maintain current night-shift plan.",
+            "Call night-shift reserve." if night_gap > 0 else "No night-shift escalation required.",
+            "High" if night_gap > 0 else "Low",
+            "Night Shift / Staffing Office",
+            "Safer overnight coverage and reduced response delays.",
+        ),
+        row(
+            "Seasonal demand increase",
+            f"Current season = {season_name}; demand increase slider = {demand_pct:.0f}%.",
+            "Seasonal pattern indicates higher demand." if moderate_demand else "Seasonal demand pressure is not elevated by current inputs.",
+            f"Beds: {available_beds}; doctors: {available_doctors}; nurses: ~{estimated_available_nurses} estimated.",
+            f"Beds: {required_beds}; doctors: {required_doctors}; nurses: {required_nurses}.",
+            f"Resource gap: beds {bed_shortage}, doctors {doctor_shortage}, nurses {nurse_shortage}.",
+            "Prepare staff schedules and bed capacity in advance based on seasonal forecast." if moderate_demand else "Keep seasonal watch and maintain standard staffing.",
+            "Pre-plan seasonal capacity." if moderate_demand else "Continue standard seasonal monitoring.",
+            "Medium" if moderate_demand else "Low",
+            "Hospital Operations / Workforce Planning",
+            "Better preparedness for predictable demand variation.",
+        ),
+        row(
+            "Sudden discharge delay",
+            f"Bed shortage = {bed_shortage}; estimated waiting patients = {waiting_estimate}.",
+            "Patients remain inside hospital longer than expected." if discharge_delay_gap > 0 else "No discharge-delay pressure inferred from current simulation.",
+            f"Beds available: {available_beds}; estimated waiting patients: {waiting_estimate}.",
+            f"Beds required: {required_beds}; discharge gap target: {discharge_delay_gap}.",
+            f"Discharge/bed gap: {discharge_delay_gap}.",
+            f"Accelerate discharge approvals for {discharge_delay_gap} stable patients and coordinate billing/clearance." if discharge_delay_gap > 0 else "Continue routine discharge review.",
+            "Start discharge acceleration round." if discharge_delay_gap > 0 else "No discharge escalation required.",
+            "High" if discharge_delay_gap > 0 else "Low",
+            "Discharge Team / Ward / Billing",
+            "Faster bed turnover and fewer blocked admissions.",
+        ),
+        row(
+            "High waiting patients",
+            f"Estimated waiting patients = {waiting_estimate}; safe threshold = {waiting_threshold}.",
+            "Waiting patients exceed safe threshold." if waiting_estimate > waiting_threshold else "Waiting estimate is within safe threshold.",
+            f"Doctors: {available_doctors}; consultation capacity proxy: {estimated_appointment_capacity}.",
+            f"Doctors needed: {required_doctors}; waiting threshold: {waiting_threshold}.",
+            f"Waiting gap: {max(waiting_estimate - waiting_threshold, 0)}.",
+            "Increase triage speed, add consultation rooms, and assign extra doctors." if waiting_estimate > waiting_threshold else "Maintain current queue monitoring.",
+            "Open additional consultation capacity." if waiting_estimate > waiting_threshold else "No queue escalation required.",
+            "High" if waiting_estimate > waiting_threshold else "Low",
+            "Waiting Area / Triage / Clinics",
+            "Shorter waiting queue and faster patient routing.",
+        ),
+        row(
+            "Low bed occupancy / stable operation",
+            "Forecasted demand is within available capacity." if stable_operation else "One or more shortage or surge conditions are active.",
+            "No major operational risk." if stable_operation else "Current simulation shows operational pressure.",
+            f"Beds: {available_beds}; doctors: {available_doctors}; nurses: ~{estimated_available_nurses} estimated.",
+            f"Beds: {required_beds}; doctors: {required_doctors}; nurses: {required_nurses}.",
+            f"Beds {bed_shortage}; doctors {doctor_shortage}; nurses {nurse_shortage}.",
+            "Maintain current plan and continue monitoring demand." if stable_operation else "Resolve active shortage scenarios before returning to stable plan.",
+            "Maintain current plan." if stable_operation else "Do not declare stable operation yet.",
+            "Low" if stable_operation else "Medium",
+            "Hospital-wide Operations",
+            "Stable service levels maintained." if stable_operation else "Risk reduced after targeted interventions.",
+        ),
+        row(
+            "Department-specific shortage",
+            f"Largest department gap = {top_dept_gap} in {top_dept}.",
+            "A specific department has shortage despite hospital-wide resources." if top_dept_gap > 0 else "No department-specific shortage detected from available signals.",
+            "Hospital-wide resources may be available but unevenly distributed.",
+            f"Department gap to cover: {top_dept_gap} resource units.",
+            f"{top_dept} gap: {top_dept_gap}.",
+            f"Transfer staff/resources into {top_dept} based on priority and reduce lower-pressure coverage temporarily." if top_dept_gap > 0 else "Keep department allocations unchanged.",
+            "Rebalance resources between departments." if top_dept_gap > 0 else "No department transfer required.",
+            "High" if top_dept_gap > 0 else "Low",
+            top_dept,
+            "Department pressure reduced without unnecessary hospital-wide escalation.",
+        ),
+        row(
+            "High forecast but enough current capacity",
+            f"Demand increase = {demand_pct:.0f}%; shortages: beds {bed_shortage}, doctors {doctor_shortage}.",
+            "Current state is stable, but forecast shows pressure in next hours." if forecast_pressure_no_shortage else "No early forecast pressure requiring pre-activation.",
+            f"Beds: {available_beds}; doctors: {available_doctors}; nurses: ~{estimated_available_nurses} estimated.",
+            f"Beds: {required_beds}; doctors: {required_doctors}; nurses: {required_nurses}.",
+            "No current shortage, but demand trend is elevated." if forecast_pressure_no_shortage else "No pre-shortage gap detected.",
+            "Prepare resources before shortage happens: notify staffing, reserve overflow beds, and pre-check discharge list." if forecast_pressure_no_shortage else "Continue normal readiness checks.",
+            "Pre-activate readiness plan." if forecast_pressure_no_shortage else "No pre-activation required.",
+            "Medium" if forecast_pressure_no_shortage else "Low",
+            "Operations Planning / Bed Management",
+            "Shortage prevented before patient flow deteriorates.",
+        ),
+        row(
+            "High resource availability but low demand",
+            f"Demand increase = {demand_pct:.0f}%; bed surplus = {max(available_beds - required_beds, 0)}; doctor surplus = {max(available_doctors - required_doctors, 0)}.",
+            "More staff/beds than needed." if high_capacity_low_demand else "No major excess capacity detected.",
+            f"Beds: {available_beds}; doctors: {available_doctors}; nurses: ~{estimated_available_nurses} estimated.",
+            f"Beds needed: {required_beds}; doctors needed: {required_doctors}; nurses needed: {required_nurses}.",
+            f"Surplus beds: {max(available_beds - required_beds, 0)}; surplus doctors: {max(available_doctors - required_doctors, 0)}.",
+            "Keep reserve capacity, avoid unnecessary overtime, and reassign staff to backlog or preventive tasks." if high_capacity_low_demand else "Maintain balanced staffing.",
+            "Avoid overtime expansion; keep reserve capacity." if high_capacity_low_demand else "No resource reduction required.",
+            "Low",
+            "Hospital-wide Operations / Staffing",
+            "Cost controlled while preserving readiness.",
+        ),
+        row(
+            "Multiple simultaneous shortages",
+            f"Shortage flags: beds={bed_shortage > 0}, doctors={doctor_shortage > 0}, nurses={nurse_shortage > 0}; demand increase={demand_pct:.0f}%.",
+            "Demand surge plus multiple shortages detected." if multiple_shortages else "Multiple shortage condition is not active.",
+            f"Beds {available_beds}; doctors {available_doctors}; nurses ~{estimated_available_nurses} estimated.",
+            f"Beds {required_beds}; doctors {required_doctors}; nurses {required_nurses}.",
+            f"Beds {bed_shortage}; doctors {doctor_shortage}; nurses {nurse_shortage}.",
+            "Activate emergency operation plan, open command huddle, prioritize ER/ICU, and suspend non-urgent activity." if multiple_shortages else "Track individual shortage scenarios separately.",
+            "Activate emergency operations plan." if multiple_shortages else "No multi-shortage activation required.",
+            "Critical" if multiple_shortages else "Low",
+            "Hospital-wide / Command Team",
+            "Critical services protected during compound pressure.",
+        ),
+        row(
+            "Critical resource conflict",
+            f"Beds shortage={bed_shortage}; doctor shortage={doctor_shortage}; nurse shortage={nurse_shortage}.",
+            "One resource is the bottleneck while another is sufficient." if resource_conflict else "No single-resource conflict detected.",
+            f"Beds {available_beds}; doctors {available_doctors}; nurses ~{estimated_available_nurses} estimated.",
+            f"Beds {required_beds}; doctors {required_doctors}; nurses {required_nurses}.",
+            f"Bottleneck: {'beds' if bed_shortage > 0 else 'staff' if doctor_shortage > 0 or nurse_shortage > 0 else 'none'}.",
+            "If beds are the bottleneck, open overflow/discharge beds; if staff are the bottleneck, call backup staff before adding beds." if resource_conflict else "Keep resource balance unchanged.",
+            "Resolve bottleneck before expanding other resources." if resource_conflict else "No bottleneck action required.",
+            "High" if resource_conflict else "Low",
+            "Bed Management / Staffing Office",
+            "Action targets the true limiting resource.",
+        ),
+    ]
+
+    priority_rank = {"🔴 Critical": 0, "🟠 High": 1, "🟡 Medium": 2, "🟢 Low": 3}
+    out = pd.DataFrame(rows)
+    out["_priority_rank"] = out["Priority Level"].map(priority_rank).fillna(99)
+    return out.sort_values(["_priority_rank", "Scenario"]).drop(columns=["_priority_rank"]).reset_index(drop=True)
+
+
 def render_operations(*, key_prefix: str = "ops"):
     """Operations tab: live overview (no what-if controls)."""
 
@@ -721,6 +1218,22 @@ def render_simulation(*, key_prefix: str = "sim"):
     optimization = ctx.get("optimization") or {}
     allocations = optimization.get("department_allocations", [])
     capacity_df = _build_capacity_from_allocations(list(allocations or []))
+
+    scenario_df = _build_simulation_scenario_analysis(
+        prediction=prediction,
+        demand_increase_pct=float(demand),
+        available_beds=int(beds),
+        available_doctors=int(doctors),
+        sim=sim if isinstance(sim, dict) else None,
+        capacity_df=capacity_df,
+    )
+    with st.container(border=True):
+        section_header(
+            "What-if Scenario Analysis",
+            "This table shows simulated hospital scenarios, expected shortages, required resources, and recommended operational decisions.",
+        )
+        modern_table(scenario_df, key=scoped_key(key_prefix, "scenario_analysis_table"))
+
     with st.container(border=True):
         section_header("Capacity context", "Derived from the latest optimization run")
         if capacity_df.empty:
@@ -749,94 +1262,85 @@ def render_simulation(*, key_prefix: str = "sim"):
 def render_digital_twin(*, key_prefix: str = "twin"):
     """Digital twin tab: system mirror + multistep forecast probe."""
 
-    ctx = get_live_context()
-    if not ctx["ready"]:
-        empty_state(ctx["reason"])
-        return
-
     key_prefix = str(key_prefix or "twin").strip() or "twin"
-    # IMPORTANT: the Digital Twin runs a 72-hour horizon probe.
-    # This must not affect Command Center's 24-hour context.
-    forecast_values = generate_multistep_forecast(
-        last_sequence=ctx["last_sequence"],
-        predict_fn=get_prediction,
-        steps=72,
-    )
-    if not forecast_values:
-        empty_state("Forecast values unavailable.")
+
+    ops72h = _load_ops72h_outputs()
+    if not ops72h.get("ready"):
+        _show_ops72h_missing_state(ops72h)
         return
 
-    # Department-level view selector.
-    # The optimizer already produces department allocations for the current (next-hour) prediction;
-    # we use those allocations as stable weights to decompose the system curve by department.
-    optimization = ctx.get("optimization") or {}
-    allocations = list(optimization.get("department_allocations", []) or [])
-    alloc_df = pd.DataFrame(allocations) if allocations else pd.DataFrame()
-    dept_options = ["All"]
-    weights: dict[str, float] = {}
-    if not alloc_df.empty and "department" in alloc_df.columns:
-        depts = [str(d) for d in alloc_df["department"].dropna().unique().tolist()]
-        depts = sorted(depts)
-        dept_options += depts
+    overall_df = ops72h["overall"].copy().sort_values("datetime").reset_index(drop=True)
+    department_df = ops72h["department"].copy().sort_values(["department", "datetime"]).reset_index(drop=True)
+    summary = ops72h["summary"] or {}
 
-        # Compute weights from optimizer's expected share.
-        if "predicted_patients" in alloc_df.columns:
-            alloc_df["predicted_patients"] = pd.to_numeric(alloc_df["predicted_patients"], errors="coerce").fillna(0.0)
-            denom = float(alloc_df["predicted_patients"].sum())
-            if denom > 0:
-                for _, row in alloc_df.iterrows():
-                    dept = str(row.get("department"))
-                    weights[dept] = float(row.get("predicted_patients") or 0.0) / denom
+    if overall_df.empty:
+        empty_state("72-hour overall forecast output is empty.")
+        return
+
+    forecast_values = overall_df["hybrid_pred"].astype(float).tolist()
+    dept_options = ["All"]
+    if not department_df.empty and "department" in department_df.columns:
+        dept_options += sorted([str(d) for d in department_df["department"].dropna().unique().tolist()])
 
     selected_dept = st.selectbox(
         "View forecast",
         dept_options,
         index=0,
         key=scoped_key(key_prefix, "dept_selector"),
-        help="All = system curve. Per-department uses optimizer allocation shares to decompose the 72h curve.",
+        help="All = saved overall Hybrid forecast. Per-department uses the saved 72h department forecast output.",
     )
+
+    if selected_dept == "All":
+        plot_df = overall_df[["datetime", "hybrid_pred"]].copy()
+        series_name = "Overall Hybrid forecast"
+    else:
+        plot_df = department_df[department_df["department"].astype(str) == str(selected_dept)][["datetime", "hybrid_pred"]].copy()
+        series_name = f"{selected_dept} Hybrid forecast"
+    if plot_df.empty:
+        empty_state("Selected 72-hour forecast view is empty.")
+        return
+
+    plot_values = plot_df["hybrid_pred"].astype(float).tolist()
 
     horizon = st.select_slider(
         "Twin horizon (hours ahead)",
-        options=list(range(1, len(forecast_values) + 1)),
+        options=list(range(1, len(plot_values) + 1)),
         value=1,
         key=scoped_key(key_prefix, "horizon"),
     )
-    predicted_at_h = float(forecast_values[int(horizon) - 1])
+    predicted_at_h = float(plot_values[int(horizon) - 1])
 
-    c1, c2, c3 = st.columns(3)
+    weights = summary.get("weights") or {}
+    c1, c2, c3, c4 = st.columns(4)
     with c1:
-        kpi_card("Now", int(ctx["current_patients"]), status="info")
+        kpi_card("Best model", str(summary.get("best_model") or "Hybrid"), status="success")
     with c2:
         kpi_card(f"+{horizon}h", int(predicted_at_h), status="normal")
     with c3:
-        peak = float(max(forecast_values))
+        peak = float(max(plot_values))
         kpi_card("72h peak", int(peak), status="warning" if peak >= 120 else "normal")
-
-    series_name = "forecast"
-    plot_values = list(forecast_values)
-    if selected_dept != "All" and weights:
-        w = float(weights.get(str(selected_dept), 0.0))
-        # Ensure we still display a curve even if weights missing.
-        plot_values = [float(v) * w for v in forecast_values]
-        series_name = f"{selected_dept}"
+    with c4:
+        kpi_card("Weights", f"LSTM {float(weights.get('lstm', 0.0)):.1f} / ARIMAX {float(weights.get('arimax', 0.0)):.1f}", status="info")
 
     twin_df = pd.DataFrame({
-        "hour": list(range(1, len(forecast_values) + 1)),
+        "hour": list(range(1, len(plot_values) + 1)),
+        "datetime": plot_df["datetime"].values,
         series_name: plot_values,
     })
-    fig = px.area(twin_df, x="hour", y=series_name, title="")
+    fig = px.area(twin_df, x="datetime", y=series_name, title="")
     fig.update_traces(
         line=dict(color="rgba(91,92,255,0.95)", width=3),
         fillcolor="rgba(91,92,255,0.14)",
     )
-    fig.update_layout(height=320, xaxis_title="Next hours", yaxis_title="Predicted patients", margin=dict(l=10, r=10, t=10, b=10))
+    fig.update_layout(height=320, xaxis_title="Forecast time", yaxis_title="Predicted patients", margin=dict(l=10, r=10, t=10, b=10))
     st.plotly_chart(fig, use_container_width=True, key=scoped_key(key_prefix, "forecast_curve"))
+
+    modern_table(twin_df, key=scoped_key(key_prefix, "forecast_table"))
 
     # Peak pressure across the full 72-hour window (multi-step)
     if plot_values:
         peak_h = int(np.argmax(np.array(plot_values, dtype=float)) + 1)
-        st.caption(f"Peak within 72h occurs at +{peak_h}h (based on the selected view).")
+        st.caption(f"Peak within 72h occurs at +{peak_h}h (based on the saved Hybrid forecast output).")
 
 
 def render_department_status(*, key_prefix: str = "dept"):
