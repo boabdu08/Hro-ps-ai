@@ -13,3 +13,8 @@ requests==2.31.0
 
 # config
 python-dotenv==1.0.1
+
+# DB access used by staff/audit dashboard sections
+sqlalchemy==2.0.32
+psycopg2-binary==2.9.9; python_version < "3.13"
+psycopg[binary]>=3.2.0; python_version >= "3.13"

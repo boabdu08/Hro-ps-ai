@@ -720,6 +720,66 @@ def section_header(title: str, subtitle: str | None = None):
     )
 
 
+def _fmt_number(value, *, decimals: int = 2) -> str:
+    try:
+        if value is None:
+            return "-"
+        if isinstance(value, str):
+            if value.strip() == "":
+                return "-"
+            return value
+        v = float(value)
+        return f"{v:.{int(decimals)}f}"
+    except Exception:
+        return str(value)
+
+
+def fmt_patients(value) -> str:
+    try:
+        if value is None:
+            return "-"
+        return f"{int(round(float(value)))}"
+    except Exception:
+        return str(value)
+
+
+def fmt_int(value) -> str:
+    return fmt_patients(value)
+
+
+def fmt_mae_rmse(value) -> str:
+    return _fmt_number(value, decimals=2)
+
+
+def fmt_mape(value) -> str:
+    # Display rules: 1–2 decimals.
+    # Input might already be percent; we treat it as percent for display.
+    try:
+        if value is None:
+            return "-"
+        v = float(value)
+        return f"{v:.2f}%" if abs(v) >= 10 else f"{v:.1f}%"
+    except Exception:
+        return str(value)
+
+
+def fmt_weight(value) -> str:
+    return _fmt_number(value, decimals=2)
+
+
+def fmt_trend(value) -> str:
+    # Trend: whole number or 1 decimal max.
+    try:
+        if value is None:
+            return "-"
+        v = float(value)
+        if abs(v) >= 10:
+            return f"{v:+.0f}"
+        return f"{v:+.1f}"
+    except Exception:
+        return str(value)
+
+
 def kpi_card(title, value, delta=None, status="normal"):
     status = str(status or "normal").lower()
     accent = {
@@ -740,6 +800,7 @@ def kpi_card(title, value, delta=None, status="normal"):
         """,
         unsafe_allow_html=True,
     )
+
 
 
 def alert_box(message, level="info"):

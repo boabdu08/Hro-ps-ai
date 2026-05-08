@@ -22,6 +22,12 @@ from forecast_runtime import generate_multistep_forecast
 from ui_components import (
     alert_box,
     empty_state,
+    fmt_int,
+    fmt_mae_rmse,
+    fmt_mape,
+    fmt_patients,
+    fmt_trend,
+    fmt_weight,
     kpi_card,
     modern_table,
     page_header,
@@ -35,6 +41,148 @@ OPS72H_OVERALL_FORECAST_PATH = Path("artifacts") / "forecast_outputs" / "ops72h_
 OPS72H_DEPARTMENT_FORECAST_PATH = Path("artifacts") / "forecast_outputs" / "ops72h_department_forecast.csv"
 OPS72H_MODEL_METRICS_PATH = Path("artifacts") / "metrics" / "ops72h_model_metrics.csv"
 OPS72H_TRAINING_SUMMARY_PATH = Path("artifacts") / "metrics" / "ops72h_training_summary.json"
+
+
+COUNT_DISPLAY_HINTS = (
+    "patient",
+    "patients",
+    "bed",
+    "beds",
+    "doctor",
+    "doctors",
+    "nurse",
+    "nurses",
+    "staff",
+    "shift",
+    "shortage",
+    "gap",
+    "required",
+    "available",
+    "forecast",
+    "prediction",
+    "predicted",
+    "actual",
+    "hybrid_pred",
+    "lstm_pred",
+    "arimax_pred",
+)
+
+
+def _display_number(value, decimals: int = 2, signed: bool = False) -> str:
+    try:
+        if value is None or pd.isna(value):
+            return "-"
+        pattern = f"{{:{'+' if signed else ''}.{int(decimals)}f}}"
+        return pattern.format(float(value))
+    except Exception:
+        return str(value)
+
+
+def _round_display_dataframe(df: pd.DataFrame, *, metric_decimals: int = 2) -> pd.DataFrame:
+    """Return a display-only rounded copy; never mutate raw artifacts/API data."""
+
+    out = df.copy()
+    for col in out.columns:
+        low = str(col).lower()
+        if pd.api.types.is_numeric_dtype(out[col]):
+            if low in {"mae", "rmse"} or "score" in low or "impact" in low:
+                out[col] = out[col].round(metric_decimals)
+            elif "mape" in low:
+                out[col] = out[col].round(2)
+            elif "weight" in low or "multiplier" in low:
+                out[col] = out[col].round(2)
+            elif any(hint in low for hint in COUNT_DISPLAY_HINTS):
+                out[col] = out[col].round(0).astype("Int64")
+            else:
+                out[col] = out[col].round(metric_decimals)
+    return out
+
+
+def _stable_tail_note(values, *, label: str, tail_hours: int = 12, threshold: float = 0.5) -> str | None:
+    try:
+        arr = np.array(values, dtype=float)
+        arr = arr[np.isfinite(arr)]
+        if len(arr) < max(4, tail_hours):
+            return None
+        tail = arr[-tail_hours:]
+        tail_range = float(np.nanmax(tail) - np.nanmin(tail))
+        if tail_range <= threshold:
+            return (
+                f"{label} stabilizes in the final {tail_hours} hours (range ≈ {tail_range:.1f} patients). "
+                "This reflects the saved forecast artifact converging to a stable baseline, not an inactive dashboard."
+            )
+    except Exception:
+        return None
+    return None
+
+
+def _model_name(value) -> str:
+    text = str(value or "").strip()
+    return text.upper() if text.lower() in {"lstm", "arimax"} else text.title() if text else "-"
+
+
+def _friendly_feature_label(feature: str) -> str:
+    name = str(feature or "")
+    direct = {
+        "is_weekend": "Weekend effect",
+        "trend_feature": "Recent trend",
+        "holiday": "Holiday effect",
+        "month": "Season/month effect",
+        "day_of_week": "Day-of-week pattern",
+        "hour_sin": "Time-of-day pattern",
+        "hour_cos": "Time-of-day pattern",
+    }
+    if name in direct:
+        return direct[name]
+    if name.startswith("patients_roll_mean_"):
+        return "Recent average patient load"
+    if name.startswith("patients_lag_"):
+        return "Previous patient load"
+    if name.startswith("patients_diff_"):
+        return "Recent change in patient load"
+    if name.startswith("patients_roll_std_"):
+        return "Recent volatility in patient load"
+    return name.replace("_", " ").strip().title() or "Feature"
+
+
+def _feature_meaning(feature: str, direction: str) -> str:
+    label = _friendly_feature_label(feature).lower()
+    if "patient load" in label:
+        base = "Recent/previous patient volumes are influencing the next forecast."
+    elif "weekend" in label:
+        base = "Weekend calendar patterns are influencing demand."
+    elif "holiday" in label:
+        base = "Holiday effects are influencing expected arrivals."
+    elif "time-of-day" in label:
+        base = "Hourly arrival patterns are influencing expected demand."
+    elif "trend" in label:
+        base = "The recent direction of demand is influencing the forecast."
+    else:
+        base = "This model input is influencing the forecast."
+    return f"{base} Direction: {direction.lower()}."
+
+
+def _build_scenario_summary_report(scenario_df: pd.DataFrame) -> tuple[pd.DataFrame, str]:
+    if scenario_df.empty:
+        empty = pd.DataFrame([{"Metric": "Total scenarios", "Value": 0}])
+        return empty, "Total scenarios: 0"
+
+    priority = scenario_df.get("Priority Level", pd.Series(dtype=str)).astype(str)
+    critical_high = int(priority.str.contains("Critical|High", case=False, na=False).sum())
+    areas = scenario_df.get("Affected Department / Area", pd.Series(dtype=str)).astype(str)
+    actions = scenario_df.get("Model Recommended Action", pd.Series(dtype=str)).astype(str)
+
+    top_areas = areas.value_counts().head(5)
+    top_actions = actions.str.split(".").str[0].str.strip().replace("", np.nan).dropna().value_counts().head(5)
+    summary_rows = [
+        {"Metric": "Total scenarios", "Value": int(len(scenario_df))},
+        {"Metric": "Critical/high priority scenarios", "Value": critical_high},
+        {"Metric": "Top affected departments/areas", "Value": "; ".join([f"{k} ({v})" for k, v in top_areas.items()]) or "-"},
+        {"Metric": "Most common recommended actions", "Value": "; ".join([f"{k} ({v})" for k, v in top_actions.items()]) or "-"},
+    ]
+    report_df = pd.DataFrame(summary_rows)
+    report_text = "\n".join([f"{row['Metric']}: {row['Value']}" for row in summary_rows])
+    return report_df, report_text
 
 
 def _load_ops72h_outputs() -> dict:
@@ -438,9 +586,9 @@ def show_forecast():
     overall_df["hour_ahead"] = np.arange(1, len(overall_df) + 1)
     predictions = overall_df["hybrid_pred"].astype(float).tolist()
 
-    best_model = str(summary.get("best_model") or "")
+    best_model = _model_name(summary.get("best_model") or "")
     if not best_model and not metrics_df.empty and "RMSE" in metrics_df.columns and "Model" in metrics_df.columns:
-        best_model = str(metrics_df.sort_values("RMSE", ascending=True).iloc[0]["Model"])
+        best_model = _model_name(metrics_df.sort_values("RMSE", ascending=True).iloc[0]["Model"])
     weights = summary.get("weights") or {}
     hybrid_row = pd.DataFrame()
     if not metrics_df.empty and "Model" in metrics_df.columns:
@@ -452,49 +600,97 @@ def show_forecast():
     avg_72h = float(np.mean(predictions))
     k1, k2, k3, k4, k5 = st.columns(5)
     with k1:
-        kpi_card("Best model", best_model or "-", status="success" if best_model == "Hybrid" else "info")
+        # Best-model correctness/presentation: use RMSE-basis and explain in-text below.
+        kpi_card(
+            "Operational recommendation",
+            best_model or "-",
+            status="success" if best_model == "Hybrid" else "info",
+        )
     with k2:
-        kpi_card("Next hour", int(next_hour), status="info")
+        kpi_card("Next hour", fmt_patients(next_hour), status="info")
     with k3:
-        kpi_card("72h peak", int(peak), status="warning" if peak >= 100 else "normal")
+        kpi_card("72h peak", fmt_patients(peak), status="warning" if peak >= 100 else "normal")
     with k4:
         trend = float(predictions[-1] - predictions[0])
-        kpi_card("Trend", f"{trend:+.1f}", delta="end − start", status="warning" if trend > 5 else "success" if trend < -5 else "normal")
+        kpi_card(
+            "Trend",
+            fmt_trend(trend),
+            delta="end − start",
+            status="warning" if trend > 5 else "success" if trend < -5 else "normal",
+        )
     with k5:
-        kpi_card("72h average", int(avg_72h), status="normal")
+        kpi_card("72h average", fmt_patients(avg_72h), status="normal")
 
     m1, m2, m3, m4, m5 = st.columns(5)
     with m1:
-        kpi_card("LSTM weight", f"{float(weights.get('lstm', 0.0)):.1f}", status="info")
+        kpi_card("LSTM weight", fmt_weight(weights.get("lstm", 0.0)), status="info")
     with m2:
-        kpi_card("ARIMAX weight", f"{float(weights.get('arimax', 0.0)):.1f}", status="info")
+        kpi_card("ARIMAX weight", fmt_weight(weights.get("arimax", 0.0)), status="info")
     if not hybrid_row.empty:
         row = hybrid_row.iloc[0]
+        # MAE/RMSE should be primary; keep MAPE as caution via label below.
         with m3:
-            kpi_card("Hybrid MAE", f"{float(row.get('MAE', 0.0)):.3f}", status="normal")
+            kpi_card("Hybrid MAE", fmt_mae_rmse(row.get("MAE", 0.0)), status="normal")
         with m4:
-            kpi_card("Hybrid RMSE", f"{float(row.get('RMSE', 0.0)):.3f}", status="normal")
+            kpi_card("Hybrid RMSE", fmt_mae_rmse(row.get("RMSE", 0.0)), status="success")
         with m5:
-            kpi_card("Hybrid MAPE", f"{float(row.get('MAPE', 0.0)):.2f}%", status="normal")
+            kpi_card("MAPE (caution)", fmt_mape(row.get("MAPE", 0.0)), status="warning")
+
+    # Lightweight, honest explanations to prevent “model is broken” impressions.
+    # (No data changes; display-only notes.)
+    best_rmse_text = ""
+    if not metrics_df.empty and {"Model", "RMSE"}.issubset(metrics_df.columns):
+        best_row = metrics_df.sort_values("RMSE", ascending=True).iloc[0]
+        best_rmse_text = f" Lowest RMSE: {_model_name(best_row.get('Model'))} ({fmt_mae_rmse(best_row.get('RMSE'))})."
+    alert_box(
+        "Hybrid is highlighted as the operational recommendation when it has the lowest RMSE, because RMSE summarizes absolute forecast error in patient-count units more directly than MAPE." + best_rmse_text,
+        "success" if best_model == "Hybrid" else "info",
+    )
+
+    # ARIMAX “flatness” / early stabilization hint: base on loaded artifact variability.
+    # If curves are nearly constant, explain that it may be an artifact/model limitation.
+    try:
+        if "arimax_pred" in overall_df.columns:
+            arimax_vals = overall_df["arimax_pred"].astype(float).values
+            arimax_range = float(np.nanmax(arimax_vals) - np.nanmin(arimax_vals))
+            if arimax_range < 0.5:
+                st.info(
+                    "ARIMAX output appears nearly constant across this saved 72h horizon. This is likely an artifact of the saved ARIMAX forecast behavior (not a display bug)."
+                )
+    except Exception:
+        pass
+
+    # Trend explanation (negative/positive)
+    st.caption(
+        "Trend is the final forecast minus the first forecast. Negative means demand is expected to ease across the horizon; positive means pressure increases."
+    )
+    stable_note = _stable_tail_note(predictions, label="The overall Hybrid forecast")
+    if stable_note:
+        st.info(stable_note)
+
 
     section_header("72-hour overall hospital forecast", "Saved Hybrid forecast output from artifacts/forecast_outputs")
     col1, col2 = st.columns(2)
 
     with col1:
         y_cols = [c for c in ["lstm_pred", "arimax_pred", "hybrid_pred"] if c in overall_df.columns]
+        overall_chart_df = overall_df.copy()
+        for col in y_cols:
+            overall_chart_df[col] = pd.to_numeric(overall_chart_df[col], errors="coerce").round(0)
         fig_forecast = px.line(
-            overall_df,
+            overall_chart_df,
             x="datetime",
             y=y_cols or "hybrid_pred",
             markers=True,
-            title="72-hour overall forecast",
+            title="72-hour overall forecast (patient counts)",
         )
         fig_forecast.update_layout(height=380, xaxis_title="Forecast time", yaxis_title="Predicted patients")
+        fig_forecast.update_traces(hovertemplate="%{x}<br>%{fullData.name}: %{y:.0f} patients<extra></extra>")
         st.plotly_chart(fig_forecast, use_container_width=True, key=scoped_key("forecast", "ops72h_overall_curve"))
 
     with col2:
         display_cols = [c for c in ["hour_ahead", "datetime", "lstm_pred", "arimax_pred", "hybrid_pred"] if c in overall_df.columns]
-        modern_table(overall_df[display_cols].head(72), key=scoped_key("forecast", "ops72h_overall_table"))
+        modern_table(_round_display_dataframe(overall_df[display_cols].head(72)), key=scoped_key("forecast", "ops72h_overall_table"))
 
     section_header("Department-level 72-hour forecast", "Hybrid forecast distributed by department")
     if department_df.empty:
@@ -509,27 +705,41 @@ def show_forecast():
             key=scoped_key("forecast", "ops72h_department_filter"),
         )
         plot_dept_df = department_df[department_df["department"].astype(str).isin(selected_depts)] if selected_depts else department_df
+        dept_chart_df = plot_dept_df.copy()
+        dept_chart_df["hybrid_pred"] = pd.to_numeric(dept_chart_df["hybrid_pred"], errors="coerce").round(0)
         fig_dept = px.line(
-            plot_dept_df,
+            dept_chart_df,
             x="datetime",
             y="hybrid_pred",
             color="department",
-            title="72-hour department-level Hybrid forecast",
+            title="Department-level Hybrid forecast (patient counts)",
         )
         fig_dept.update_layout(height=420, xaxis_title="Forecast time", yaxis_title="Predicted patients")
+        fig_dept.update_traces(hovertemplate="%{x}<br>%{fullData.name}: %{y:.0f} patients<extra></extra>")
         st.plotly_chart(fig_dept, use_container_width=True, key=scoped_key("forecast", "ops72h_department_curve"))
-        modern_table(department_df.head(200), key=scoped_key("forecast", "ops72h_department_table"))
+        dept_flat_notes = []
+        for dept_name, group in plot_dept_df.groupby("department"):
+            note = _stable_tail_note(group["hybrid_pred"].astype(float).tolist(), label=f"{dept_name}")
+            if note:
+                dept_flat_notes.append(note)
+        if dept_flat_notes:
+            st.info(" ".join(dept_flat_notes[:3]))
+        modern_table(_round_display_dataframe(department_df.head(200)), key=scoped_key("forecast", "ops72h_department_table"))
 
     section_header("Model comparison", "Metrics from artifacts/metrics/ops72h_model_metrics.csv")
     if metrics_df.empty:
         empty_state("Model metrics output is empty.")
     else:
-        modern_table(metrics_df.round(4), key=scoped_key("forecast", "ops72h_metrics_table"))
+        display_metrics = _round_display_dataframe(metrics_df)
+        modern_table(display_metrics, key=scoped_key("forecast", "ops72h_metrics_table"))
         metric_cols = [c for c in ["MAE", "RMSE", "MAPE"] if c in metrics_df.columns]
         if "Model" in metrics_df.columns and metric_cols:
-            fig_metrics = px.bar(metrics_df, x="Model", y=metric_cols, barmode="group", title="72h model comparison")
-            fig_metrics.update_layout(height=360)
+            primary_cols = [c for c in ["MAE", "RMSE"] if c in metrics_df.columns]
+            fig_metrics = px.bar(metrics_df, x="Model", y=primary_cols, barmode="group", title="Primary model comparison: MAE/RMSE")
+            fig_metrics.update_layout(height=360, yaxis_title="Error in patient-count units")
             st.plotly_chart(fig_metrics, use_container_width=True, key=scoped_key("forecast", "ops72h_metrics_chart"))
+            if "MAPE" in metrics_df.columns:
+                st.caption("MAPE is retained in the table as a secondary caution metric because it can look very high when actual patient counts are low or near zero.")
 
     with st.expander("Training summary"):
         st.json(summary)
@@ -1451,14 +1661,14 @@ def render_simulation(*, key_prefix: str = "sim"):
     if sim:
         s1, s2, s3 = st.columns(3)
         with s1:
-            kpi_card("Simulated patients", int(sim["simulated_patients"]), status="info")
+            kpi_card("Simulated patients", fmt_patients(sim["simulated_patients"]), status="info")
         with s2:
             level = str(sim.get("emergency_level", "LOW"))
             status = "critical" if level == "HIGH" else "warning" if level == "MEDIUM" else "success"
             kpi_card("Emergency signal", level, status=status)
         with s3:
             shortage = int(sim.get("doctor_shortage") or 0)
-            kpi_card("Doctor shortage", shortage, status="warning" if shortage > 0 else "success")
+            kpi_card("Doctor shortage", fmt_int(shortage), status="warning" if shortage > 0 else "success")
 
         left, right = st.columns(2)
         with left:
@@ -1488,14 +1698,54 @@ def render_simulation(*, key_prefix: str = "sim"):
             "What-if Scenario Analysis",
             "This table shows simulated hospital scenarios, expected shortages, required resources, and recommended operational decisions.",
         )
-        modern_table(scenario_df, key=scoped_key(key_prefix, "scenario_analysis_table"))
+        summary_report_df, summary_report_text = _build_scenario_summary_report(scenario_df)
+        total_scenarios = int(len(scenario_df))
+        critical_high = int(summary_report_df.loc[summary_report_df["Metric"] == "Critical/high priority scenarios", "Value"].iloc[0]) if not summary_report_df.empty else 0
+        top_area = str(summary_report_df.loc[summary_report_df["Metric"] == "Top affected departments/areas", "Value"].iloc[0]) if not summary_report_df.empty else "-"
+
+        w1, w2, w3 = st.columns(3)
+        with w1:
+            kpi_card("Total scenarios", fmt_int(total_scenarios), status="info")
+        with w2:
+            kpi_card("Critical/high priority", fmt_int(critical_high), status="warning" if critical_high else "success")
+        with w3:
+            kpi_card("Full table columns", fmt_int(len(scenario_df.columns)), delta="CSV-driven UI", status="info")
+
+        section_header("Scenario summary report", "Compact operational view from the dynamic scenario outputs")
+        modern_table(summary_report_df, key=scoped_key(key_prefix, "scenario_summary_report"))
+        st.caption(f"Top affected areas: {top_area}")
+        c_download_1, c_download_2 = st.columns(2)
+        with c_download_1:
+            st.download_button(
+                "Download full scenario table (CSV)",
+                data=scenario_df.to_csv(index=False).encode("utf-8"),
+                file_name="what_if_scenario_analysis.csv",
+                mime="text/csv",
+                key=scoped_key(key_prefix, "scenario_full_csv_download"),
+            )
+        with c_download_2:
+            st.download_button(
+                "Download summary report (text)",
+                data=summary_report_text.encode("utf-8"),
+                file_name="what_if_scenario_summary.txt",
+                mime="text/plain",
+                key=scoped_key(key_prefix, "scenario_summary_text_download"),
+            )
+
+        compact_cols = [c for c in ["Scenario", "Priority Level", "Affected Department / Area", "Shortage / Gap", "Operational Decision"] if c in scenario_df.columns]
+        section_header("Compact scenario view", "Top priority scenarios first")
+        modern_table(scenario_df[compact_cols].head(12) if compact_cols else scenario_df.head(12), key=scoped_key(key_prefix, "scenario_compact_table"))
+
+        with st.expander("Show full 11-column scenario table", expanded=False):
+            st.caption("The full table preserves the existing CSV-driven dynamic logic and all 11 UI columns.")
+            modern_table(scenario_df, key=scoped_key(key_prefix, "scenario_analysis_table"))
 
     with st.container(border=True):
         section_header("Capacity context", "Derived from the latest optimization run")
         if capacity_df.empty:
             empty_state("Capacity context not available.")
         else:
-            modern_table(capacity_df, key=scoped_key(key_prefix, "capacity_table"))
+            modern_table(_round_display_dataframe(capacity_df), key=scoped_key(key_prefix, "capacity_table"))
 
     if not capacity_df.empty:
         # Visualize requirement vs availability estimate.
@@ -1565,33 +1815,45 @@ def render_digital_twin(*, key_prefix: str = "twin"):
         key=scoped_key(key_prefix, "horizon"),
     )
     predicted_at_h = float(plot_values[int(horizon) - 1])
+    st.caption(
+        f"Current view: {series_name}. The +{horizon}h KPI, chart, and table below are all based on this selected department/view and saved 72-hour horizon."
+    )
 
     weights = summary.get("weights") or {}
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        kpi_card("Best model", str(summary.get("best_model") or "Hybrid"), status="success")
+        kpi_card("Best model", _model_name(summary.get("best_model") or "Hybrid"), status="success")
     with c2:
-        kpi_card(f"+{horizon}h", int(predicted_at_h), status="normal")
+        kpi_card(f"+{horizon}h", fmt_patients(predicted_at_h), status="normal")
     with c3:
         peak = float(max(plot_values))
-        kpi_card("72h peak", int(peak), status="warning" if peak >= 120 else "normal")
+        kpi_card("72h peak", fmt_patients(peak), status="warning" if peak >= 120 else "normal")
     with c4:
-        kpi_card("Weights", f"LSTM {float(weights.get('lstm', 0.0)):.1f} / ARIMAX {float(weights.get('arimax', 0.0)):.1f}", status="info")
+        kpi_card("Weights", f"LSTM {fmt_weight(weights.get('lstm', 0.0))} / ARIMAX {fmt_weight(weights.get('arimax', 0.0))}", status="info")
 
     twin_df = pd.DataFrame({
         "hour": list(range(1, len(plot_values) + 1)),
         "datetime": plot_df["datetime"].values,
         series_name: plot_values,
     })
-    fig = px.area(twin_df, x="datetime", y=series_name, title="")
+    twin_chart_df = twin_df.copy()
+    twin_chart_df[series_name] = pd.to_numeric(twin_chart_df[series_name], errors="coerce").round(0)
+    fig = px.area(twin_chart_df, x="datetime", y=series_name, title=f"Digital Twin forecast: {series_name}")
     fig.update_traces(
         line=dict(color="rgba(99,102,241,0.95)", width=3),
         fillcolor="rgba(99,102,241,0.16)",
     )
     fig.update_layout(height=320, xaxis_title="Forecast time", yaxis_title="Predicted patients", margin=dict(l=10, r=10, t=10, b=10))
+    fig.update_traces(hovertemplate="%{x}<br>%{y:.0f} patients<extra></extra>")
     st.plotly_chart(fig, use_container_width=True, key=scoped_key(key_prefix, "forecast_curve"))
 
-    modern_table(twin_df, key=scoped_key(key_prefix, "forecast_table"))
+    display_twin_df = _round_display_dataframe(twin_df)
+    display_twin_df["Selected horizon"] = ["◀ selected" if int(h) == int(horizon) else "" for h in display_twin_df["hour"]]
+    modern_table(display_twin_df, key=scoped_key(key_prefix, "forecast_table"))
+
+    stable_note = _stable_tail_note(plot_values, label=series_name)
+    if stable_note:
+        st.info(stable_note)
 
     # Peak pressure across the full 72-hour window (multi-step)
     if plot_values:
@@ -1736,7 +1998,7 @@ def show_operations_center(*, key_prefix: str = "ops"):
 
 
 def show_evaluation_panel():
-    page_header("Evaluation", "Model comparison and offline metrics (v2 outputs).")
+    page_header("Evaluation", "Model comparison with MAE/RMSE as primary decision metrics and MAPE shown as a caution metric.")
 
     split = st.radio(
         "Evaluation Split",
@@ -1752,34 +2014,49 @@ def show_evaluation_panel():
         empty_state("Evaluation files not found. Run the v2 training pipeline first.")
         return
 
-    modern_table(eval_df.round(4))
+    display_eval_df = _round_display_dataframe(eval_df)
+    modern_table(display_eval_df, key=scoped_key("evaluation", "metrics_table"))
 
     best_model_row = eval_df.sort_values("RMSE", ascending=True).iloc[0]
-    st.success(
-        f"Best model currently: {best_model_row['Model']} | "
-        f"RMSE = {best_model_row['RMSE']:.4f}, "
-        f"MAE = {best_model_row['MAE']:.4f}, "
-        f"MAPE = {best_model_row['MAPE']:.2f}%"
+    e1, e2, e3, e4 = st.columns(4)
+    with e1:
+        kpi_card("Best model by RMSE", _model_name(best_model_row.get("Model")), status="success")
+    with e2:
+        kpi_card("Primary: RMSE", fmt_mae_rmse(best_model_row.get("RMSE")), status="success")
+    with e3:
+        kpi_card("Primary: MAE", fmt_mae_rmse(best_model_row.get("MAE")), status="normal")
+    with e4:
+        kpi_card("Secondary: MAPE", fmt_mape(best_model_row.get("MAPE")), status="warning")
+
+    alert_box(
+        f"Best model is selected using the lowest RMSE: {_model_name(best_model_row.get('Model'))}. RMSE and MAE are emphasized because they are errors in patient-count units.",
+        "success",
     )
 
     # Notes about metric interpretation (important for operational throughput experiments)
-    st.info(
-        "MAPE may be inflated when actual demand is close to zero, so MAE and RMSE are more reliable for this experiment."
+    st.warning(
+        "MAPE is still visible, but it is a secondary caution metric. It can become visually very high when actual patient counts are low or near zero, even when absolute patient-count error is more manageable."
     )
     st.caption(
         "ARIMAX may produce convergence warnings during training; this is a training limitation and is reported as such (not hidden)."
     )
 
 
+    primary_cols = [c for c in ["MAE", "RMSE"] if c in eval_df.columns]
     fig_metrics = px.bar(
         eval_df,
         x="Model",
-        y=["MAE", "RMSE", "MAPE"],
+        y=primary_cols,
         barmode="group",
-        title="Forecast Error Metrics",
+        title="Primary forecast error metrics: MAE/RMSE",
     )
-    fig_metrics.update_layout(height=420)
+    fig_metrics.update_layout(height=420, yaxis_title="Error in patient-count units")
     st.plotly_chart(fig_metrics, use_container_width=True, key=scoped_key("evaluation", "metrics"))
+
+    if "MAPE" in eval_df.columns:
+        fig_mape = px.bar(eval_df, x="Model", y="MAPE", title="Secondary caution metric: MAPE")
+        fig_mape.update_layout(height=300, yaxis_title="MAPE (%)")
+        st.plotly_chart(fig_mape, use_container_width=True, key=scoped_key("evaluation", "mape_secondary"))
 
     required_cols = ["time_index", "actual", "lstm_pred", "arimax_pred", "hybrid_pred"]
     if not detailed_df.empty and all(col in detailed_df.columns for col in required_cols):
@@ -1801,32 +2078,32 @@ def show_evaluation_panel():
             value_name="value",
         )
 
+        plot_df["value"] = pd.to_numeric(plot_df["value"], errors="coerce").round(0)
         fig_compare = px.line(
             plot_df,
             x="time_index",
             y="value",
             color="series",
-            title="Actual vs Forecasted Patient Flow",
+            title="Actual vs forecasted patient flow (rounded patient counts)",
         )
-        fig_compare.update_layout(height=450)
+        fig_compare.update_layout(height=450, yaxis_title="Patients", xaxis_title="Time index")
+        fig_compare.update_traces(hovertemplate="Time %{x}<br>%{fullData.name}: %{y:.0f} patients<extra></extra>")
         st.plotly_chart(fig_compare, use_container_width=True, key=scoped_key("evaluation", "actual_vs_models"))
 
-        modern_table(clean_df.tail(50), key=scoped_key("evaluation", "tail_table"))
+        modern_table(_round_display_dataframe(clean_df.tail(50)), key=scoped_key("evaluation", "tail_table"))
     else:
         empty_state("Detailed evaluation outputs are not available yet.")
 
 
 def show_explainability_panel():
-    page_header("Explainability", "Feature sensitivity analysis for the current forecast input.")
+    page_header("Model Feature Sensitivity", "Readable explanation of which inputs increase or reduce forecast pressure.")
 
     # Small operational narrative (rule-based) so operators can map the model sensitivity
     # to day-to-day pressure drivers. This never overwrites model-based outputs.
-    st.subheader("Operational Pressure Explanation")
+    st.subheader("How to read this")
     st.caption(
-        "This view is model-based feature sensitivity (what features most affect the forecast). "
-        "Below is an operational, rule-based translation of how forecast pressure typically shows up "
-        "in hospitals (demand, bed shortage, doctor shortage, nurse shortage, appointment backlog, "
-        "OR pressure, delayed discharge, department status, and forecast overload)."
+        "Positive impact increases forecast pressure. Negative impact reduces forecast pressure. "
+        "This is model feature sensitivity from the existing explainability service; it is not labeled as SHAP."
     )
 
 
@@ -1843,25 +2120,57 @@ def show_explainability_panel():
     base_prediction = explanation["base_prediction"]
     impacts = explanation["feature_impacts"]
 
-    st.metric("Base Prediction", int(base_prediction))
+    kpi_card("Base prediction", fmt_patients(base_prediction), delta="patients", status="info")
 
     impact_df = pd.DataFrame(impacts)
     if impact_df.empty:
         empty_state("No explainability impacts available.")
         return
 
+    impact_df["impact"] = pd.to_numeric(impact_df["impact"], errors="coerce").fillna(0.0)
     impact_df["abs_impact"] = impact_df["impact"].abs()
+    impact_df["Feature"] = impact_df["feature"].apply(_friendly_feature_label)
+    impact_df["Direction"] = np.where(impact_df["impact"] >= 0, "Increases forecast pressure", "Reduces forecast pressure")
+    impact_df["Impact"] = impact_df["impact"].round(2)
+    impact_df["Plain-English meaning"] = impact_df.apply(lambda r: _feature_meaning(str(r.get("feature")), str(r.get("Direction"))), axis=1)
+    top_df = impact_df.sort_values(by="abs_impact", ascending=False).head(12).copy()
 
-    fig = px.bar(
-        impact_df,
-        x="feature",
-        y="impact",
-        title="Feature Impact on Prediction",
-    )
-    fig.update_layout(height=420)
-    st.plotly_chart(fig, use_container_width=True, key=scoped_key("explainability", "feature_impacts"))
+    inc_df = top_df[top_df["impact"] >= 0].sort_values("impact", ascending=True)
+    red_df = top_df[top_df["impact"] < 0].sort_values("impact", ascending=True)
+    c_inc, c_red = st.columns(2)
+    with c_inc:
+        section_header("Pressure-increasing drivers", "Positive impact")
+        if inc_df.empty:
+            empty_state("No positive drivers in the top features.")
+        else:
+            fig_inc = px.bar(
+                inc_df,
+                x="Impact",
+                y="Feature",
+                orientation="h",
+                title="Top pressure-increasing features",
+            )
+            fig_inc.update_layout(height=380, xaxis_title="Impact", yaxis_title="")
+            fig_inc.update_traces(hovertemplate="%{y}<br>Impact: %{x:.2f}<extra></extra>")
+            st.plotly_chart(fig_inc, use_container_width=True, key=scoped_key("explainability", "feature_impacts_positive"))
+    with c_red:
+        section_header("Pressure-reducing drivers", "Negative impact")
+        if red_df.empty:
+            empty_state("No negative drivers in the top features.")
+        else:
+            fig_red = px.bar(
+                red_df,
+                x="Impact",
+                y="Feature",
+                orientation="h",
+                title="Top pressure-reducing features",
+            )
+            fig_red.update_layout(height=380, xaxis_title="Impact", yaxis_title="")
+            fig_red.update_traces(hovertemplate="%{y}<br>Impact: %{x:.2f}<extra></extra>")
+            st.plotly_chart(fig_red, use_container_width=True, key=scoped_key("explainability", "feature_impacts_negative"))
 
-    modern_table(impact_df.sort_values(by="abs_impact", ascending=False), key=scoped_key("explainability", "impact_table"))
+    table_cols = ["Feature", "Direction", "Impact", "Plain-English meaning"]
+    modern_table(top_df[table_cols], key=scoped_key("explainability", "impact_table"))
 
 
 def show_simulation():

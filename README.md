@@ -1,57 +1,173 @@
-# 🏥 AI Hospital Operations Dashboard
+# HRO-PS AI Hospital Resource Optimization and Patient Surge Forecasting System
 
-A **real-time hospital management system** powered by AI, Streamlit, and predictive analytics.  
-Manage patient flow, optimize resources, and simulate hospital scenarios with AI.
+HRO-PS is an **AI-powered hospital resource optimization prototype** built for a graduation demo. It combines patient-surge forecasting, operational dashboards, resource optimization, what-if simulation, and in-app communication foundations.
 
----
+> **Project status:** graduation-demo ready prototype.  
+> **Not production hospital SaaS yet:** the system still needs real hospital integration, clinical/operations validation, security/compliance hardening, production migrations, observability, and tenant-isolation testing before real-world use.
 
-## 🔹 Features
+## Demo data and privacy
 
-- **Hospital Control Panel** – Manage beds, doctors, and patient demand dynamically.
-- **ER Emergency Simulator** – Simulate incoming emergency patients.
-- **Live Patient Stream** – Real-time patient inflow simulation.
-- **AI Resource Optimizer** – Auto-suggest doctors, nurses, and ICU beds.
-- **ICU Risk Predictor** – Predict ICU load based on patient demand.
-- **Smart Hospital Alerts** – Automatic alerts for bed and doctor shortages.
-- **Digital Twin Visualization** – Overview of hospital occupancy and departments.
-- **AI Patient Flow Predictor** – Forecast patient numbers hour-by-hour.
+- This project uses **realistic demo/synthetic operational data** for hospital operations scenarios.
+- **No real patient data is used.**
+- Demo data exists to show the product workflow safely without exposing protected health information.
+- Forecast/model artifacts are pre-generated for the demo; the app should **not train models on startup**.
 
----
+## Main features
 
-## 🔹 Technologies
+- **72-hour patient surge forecasting** using saved forecast artifacts.
+- **LSTM / ARIMAX / Hybrid model outputs** for model comparison and operational recommendation.
+- **Evaluation tab** reading real `artifacts/metrics_72h` metrics, with MAE/RMSE emphasized and MAPE treated as a caution metric.
+- **Forecast tab** reading saved 72-hour overall and department forecast outputs.
+- **Digital Twin** view using saved forecast artifacts to explore the next 72 hours.
+- **Resource Optimization** for beds, doctors, nurses, shortages, department pressure, and recommended actions.
+- **CSV-driven What-if Scenarios** for dynamic patient surge and resource pressure simulation.
+- **Staff Scheduling** views for realistic staff coverage.
+- **Appointments** and **OR Bookings** operational views.
+- **Department Status** based on optimizer outputs and live operational context.
+- **Explainability / Model Feature Sensitivity** for readable model-input interpretation.
+- **In-app alerts/messages foundation** for operational coordination, acknowledgments, and audit visibility.
 
-- Python 3.13
-- Streamlit
-- TensorFlow / Keras
-- Pandas, NumPy, Matplotlib
-- SHAP (Model Explainability)
-- GitHub (Version Control)
+## Technology stack
 
----
+- **Python 3.11** deployment runtime (`runtime.txt`).
+- **Streamlit** dashboard (`dashboard.py`).
+- **FastAPI** backend (`main:app`, implemented in `api.py`).
+- **SQLAlchemy + PostgreSQL** for DB-backed runtime data.
+- **Pandas / NumPy / Plotly** for data processing and visualization.
+- **scikit-learn / statsmodels / TensorFlow / joblib** for ML artifacts and model inference/training scripts.
 
-## 🔹 Setup Instructions
+## Required artifacts for the demo
+
+The dashboard and API expect saved artifacts to exist before startup. Do **not** retrain during deployment startup.
+
+### 72-hour forecast dashboard artifacts
+
+- `artifacts/forecast_outputs/ops72h_overall_forecast.csv`
+- `artifacts/forecast_outputs/ops72h_department_forecast.csv`
+- `artifacts/metrics/ops72h_model_metrics.csv`
+- `artifacts/metrics/ops72h_training_summary.json`
+
+### 72-hour evaluation artifacts
+
+- `artifacts/metrics_72h/lstm_ops72h_metrics.json`
+- `artifacts/metrics_72h/arimax_ops72h_metrics.json`
+- `artifacts/metrics_72h/hybrid_ops72h_metrics.json`
+
+### Legacy/runtime inference artifacts used by existing API paths
+
+- `hospital_forecast_model.keras`
+- `arimax_model.pkl`
+- `x_scaler.pkl`
+- `y_scaler.pkl`
+- `hybrid_config.json`
+
+## Local run instructions
 
 ### 1) Clone the repository
 
 ```bash
-git clone https://github.com/username/hro-ps-ai.git
+git clone https://github.com/boabdu08/Hro-ps-ai.git
 cd hro-ps-ai
 ```
 
-### 2) Recommended local run commands (Windows)
+### 2) Use Python 3.11
 
-This repo historically ended up with **two venvs** in some environments (`venv/` and `.venv311/`).
-To avoid interpreter mismatch issues (missing deps, different Python versions), use the PowerShell scripts below.
-They auto-select `venv` first, then `.venv311`.
+The deployment runtime is Python 3.11. Local Python 3.13 may work for some flows, but Python 3.11 is the safest version for dependency compatibility.
+
+### 3) Configure environment
+
+Copy `.env.example` to `.env` and set values as needed:
+
+```bash
+cp .env.example .env
+```
+
+Important variables:
+
+- `DATABASE_URL`
+- `JWT_SECRET_KEY`
+- `API_BASE_URL`
+- `CORS_ORIGINS`
+- `DEFAULT_TENANT_SLUG`
+- `ARTIFACT_DIR`
+
+### 4) Recommended local run commands on Windows
 
 ```powershell
 ./scripts/seed.ps1
 ./scripts/run_api.ps1
 ./scripts/run_dashboard.ps1
 
-# optional always-on pipeline
+# optional always-on pipeline / demo worker
 ./scripts/run_worker.ps1
 ```
 
-> Note: If your PowerShell execution policy blocks running scripts, use:
-> `powershell -ExecutionPolicy Bypass -Command "& ./scripts/run_dashboard.ps1"`
+If PowerShell blocks script execution:
+
+```powershell
+powershell -ExecutionPolicy Bypass -Command "& ./scripts/run_dashboard.ps1"
+```
+
+### 5) Manual commands
+
+API:
+
+```bash
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+Dashboard:
+
+```bash
+streamlit run dashboard.py
+```
+
+## Run validation checks
+
+Compile selected runtime files:
+
+```bash
+python -m compileall dashboard.py dashboard_sections.py staff_sections.py api.py api_client.py ops_live.py resource_optimizer.py operational_data_workflow.py evaluation_service.py -q
+```
+
+Run tests:
+
+```bash
+python -m pytest -q
+```
+
+## Deployment notes
+
+- Streamlit entry point: `dashboard.py`.
+- FastAPI entry point: `main:app`.
+- Use Python 3.11.
+- Use real deployment secrets; do not use the demo JWT secret in production.
+- Ensure all required artifacts are included in the deployed filesystem or mounted storage.
+- Do not run training scripts during dashboard/API startup.
+- Free-tier deployments may sleep and may have ephemeral storage.
+- Hugging Face Spaces can be used for a simple Streamlit showcase, but the full system is better suited to API + worker + DB deployment on Render/Railway/Neon/Streamlit Cloud.
+
+See `DEPLOYMENT_GUIDE.md` for detailed deployment-readiness notes.
+
+## Graduation demo positioning
+
+Recommended positioning:
+
+> HRO-PS is a functional AI-powered hospital operations decision-support prototype using realistic demo data. It demonstrates forecasting, evaluation, optimization, simulation, and communication workflows, but it is not yet clinically validated production software.
+
+## Future SaaS roadmap
+
+Post-graduation SaaS work includes:
+
+- production-grade multi-tenant isolation,
+- real authentication/account lifecycle and hospital SSO,
+- staff accounts and permissions,
+- real hospital integration via EHR/ADT/FHIR/HL7 and scheduling systems,
+- real-time ingestion with retries, deduplication, and monitoring,
+- Alembic/versioned database migrations,
+- immutable audit logs and compliance controls,
+- security hardening and secrets rotation,
+- observability, backups, rollback, and uptime monitoring,
+- model drift monitoring and retraining governance,
+- formal optimization constraints and KPI validation,
+- billing/subscription and admin controls.

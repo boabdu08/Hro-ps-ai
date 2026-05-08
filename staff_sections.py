@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from database import SessionLocal
 from models import Appointment, ORBooking, StaffShift
-from ui_components import empty_state, modern_table, page_header, scoped_key, section_header
+from ui_components import empty_state, fmt_int, kpi_card, modern_table, page_header, scoped_key, section_header
 
 from ops_live import build_live_state, dedupe_keep_latest, normalize_appointment_status, shift_times_for_type
 
@@ -189,15 +189,56 @@ def show_my_shifts(username, role):
 
 
 def show_all_shifts():
-    page_header("Staffing", "Shift coverage across departments.")
+    page_header("Staffing", "Realistic medium-hospital staff coverage across departments and shift types.")
     df = _load_shifts_df()
     if df.empty:
         empty_state("No shifts available.")
         return
+    st.caption("Source: current DB/API `StaffShift` records after live-demo date normalization and deduplication. CSV bootstrapping is intentionally disabled in this runtime.")
+
+    role_series = df["role"].astype(str).str.lower() if "role" in df.columns else pd.Series(dtype=str)
+    total_staff = int(df["staff_username"].nunique()) if "staff_username" in df.columns else int(len(df))
+    doctors = int(role_series.str.contains("doctor|physician", case=False, na=False).sum()) if not role_series.empty else 0
+    nurses = int(role_series.str.contains("nurse", case=False, na=False).sum()) if not role_series.empty else 0
+    total_shifts = int(len(df))
+    departments = int(df["department"].nunique()) if "department" in df.columns else 0
+
+    s1, s2, s3, s4, s5 = st.columns(5)
+    with s1:
+        kpi_card("Total staff shown", fmt_int(total_staff), status="info")
+    with s2:
+        kpi_card("Doctors", fmt_int(doctors), status="normal")
+    with s3:
+        kpi_card("Nurses", fmt_int(nurses), status="normal")
+    with s4:
+        kpi_card("Scheduled shifts", fmt_int(total_shifts), status="success")
+    with s5:
+        kpi_card("Departments covered", fmt_int(departments), status="info")
+
     modern_table(df, key=scoped_key("shifts", "all", "table"))
+
+    left, right = st.columns(2)
+    with left:
+        section_header("Shift distribution", "Morning / Evening / Night / Emergency Backup where present")
+        if "shift_type" in df.columns:
+            shift_count = df.groupby("shift_type").size().reset_index(name="scheduled_shifts")
+            fig_shift = px.bar(shift_count, x="shift_type", y="scheduled_shifts", title="Scheduled shifts by shift type")
+            fig_shift.update_layout(height=350, xaxis_title="Shift type", yaxis_title="Scheduled shifts")
+            fig_shift.update_traces(hovertemplate="%{x}: %{y:.0f} shifts<extra></extra>")
+            st.plotly_chart(fig_shift, use_container_width=True, key=scoped_key("shifts", "all", "shift_distribution"))
+    with right:
+        section_header("Department coverage", "Shifts by department")
+        if "department" in df.columns:
+            dept_summary = df.groupby("department").size().reset_index(name="scheduled_shifts")
+            fig_dept = px.bar(dept_summary, x="department", y="scheduled_shifts", title="Scheduled shifts by department")
+            fig_dept.update_layout(height=350, xaxis_title="Department", yaxis_title="Scheduled shifts")
+            fig_dept.update_traces(hovertemplate="%{x}: %{y:.0f} shifts<extra></extra>")
+            st.plotly_chart(fig_dept, use_container_width=True, key=scoped_key("shifts", "all", "department_coverage"))
+
     summary = df.groupby(["department", "shift_type"]).size().reset_index(name="assigned_staff")
-    fig = px.bar(summary, x="department", y="assigned_staff", color="shift_type", barmode="group", title="Shift Allocation by Department")
-    fig.update_layout(height=400)
+    fig = px.bar(summary, x="department", y="assigned_staff", color="shift_type", barmode="group", title="Shift allocation by department and type")
+    fig.update_layout(height=400, yaxis_title="Assigned staff", xaxis_title="Department")
+    fig.update_traces(hovertemplate="%{x}<br>%{fullData.name}: %{y:.0f} staff<extra></extra>")
     st.plotly_chart(fig, use_container_width=True, key=scoped_key("shifts", "all", "chart"))
 
 
@@ -209,6 +250,16 @@ def show_or_bookings(role, doctor_name=None):
     if df.empty:
         empty_state("No OR bookings available.")
         return
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        kpi_card("OR bookings", fmt_int(len(df)), status="info")
+    with c2:
+        kpi_card("Rooms used", fmt_int(df["room"].nunique() if "room" in df.columns else 0), status="normal")
+    with c3:
+        kpi_card("Departments", fmt_int(df["department"].nunique() if "department" in df.columns else 0), status="normal")
+    with c4:
+        scheduled = int(df["status"].astype(str).str.contains("scheduled|booked|confirmed", case=False, na=False).sum()) if "status" in df.columns else 0
+        kpi_card("Scheduled/confirmed", fmt_int(scheduled), status="success")
     modern_table(df, key=scoped_key("or_bookings", role, doctor_name or "all", "table"))
     booking_summary = df.groupby(["room", "status"]).size().reset_index(name="count")
     fig = px.bar(booking_summary, x="room", y="count", color="status", barmode="group", title="OR Booking Status by Room")
@@ -226,6 +277,16 @@ def show_appointments(role, department=None, doctor_name=None):
     if df.empty:
         empty_state("No appointments available.")
         return
+    total_patients = int(pd.to_numeric(df.get("patient_count", pd.Series(dtype=float)), errors="coerce").fillna(0).sum()) if "patient_count" in df.columns else 0
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        kpi_card("Appointment slots", fmt_int(len(df)), status="info")
+    with c2:
+        kpi_card("Patients scheduled", fmt_int(total_patients), status="normal")
+    with c3:
+        kpi_card("Departments", fmt_int(df["department"].nunique() if "department" in df.columns else 0), status="normal")
+    with c4:
+        kpi_card("Doctors", fmt_int(df["doctor"].nunique() if "doctor" in df.columns else 0), status="success")
     modern_table(df, key=scoped_key("appointments", role, department or "", doctor_name or "", "table"))
     fig = px.bar(df, x="time_slot", y="patient_count", color="status", title="Patient Load by Appointment Slot")
     fig.update_layout(height=350)
@@ -238,11 +299,22 @@ def show_admin_appointments_overview():
     if df.empty:
         empty_state("No appointments available.")
         return
+    total_patients = int(pd.to_numeric(df.get("patient_count", pd.Series(dtype=float)), errors="coerce").fillna(0).sum()) if "patient_count" in df.columns else 0
+    a1, a2, a3, a4 = st.columns(4)
+    with a1:
+        kpi_card("Appointment slots", fmt_int(len(df)), status="info")
+    with a2:
+        kpi_card("Patients scheduled", fmt_int(total_patients), status="normal")
+    with a3:
+        kpi_card("Departments", fmt_int(df["department"].nunique() if "department" in df.columns else 0), status="normal")
+    with a4:
+        kpi_card("Doctors", fmt_int(df["doctor"].nunique() if "doctor" in df.columns else 0), status="success")
     modern_table(df, key=scoped_key("appointments", "admin_overview", "table"))
     summary = df.groupby("department")["patient_count"].sum().reset_index()
     fig = px.pie(summary, names="department", values="patient_count", title="Appointments Load by Department")
     fig.update_layout(height=400)
     st.plotly_chart(fig, use_container_width=True, key=scoped_key("appointments", "admin_overview", "chart"))
+
 
 
 
