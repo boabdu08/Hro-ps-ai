@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from database import SessionLocal
 from settings import get_settings
 from models import Appointment, AuditEvent, ORBooking, RecommendationRecord, StaffShift, Tenant
-from ui_components import empty_state, page_header, section_header, status_badge
+from ui_components import alert_box, empty_state, page_header, section_header, status_badge
 
 LEGACY_RECOMMENDATION_FILE = "recommendation_log.csv"  # import-only (not runtime)
 REQUIRED_LOG_COLS = [
@@ -41,6 +41,116 @@ def _safe_int(value, default=0):
         return int(value)
     except Exception:
         return default
+
+
+def _status_tone(status: str) -> str:
+    value = _normalize(status).lower()
+    if value == "approved":
+        return "success"
+    if value == "rejected":
+        return "critical"
+    if value == "pending":
+        return "warning"
+    return "neutral"
+
+
+def _approval_title(rec_type: str) -> str:
+    value = _normalize(rec_type, "operational")
+    mapping = {
+        "staff": "Staffing change approval",
+        "beds": "Emergency resource request",
+        "capacity": "Department escalation",
+        "emergency": "Emergency resource request",
+        "or": "OR priority review",
+        "appointments": "Department escalation",
+        "optimization": "Optimization recommendation approval",
+    }
+    return mapping.get(value.lower(), f"{value.title()} approval")
+
+
+def _priority_from_type(rec_type: str, message: str) -> str:
+    text = f"{rec_type} {message}".lower()
+    if any(term in text for term in ["emergency", "critical", "high", "surge"]):
+        return "critical"
+    if any(term in text for term in ["beds", "capacity", "doctors", "backup", "review"]):
+        return "high"
+    return "normal"
+
+
+def _recommended_decision(row) -> str:
+    rec_type = _normalize(row.get("type") if isinstance(row, dict) else row["type"])
+    if rec_type.lower() in {"staff", "beds", "capacity", "emergency", "or", "appointments"}:
+        return "Approve if operational capacity and manager review align."
+    return "Review recommendation details before approving."
+
+
+def _render_priority(priority: str):
+    value = _normalize(priority, "normal").lower()
+    if value == "critical":
+        status_badge("CRITICAL", "critical")
+    elif value == "high":
+        status_badge("HIGH", "warning")
+    else:
+        status_badge("NORMAL", "info")
+
+
+def _render_approval_card(row, approver_name: str):
+    rec_id = _normalize(row["recommendation_id"])
+    rec_type = _normalize(row["type"], "optimization")
+    message = _normalize(row["message"])
+    department = infer_department_from_message(message)
+    priority = _priority_from_type(rec_type, message)
+
+    with st.container(border=True):
+        h1, h2, h3 = st.columns([0.58, 0.18, 0.24])
+        with h1:
+            st.markdown(f"#### {_approval_title(rec_type)}")
+            st.caption(f"Request ID: {rec_id} • Created: {_normalize(row['timestamp'], '—')}")
+        with h2:
+            _render_priority(priority)
+        with h3:
+            status_badge(_normalize(row["status"], "pending").upper(), _status_tone(row["status"]))
+
+        st.write(message)
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            st.caption("Department")
+            st.write(department)
+        with c2:
+            st.caption("Requested by")
+            st.write("Forecast + Optimization")
+        with c3:
+            st.caption("Recommended decision")
+            st.write(_recommended_decision(row))
+        with c4:
+            st.caption("Reason")
+            st.write(_normalize(rec_type).title())
+
+        a1, a2, a3 = st.columns([1, 1, 2])
+        with a1:
+            if st.button("Approve", key=f"approve_{rec_id}"):
+                ok = approve_recommendation(rec_id, approver_name)
+                if ok:
+                    st.success(f"{rec_id} approved and executed")
+                else:
+                    st.error("Failed to approve recommendation.")
+                st.rerun()
+        with a2:
+            if st.button("Reject", key=f"reject_{rec_id}"):
+                ok = reject_recommendation(rec_id, approver_name)
+                if ok:
+                    st.warning(f"{rec_id} rejected")
+                else:
+                    st.error("Failed to reject recommendation.")
+                st.rerun()
+        with a3:
+            st.button(
+                "Request changes",
+                key=f"changes_{rec_id}",
+                disabled=True,
+                help="Request-changes workflow is not configured in this demo.",
+            )
+            st.caption("Request changes is visible for narrative completeness but is not wired to an unsupported API.")
 
 
 def _new_recommendation_id() -> str:
@@ -504,18 +614,19 @@ def show_admin_approval_panel(peak, beds_needed, doctors_needed, emergency_level
         "Approvals",
         "Review and approve AI-generated operational recommendations with full traceability.",
     )
+    alert_box(
+        "Approvals turn forecast and optimization recommendations into tracked operational decisions. "
+        "Approve/reject actions are supported; request changes is not configured in this demo.",
+        level="info",
+    )
 
     top1, top2, top3 = st.columns(3)
     with top1:
-        if st.button("Generate Demo Recommendations"):
-            seed_demo_recommendations()
-            st.success("Demo recommendations generated.")
-            st.rerun()
+        st.caption("Demo safety")
+        st.write("No fake saved data is generated automatically.")
     with top2:
-        if st.button("Reset Recommendation Log"):
-            reset_recommendations()
-            st.warning("Recommendation log reset.")
-            st.rerun()
+        st.caption("Workflow source")
+        st.write("Forecast + Optimization")
     with top3:
         level = str(emergency_level or "LOW")
         tone = "critical" if level == "HIGH" else "warning" if level == "MEDIUM" else "success"
@@ -523,7 +634,7 @@ def show_admin_approval_panel(peak, beds_needed, doctors_needed, emergency_level
 
     df = sync_recommendations(peak, beds_needed, doctors_needed, emergency_level)
     if df.empty:
-        empty_state("No recommendations available.")
+        empty_state("No pending approvals. Recommended actions will appear here when operational decisions require manager review.")
         return
 
     pending_df = df[df["status"] == "pending"].copy()
@@ -535,38 +646,31 @@ def show_admin_approval_panel(peak, beds_needed, doctors_needed, emergency_level
     s2.metric("Approved", len(approved_df))
     s3.metric("Rejected", len(rejected_df))
 
-    section_header("Pending", "Items requiring your decision")
+    section_header("Pending approvals", "Items requiring manager review and decision tracking")
     if pending_df.empty:
-        st.success("No pending recommendations.")
+        empty_state("No pending approvals. Recommended actions will appear here when operational decisions require manager review.")
     else:
         pending_df = pending_df.sort_values(by="timestamp", ascending=False)
         for _, row in pending_df.iterrows():
-            st.markdown(f"#### {str(row['type']).upper()}")
-            st.write(str(row["message"]))
-            st.caption(f"Created: {row['timestamp']}")
-            c1, c2 = st.columns(2)
-            with c1:
-                if st.button(f"Approve {row['recommendation_id']}", key=f"approve_{row['recommendation_id']}"):
-                    ok = approve_recommendation(row["recommendation_id"], approver_name)
-                    if ok:
-                        st.success(f"{row['recommendation_id']} approved and executed")
-                    else:
-                        st.error("Failed to approve recommendation.")
-                    st.rerun()
-            with c2:
-                if st.button(f"Reject {row['recommendation_id']}", key=f"reject_{row['recommendation_id']}"):
-                    ok = reject_recommendation(row["recommendation_id"], approver_name)
-                    if ok:
-                        st.warning(f"{row['recommendation_id']} rejected")
-                    else:
-                        st.error("Failed to reject recommendation.")
-                    st.rerun()
-            st.markdown("---")
+            _render_approval_card(row, approver_name)
 
-    section_header("History", "Approved and rejected recommendations")
+    section_header("Decision history", "Approved and rejected recommendations with execution notes")
     history_df = pd.concat([approved_df, rejected_df], ignore_index=True)
     if history_df.empty:
         empty_state("No processed recommendations yet.")
     else:
         history_df = history_df.sort_values(by="timestamp", ascending=False)
-        st.dataframe(history_df, use_container_width=True, hide_index=True)
+        display_df = history_df.rename(
+            columns={
+                "recommendation_id": "Request ID",
+                "timestamp": "Created time",
+                "type": "Request type",
+                "message": "Reason / recommendation",
+                "status": "Status",
+                "approved_by": "Decision by",
+                "execution_status": "Execution status",
+                "execution_note": "Execution note",
+                "affected_files": "Affected records",
+            }
+        )
+        st.dataframe(display_df, use_container_width=True, hide_index=True)

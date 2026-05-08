@@ -23,6 +23,17 @@ TARGET_DEPARTMENT_OPTIONS = [
 PRIORITY_OPTIONS = ["normal", "high", "critical"]
 
 
+def _status_tone(status: str) -> str:
+    value = str(status or "").strip().lower()
+    if value in {"unread", "critical"}:
+        return "critical"
+    if value in {"high", "attention", "archived"}:
+        return "warning"
+    if value in {"read", "sent", "updated", "resolved"}:
+        return "success"
+    return "neutral"
+
+
 def _priority_badge(priority: str):
     value = str(priority).strip().lower()
     if value == "critical":
@@ -71,6 +82,127 @@ def _clean_text(value) -> str:
     return "" if text.lower() == "nan" else text
 
 
+def _message_preview(text: str, length: int = 140) -> str:
+    body = _clean_text(text)
+    if len(body) <= length:
+        return body
+    return body[: length - 1].rstrip() + "…"
+
+
+def _message_status(msg: dict) -> str:
+    if bool(msg.get("archived")) or bool(msg.get("user_archived")):
+        return "Archived"
+    return "Read" if bool(msg.get("is_read", False)) else "Unread"
+
+
+def _message_sender_recipient(msg: dict) -> tuple[str, str]:
+    sender = _clean_text(msg.get("sender_name")) or "Unknown sender"
+    sender_role = _clean_text(msg.get("sender_role"))
+    recipient_role = _clean_text(msg.get("target_role")) or "all"
+    recipient_department = _clean_text(msg.get("target_department")) or "All Departments"
+    sender_label = f"{sender} ({sender_role})" if sender_role else sender
+    recipient_label = f"{recipient_role.title()} • {recipient_department}"
+    return sender_label, recipient_label
+
+
+def _render_message_card(
+    msg: dict,
+    *,
+    key_prefix: str,
+    quick_replies: list[str] | None = None,
+    user_name: str | None = None,
+    allow_reply: bool = False,
+    allow_actions: bool = True,
+):
+    message_id = _clean_text(msg.get("message_id"))
+    title = _clean_text(msg.get("title")) or "Untitled message"
+    priority = _clean_text(msg.get("priority")) or "normal"
+    category = _clean_text(msg.get("category")) or _clean_text(msg.get("message_type")) or "coordination"
+    created = _clean_text(msg.get("created_at")) or _clean_text(msg.get("timestamp")) or "—"
+    status = _message_status(msg)
+    sender, recipient = _message_sender_recipient(msg)
+    department = _clean_text(msg.get("target_department")) or "All Departments"
+    role = _clean_text(msg.get("target_role")) or "all"
+
+    with st.container(border=True):
+        c_title, c_priority, c_status = st.columns([0.60, 0.18, 0.22])
+        with c_title:
+            st.markdown(f"#### {title}")
+            st.caption(f"{category.title()} • Created: {created}")
+        with c_priority:
+            _priority_badge(priority)
+        with c_status:
+            status_badge(status.upper(), _status_tone(status))
+
+        st.write(_message_preview(msg.get("message", "")))
+        m1, m2, m3, m4 = st.columns(4)
+        with m1:
+            st.caption("Sender")
+            st.write(sender)
+        with m2:
+            st.caption("Recipient")
+            st.write(recipient)
+        with m3:
+            st.caption("Department / role")
+            st.write(f"{department} / {role}")
+        with m4:
+            st.caption("Read state")
+            st.write(status)
+
+        _reply_block(msg)
+
+        if allow_reply and message_id:
+            existing_reply = _clean_text(msg.get("reply", ""))
+            if not existing_reply:
+                with st.expander("Reply / coordination update", expanded=False):
+                    replies = quick_replies or []
+                    if replies:
+                        cols = st.columns(min(4, len(replies)))
+                        for q_idx, reply in enumerate(replies):
+                            with cols[q_idx % len(cols)]:
+                                if st.button(reply, key=f"quick_reply_{key_prefix}_{message_id}_{q_idx}"):
+                                    result = send_quick_reply_api(
+                                        message_id=message_id,
+                                        reply_text=reply,
+                                        replied_by=user_name or "Staff User",
+                                    )
+                                    if result and result.get("status") == "updated":
+                                        st.success("Reply sent successfully.")
+                                        st.rerun()
+                                    else:
+                                        st.error("Failed to send reply.")
+
+                    custom_reply = st.text_input("Custom reply", key=f"custom_reply_input_{key_prefix}_{message_id}")
+                    if st.button("Send custom reply", key=f"send_custom_reply_{key_prefix}_{message_id}"):
+                        if not custom_reply.strip():
+                            st.warning("Please enter a reply first.")
+                        else:
+                            result = send_quick_reply_api(
+                                message_id=message_id,
+                                reply_text=custom_reply.strip(),
+                                replied_by=user_name or "Staff User",
+                            )
+                            if result and result.get("status") == "updated":
+                                st.success("Custom reply sent successfully.")
+                                st.rerun()
+                            else:
+                                st.error("Failed to send reply.")
+
+        if allow_actions and message_id:
+            a1, a2, a3 = st.columns([1, 1, 2])
+            with a1:
+                _render_ack_button(message_id, bool(msg.get("is_read", False)), f"{key_prefix}_{message_id}")
+            with a2:
+                if status != "Archived":
+                    _render_archive_button(message_id, f"{key_prefix}_{message_id}")
+                else:
+                    st.caption("Already archived.")
+            with a3:
+                with st.expander("View full message", expanded=False):
+                    st.write(msg.get("message", ""))
+                    st.caption(f"Message ID: {message_id}")
+
+
 def _reply_block(msg: dict):
     reply = _clean_text(msg.get("reply", ""))
     reply_by = _clean_text(msg.get("reply_by", ""))
@@ -116,6 +248,10 @@ def _render_ack_button(message_id: str, is_read: bool, key_suffix: str):
 
 def show_admin_message_center(sender_name: str, sender_role: str):
     page_header("Messages", "Operational messaging to coordinate staff across departments.")
+    alert_box(
+        "This message center is for in-app coordination only. External email/SMS delivery is a future SaaS feature.",
+        level="info",
+    )
     data = _safe_templates_response()
     templates = data["admin_templates"]
 
@@ -142,7 +278,7 @@ def show_admin_message_center(sender_name: str, sender_role: str):
             key="admin_message_priority",
         )
 
-    section_header("Quick templates")
+    section_header("Quick templates", "Demo-safe in-app templates for common hospital coordination moments.")
     if not templates:
         empty_state("No quick templates available.")
     else:
@@ -151,34 +287,35 @@ def show_admin_message_center(sender_name: str, sender_role: str):
             message = template.get("message", "")
             category = template.get("category", "general")
 
-            st.markdown(f"#### {title}")
-            _priority_badge(template.get("priority", selected_priority))
-            st.write(message)
-            st.caption(
-                f"Category: {category} | Default Role: {template.get('target_role', 'all')} | "
-                f"Default Department: {template.get('target_department', 'All Departments')}"
-            )
+            with st.container(border=True):
+                t1, t2 = st.columns([0.78, 0.22])
+                with t1:
+                    st.markdown(f"#### {title}")
+                    st.write(message)
+                    st.caption(
+                        f"Category: {category} • Default role: {template.get('target_role', 'all')} • "
+                        f"Default department: {template.get('target_department', 'All Departments')}"
+                    )
+                with t2:
+                    _priority_badge(template.get("priority", selected_priority))
+                    if st.button(f"Send template", key=f"send_template_{idx}"):
+                        result = send_message_api(
+                            sender_name=sender_name,
+                            sender_role=sender_role,
+                            target_role=selected_target_role,
+                            target_department=selected_target_department,
+                            category=category,
+                            title=title,
+                            message=message,
+                            priority=selected_priority,
+                        )
+                        if result and result.get("status") == "sent":
+                            st.success("Template message sent successfully.")
+                            st.rerun()
+                        else:
+                            st.error("Failed to send template message.")
 
-            if st.button(f"Send Template {idx + 1}", key=f"send_template_{idx}"):
-                result = send_message_api(
-                    sender_name=sender_name,
-                    sender_role=sender_role,
-                    target_role=selected_target_role,
-                    target_department=selected_target_department,
-                    category=category,
-                    title=title,
-                    message=message,
-                    priority=selected_priority,
-                )
-                if result and result.get("status") == "sent":
-                    st.success("Template message sent successfully.")
-                    st.rerun()
-                else:
-                    st.error("Failed to send template message.")
-
-            st.markdown("---")
-
-    section_header("Compose")
+    section_header("Compose", "Send an internal coordination update to a role or department.")
     custom_title = st.text_input("Custom Title", key="admin_custom_title")
     custom_type = st.selectbox(
         "Message Type",
@@ -207,7 +344,7 @@ def show_admin_message_center(sender_name: str, sender_role: str):
             else:
                 st.error("Failed to send custom message.")
 
-    section_header("Sent messages")
+    section_header("Sent messages", "Inbox-style view of active coordination messages you sent.")
     unread_meta = get_unread_message_count() or {}
     if isinstance(unread_meta, dict) and "unread_count" in unread_meta:
         st.caption(f"Your unread (personal) inbox count: {int(unread_meta.get('unread_count') or 0)}")
@@ -221,30 +358,10 @@ def show_admin_message_center(sender_name: str, sender_role: str):
     if not sent_messages:
         empty_state("No active sent messages.")
     else:
-        for i, msg in enumerate(sent_messages):
-            message_id = msg.get("message_id", "")
+        for msg in sent_messages:
+            _render_message_card(msg, key_prefix="admin_sent")
 
-            st.markdown(f"#### {msg.get('title', 'Untitled')}")
-            _priority_badge(msg.get("priority", "normal"))
-            st.write(msg.get("message", ""))
-            st.caption(
-                f"Target Role: {msg.get('target_role', 'all')} | "
-                f"Target Department: {msg.get('target_department', 'All Departments')} | "
-                f"Status: {msg.get('status', '')} | Time: {msg.get('timestamp', '')}"
-            )
-
-            _reply_block(msg)
-
-            c1, c2 = st.columns(2)
-            with c1:
-                _render_ack_button(message_id, bool(msg.get("is_read", False)), f"admin_sent_{message_id}")
-            with c2:
-                _render_archive_button(message_id, f"admin_sent_{message_id}")
-
-            if i < len(sent_messages) - 1:
-                st.markdown("---")
-
-    section_header("Archived")
+    section_header("Archived", "Messages hidden from your active coordination queue.")
     archived_messages = _safe_messages_response(
         sender_name=sender_name,
         include_archived=True,
@@ -254,24 +371,18 @@ def show_admin_message_center(sender_name: str, sender_role: str):
     if not archived_messages:
         empty_state("No archived sent messages.")
     else:
-        for i, msg in enumerate(archived_messages):
-            st.markdown(f"#### {msg.get('title', 'Untitled')}")
-            _priority_badge(msg.get("priority", "normal"))
-            st.write(msg.get("message", ""))
-            _reply_block(msg)
-            st.caption(
-                f"[Archived] Target Role: {msg.get('target_role', 'all')} | "
-                f"Target Department: {msg.get('target_department', 'All Departments')} | "
-                f"Time: {msg.get('timestamp', '')}"
-            )
-            if i < len(archived_messages) - 1:
-                st.markdown("---")
+        for msg in archived_messages:
+            _render_message_card(msg, key_prefix="admin_archived", allow_actions=False)
 
 
 def show_staff_message_center(user_name: str, role: str, department: str):
     page_header("Messages", "Your inbox for operational updates, alerts, and quick replies.")
+    alert_box(
+        "This message center is for in-app coordination only. External email/SMS delivery is a future SaaS feature.",
+        level="info",
+    )
 
-    section_header("Send update to Admin")
+    section_header("Send update to Admin", "Share a staffing, patient-flow, or department coordination update.")
     with st.expander("Compose a quick update", expanded=False):
         staff_title = st.text_input("Title", key="staff_to_admin_title")
         staff_message = st.text_area("Message", key="staff_to_admin_message")
@@ -315,66 +426,16 @@ def show_staff_message_center(user_name: str, role: str, department: str):
             status_badge(f"Unread: {count}", "critical" if count else "success")
 
         if not messages:
-            empty_state("No messages available.")
+            empty_state("No messages available. Coordination updates will appear here when sent by the operations team.")
         else:
-            for idx, msg in enumerate(messages):
-                message_id = msg.get("message_id", "")
-
-                st.markdown(f"#### {msg.get('title', 'Untitled Message')}")
-                _priority_badge(msg.get("priority", "normal"))
-                st.write(msg.get("message", ""))
-                st.caption(
-                    f"From: {msg.get('sender_name', '')} ({msg.get('sender_role', '')}) | "
-                    f"Time: {msg.get('timestamp', '')}"
+            for msg in messages:
+                _render_message_card(
+                    msg,
+                    key_prefix="staff_inbox",
+                    quick_replies=quick_replies,
+                    user_name=user_name,
+                    allow_reply=True,
                 )
-
-                reply_value = _clean_text(msg.get("reply", ""))
-                is_read = bool(msg.get("is_read", False))
-
-                if reply_value:
-                    _reply_block(msg)
-                else:
-                    section_header("Quick replies")
-                    if quick_replies:
-                        cols = st.columns(4)
-                        for q_idx, reply in enumerate(quick_replies):
-                            with cols[q_idx % 4]:
-                                if st.button(reply, key=f"quick_reply_{message_id}_{q_idx}"):
-                                    result = send_quick_reply_api(
-                                        message_id=message_id,
-                                        reply_text=reply,
-                                        replied_by=user_name,
-                                    )
-                                    if result and result.get("status") == "updated":
-                                        st.success("Reply sent successfully.")
-                                        st.rerun()
-                                    else:
-                                        st.error("Failed to send reply.")
-
-                    custom_reply = st.text_input("Custom Reply", key=f"custom_reply_input_{message_id}")
-                    if st.button("Send Custom Reply", key=f"send_custom_reply_{message_id}"):
-                        if not custom_reply.strip():
-                            st.warning("Please enter a reply first.")
-                        else:
-                            result = send_quick_reply_api(
-                                message_id=message_id,
-                                reply_text=custom_reply.strip(),
-                                replied_by=user_name,
-                            )
-                            if result and result.get("status") == "updated":
-                                st.success("Custom reply sent successfully.")
-                                st.rerun()
-                            else:
-                                st.error("Failed to send reply.")
-
-                c1, c2 = st.columns(2)
-                with c1:
-                    _render_ack_button(message_id, is_read, f"staff_{message_id}")
-                with c2:
-                    _render_archive_button(message_id, f"staff_{message_id}")
-
-                if idx < len(messages) - 1:
-                    st.markdown("---")
 
     with tab_archive:
         archived_messages = _safe_messages_response(
@@ -388,18 +449,8 @@ def show_staff_message_center(user_name: str, role: str, department: str):
         if not archived_messages:
             empty_state("No archived messages.")
         else:
-            for idx, msg in enumerate(archived_messages):
-                st.markdown(f"#### {msg.get('title', 'Untitled Message')}")
-                _priority_badge(msg.get("priority", "normal"))
-                st.write(msg.get("message", ""))
-                _reply_block(msg)
-                st.caption(
-                    f"[Archived] From: {msg.get('sender_name', '')} ({msg.get('sender_role', '')}) | "
-                    f"Time: {msg.get('timestamp', '')}"
-                )
-
-                if idx < len(archived_messages) - 1:
-                    st.markdown("---")
+            for msg in archived_messages:
+                _render_message_card(msg, key_prefix="staff_archive", allow_actions=False)
 
 
 def show_message_center(user: dict):
