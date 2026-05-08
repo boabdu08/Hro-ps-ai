@@ -1,8 +1,9 @@
 staff_id,staff_name,role,department,shift_date,shift_type,shift_start_time,shift_end_time,status,notes
-doctor1,Dr. Ahmed,doctor,ER,2026-05-08,Morning,08:00,16:00,Assigned,generated from shifts.csv fallback
-doctor1,Dr. Ahmed,doctor,ER,2026-05-08,Evening,16:00,00:00,Assigned,generated from shifts.csv fallback
-doctor2,Dr. Sara,doctor,ICU,2026-05-08,Night,00:00,08:00,Assigned,generated from shifts.csv fallback
-nurse1,Nurse Mona,nurse,General Ward,2026-05-08,Morning,08:00,16:00,Assigned,generated from shifts.csv fallback
-nurse1,Nurse Mona,nurse,General Ward,2026-05-08,Evening,16:00,00:00,Assigned,generated from shifts.csv fallback
-nurse2,Nurse Ali,nurse,ER,2026-05-08,Night,00:00,08:00,Assigned,generated from shifts.csv fallback
-backup_doctor,Backup Doctor,doctor,ER,2026-05-08,Morning,08:00,16:00,Auto-Assigned,generated from shifts.csv fallback
+backup_doctor_er,Backup Doctor,doctor,ER,2026-05-08,Morning,08:00,16:00,Auto-Assigned,generated from legacy staff_shifts table
+backup_doctor,Backup Doctor,doctor,ER,2026-05-08,Morning,08:00,16:00,Auto-Assigned,generated from legacy staff_shifts table
+doctor1,Dr. Ahmed,doctor,ER,2026-05-08,Morning,08:00,16:00,Assigned,generated from legacy staff_shifts table
+nurse2,Nurse Ali,nurse,ER,2026-05-08,Night,00:00,08:00,Assigned,generated from legacy staff_shifts table
+nurse1,Nurse Mona,nurse,General Ward,2026-05-08,Evening,16:00,00:00,Assigned,generated from legacy staff_shifts table
+nurse1,Nurse Mona,nurse,General Ward,2026-05-08,Morning,08:00,16:00,Assigned,generated from legacy staff_shifts table
+doctor2,Dr. Sara,doctor,ICU,2026-05-08,Night,00:00,08:00,Assigned,generated from legacy staff_shifts table
+doctor1,Dr. Ahmed,doctor,ER,2026-05-08,Evening,16:00,00:00,Assigned,generated from legacy staff_shifts table

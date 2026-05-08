@@ -1,6 +1,7 @@
 staff_id,staff_name,role,department,specialty,qualification_level,available_for_shift,max_hours_per_week,notes
-doctor1,Dr. Ahmed,doctor,ER,Emergency Medicine,Senior,True,48,derived from current staff schedule
-doctor2,Dr. Sara,doctor,ICU,Critical Care,Senior,True,48,derived from current staff schedule
-nurse1,Nurse Mona,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-nurse2,Nurse Ali,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
+backup_doctor_er,Backup Doctor,doctor,ER,Emergency Medicine,Senior,True,48,derived from current staff schedule
 backup_doctor,Backup Doctor,doctor,ER,Emergency Medicine,Senior,True,48,derived from current staff schedule
+nurse2,Nurse Ali,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
+nurse1,Nurse Mona,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+doctor2,Dr. Sara,doctor,ICU,Critical Care,Senior,True,48,derived from current staff schedule
+doctor1,Dr. Ahmed,doctor,ER,Emergency Medicine,Senior,True,48,derived from current staff schedule

@@ -1,12 +1,12 @@
 HRO-PS updated operational data export summary
-Generated at: 2026-05-08T09:08:36
+Generated at: 2026-05-08T11:58:48
 
 CSV files created:
 - updated_hospital_data: data/updated_exports/updated_hospital_data.csv | rows=29302 | columns=26
-- staff_master_data: data/updated_exports/staff_master_data.csv | rows=5 | columns=9
-- staff_schedule: data/updated_exports/staff_schedule.csv | rows=7 | columns=10
+- staff_master_data: data/updated_exports/staff_master_data.csv | rows=6 | columns=9
+- staff_schedule: data/updated_exports/staff_schedule.csv | rows=8 | columns=10
 - or_bookings: data/updated_exports/or_bookings.csv | rows=3 | columns=9
-- patient_tracking: data/updated_exports/patient_tracking.csv | rows=80 | columns=13
+- patient_tracking: data/updated_exports/patient_tracking.csv | rows=4 | columns=13
 - appointments_updated: data/updated_exports/appointments_updated.csv | rows=4 | columns=7
 - department_status_updated: data/updated_exports/department_status_updated.csv | rows=5 | columns=13
 - patient_flow_hourly_updated: data/updated_exports/patient_flow_hourly_updated.csv | rows=29302 | columns=20
@@ -17,18 +17,18 @@ Newly added columns:
 - staff_schedule: None
 - staff_master_data: None
 - appointments_updated: None
-- or_bookings: ['notes']
+- or_bookings: None
 - patient_tracking: None
 
 Duplicate removal:
-- staff_schedule: removed 0 duplicate rows
+- staff_schedule: removed 33 duplicate rows
 - staff_master_data: removed 2 duplicate rows
-- appointments_updated: removed 0 duplicate rows
-- or_bookings: removed 0 duplicate rows
+- appointments_updated: removed 20 duplicate rows
+- or_bookings: removed 15 duplicate rows
 - patient_tracking: removed 0 duplicate rows
 
 Dates updated to today's date: Yes
-Demo/fallback data generated: Yes
+Demo/fallback data generated: No
 
 Required table/column checks:
 - staff_master_data: exists=Yes

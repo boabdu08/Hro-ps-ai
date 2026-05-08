@@ -687,6 +687,106 @@ def _build_capacity_from_allocations(allocations: list[dict]) -> pd.DataFrame:
     return df[out_cols].sort_values(by="priority_score", ascending=False) if "priority_score" in df.columns else df[out_cols]
 
 
+def _load_what_if_scenarios() -> pd.DataFrame | None:
+    """Load expanded what-if scenario dataset.
+
+    Returns None when CSV is missing/invalid so callers can fall back to the
+    legacy hardcoded scenario generator.
+    """
+
+    path = Path("data") / "updated_exports" / "what_if_scenarios.csv"
+    if not path.exists():
+        return None
+
+    try:
+        df = pd.read_csv(path)
+    except Exception:
+        return None
+
+    return df
+
+
+def _validate_what_if_scenarios(df: pd.DataFrame | None) -> bool:
+    if df is None or df.empty:
+        return False
+
+    required_cols = {
+        "scenario_id",
+        "scenario_name",
+        "scenario_category",
+        "department",
+        "time_window",
+        "demand_multiplier",
+        "arrival_increase_percent",
+        "bed_capacity_change_percent",
+        "doctor_availability_change_percent",
+        "nurse_availability_change_percent",
+        "or_booking_change_percent",
+        "appointment_change_percent",
+        "discharge_delay_hours",
+        "severity_level",
+        "probability_level",
+        "operational_risk",
+        "affected_resources",
+        "expected_system_response",
+        "recommended_action",
+        "escalation_required",
+        "notes",
+    }
+    if not required_cols.issubset(set(df.columns)):
+        return False
+
+    if len(df) < 40:
+        return False
+
+    # scenario_id uniqueness
+    if "scenario_id" not in df.columns:
+        return False
+    try:
+        if not df["scenario_id"].is_unique:
+            return False
+    except Exception:
+        return False
+
+    # severity/probability/risk values are expected to be categorical
+    severity_allowed = {"Low", "Medium", "High", "Critical"}
+    if not set(df["severity_level"].dropna().astype(str).unique().tolist()).issubset(severity_allowed):
+        return False
+
+    prob_allowed = {"Rare", "Unlikely", "Possible", "Likely", "Very Likely", "VeryLikely"}
+    if not set(df["probability_level"].dropna().astype(str).unique().tolist()).intersection(prob_allowed):
+        return False
+
+    risk_allowed = {"Low", "Moderate", "High", "Critical"}
+    if not set(df["operational_risk"].dropna().astype(str).unique().tolist()).issubset(risk_allowed):
+        return False
+
+    # escalation_required
+    esc_allowed = {"Yes", "No"}
+    if not set(df["escalation_required"].dropna().astype(str).unique().tolist()).issubset(esc_allowed):
+        return False
+
+    # basic numeric conversion checks for the dynamic impact fields
+    numeric_cols = [
+        "demand_multiplier",
+        "arrival_increase_percent",
+        "bed_capacity_change_percent",
+        "doctor_availability_change_percent",
+        "nurse_availability_change_percent",
+        "or_booking_change_percent",
+        "appointment_change_percent",
+        "discharge_delay_hours",
+    ]
+    for c in numeric_cols:
+        if c not in df.columns:
+            return False
+        df[c] = pd.to_numeric(df[c], errors="coerce")
+        if df[c].isna().all():
+            return False
+
+    return True
+
+
 def _build_simulation_scenario_analysis(
     *,
     prediction: float,
@@ -816,6 +916,161 @@ def _build_simulation_scenario_analysis(
             "Expected Outcome": outcome,
         }
 
+    # CSV mode: try to load expanded scenarios from data/updated_exports/what_if_scenarios.csv.
+    # If the CSV fails validation, fall back to the legacy hardcoded rows.
+    csv_df = _load_what_if_scenarios()
+    csv_mode_valid = _validate_what_if_scenarios(csv_df)
+
+    ui_cols = [
+        "Scenario",
+        "Trigger / Condition",
+        "Current Situation",
+        "Available Resources",
+        "Required Resources",
+        "Shortage / Gap",
+        "Model Recommended Action",
+        "Operational Decision",
+        "Priority Level",
+        "Affected Department / Area",
+        "Expected Outcome",
+    ]
+
+    if csv_mode_valid:
+        def _csv_priority(base_level: str, bed_gap: int, doc_gap: int, nurse_gap: int) -> str:
+            gaps = sum([bed_gap > 0, doc_gap > 0, nurse_gap > 0])
+            level = str(base_level or "Low")
+            if gaps >= 2 and level in {"Low", "Medium"}:
+                return "High"
+            if gaps >= 3 and level != "Critical":
+                return "Critical"
+            if (bed_gap >= 10 or doc_gap >= 5 or nurse_gap >= 5) and level in {"Low", "Medium"}:
+                return "High"
+            return level
+
+        out_rows: list[dict] = []
+
+        # Baseline requirements from the live Simulation controls.
+        baseline_required_beds = required_beds
+        baseline_required_doctors = required_doctors
+        baseline_required_nurses = required_nurses
+
+        for _, r in csv_df.iterrows():
+            scenario_name = str(r.get("scenario_name"))
+            scenario_category = str(r.get("scenario_category"))
+            department = str(r.get("department"))
+            time_window = str(r.get("time_window"))
+
+            demand_multiplier = float(r.get("demand_multiplier") or 1.0)
+            arrival_increase_percent = float(r.get("arrival_increase_percent") or 0.0)
+            bed_capacity_change_percent = float(r.get("bed_capacity_change_percent") or 0.0)
+            doctor_availability_change_percent = float(r.get("doctor_availability_change_percent") or 0.0)
+            nurse_availability_change_percent = float(r.get("nurse_availability_change_percent") or 0.0)
+            appointment_change_percent = float(r.get("appointment_change_percent") or 0.0)
+            or_booking_change_percent = float(r.get("or_booking_change_percent") or 0.0)
+            discharge_delay_hours = float(r.get("discharge_delay_hours") or 0.0)
+
+            severity_level = str(r.get("severity_level") or "Low")
+            probability_level = str(r.get("probability_level") or "Possible")
+            operational_risk = str(r.get("operational_risk") or "Moderate")
+            affected_resources = str(r.get("affected_resources") or "")
+            expected_system_response = str(r.get("expected_system_response") or "")
+            recommended_action = str(r.get("recommended_action") or "")
+            escalation_required = str(r.get("escalation_required") or "No")
+            notes = str(r.get("notes") or "")
+
+            # Dynamic calculation drivers (demand/beds/doctors + discharge delay).
+            demand_scaled = simulated_patients * float(demand_multiplier)
+            demand_scaled *= (1.0 + float(arrival_increase_percent) / 100.0)
+            demand_scaled = max(demand_scaled, 0.0)
+
+            # Scale baseline requirements with demand.
+            demand_ratio = demand_scaled / max(simulated_patients, 1e-9)
+            required_beds_csv = int(np.ceil(baseline_required_beds * demand_ratio))
+            required_doctors_csv = int(np.ceil(baseline_required_doctors * demand_ratio))
+            required_nurses_csv = int(np.ceil(baseline_required_nurses * demand_ratio))
+
+            # Delayed discharge increases bed pressure.
+            discharge_delay_penalty = int(np.ceil(max(discharge_delay_hours, 0.0) / 2.0))
+            required_beds_csv += discharge_delay_penalty
+
+            available_beds_csv = int(max(0, np.floor(available_beds * (1.0 + bed_capacity_change_percent / 100.0))))
+            available_doctors_csv = int(max(0, np.floor(available_doctors * (1.0 + doctor_availability_change_percent / 100.0))))
+            estimated_available_nurses_csv = int(max(0, np.floor(estimated_available_nurses * (1.0 + nurse_availability_change_percent / 100.0))))
+
+            bed_shortage_csv = max(required_beds_csv - available_beds_csv, 0)
+            doctor_shortage_csv = max(required_doctors_csv - available_doctors_csv, 0)
+            nurse_shortage_csv = max(required_nurses_csv - estimated_available_nurses_csv, 0)
+
+            # Wording dynamics.
+            mixed_crisis = ("mixed" in scenario_category.lower()) or severity_level == "Critical"
+            delayed_discharge_strong = discharge_delay_penalty >= 6
+
+            trigger = f"{scenario_category}: x{demand_multiplier:.2f} demand; arrival +{arrival_increase_percent:.0f}% during {time_window}."
+            current_situation = (
+                f"Baseline simulated patients ≈ {simulated_patients:.0f}; scenario-adjusted demand ≈ {demand_scaled:.0f}. "
+                f"Discharge delay proxy adds {discharge_delay_penalty} bed-pressure units."
+            )
+
+            available_resources = (
+                f"Beds available: {available_beds_csv}; Doctors available: {available_doctors_csv}; "
+                f"Nurses available: ~{estimated_available_nurses_csv}."
+            )
+            required_resources = (
+                f"Beds required: {required_beds_csv}; Doctors required: {required_doctors_csv}; Nurses required: {required_nurses_csv}."
+            )
+            shortage_gap = f"Bed gap: {bed_shortage_csv}; Doctor gap: {doctor_shortage_csv}; Nurse gap: {nurse_shortage_csv}."
+
+            # Stronger decision language when mixed crisis or multiple shortages.
+            decision_bits = []
+            if bed_shortage_csv > 0:
+                decision_bits.append(f"Open overflow beds + accelerate discharge (gap beds={bed_shortage_csv}).")
+            if doctor_shortage_csv > 0:
+                decision_bits.append(f"Call on-call doctors / reschedule non-urgent (gap doctors={doctor_shortage_csv}).")
+            if nurse_shortage_csv > 0:
+                decision_bits.append(f"Activate nursing backup / redistribute (gap nurses={nurse_shortage_csv}).")
+            if not decision_bits:
+                decision_bits.append("Maintain standard operations; monitor capacity trend.")
+
+            operational_decision = " ".join(decision_bits)
+            if mixed_crisis:
+                operational_decision = "Initiate multi-resource command huddle. " + operational_decision
+            if delayed_discharge_strong and bed_shortage_csv > 0:
+                operational_decision = "Discharge acceleration priority due to delayed turnover. " + operational_decision
+
+            model_recommended_action = recommended_action.strip()
+            if (bed_shortage_csv + doctor_shortage_csv + nurse_shortage_csv) > 0:
+                model_recommended_action += f" (Targets: beds {bed_shortage_csv}, doctors {doctor_shortage_csv}, nurses {nurse_shortage_csv})."
+
+            # Priority level based on CSV severity + computed gaps.
+            csv_priority_base = _csv_priority(severity_level, bed_shortage_csv, doctor_shortage_csv, nurse_shortage_csv)
+            priority_level = priority_label(csv_priority_base)
+
+            affected_area = f"{department} ({affected_resources})".strip() if affected_resources else department
+
+            expected_outcome = expected_system_response.strip() if expected_system_response else ""
+            if delayed_discharge_strong:
+                expected_outcome = (expected_outcome + " Discharge delays amplify bed crowding; prioritize turnaround.").strip()
+            if notes:
+                expected_outcome = (expected_outcome + f" Notes: {notes}").strip()
+
+            out_rows.append({
+                "Scenario": scenario_name,
+                "Trigger / Condition": trigger,
+                "Current Situation": current_situation,
+                "Available Resources": available_resources,
+                "Required Resources": required_resources,
+                "Shortage / Gap": shortage_gap,
+                "Model Recommended Action": model_recommended_action,
+                "Operational Decision": operational_decision,
+                "Priority Level": priority_level,
+                "Affected Department / Area": affected_area,
+                "Expected Outcome": expected_outcome,
+            })
+
+        out = pd.DataFrame(out_rows)
+        return out[ui_cols].copy()
+
+    # Legacy fallback below (hardcoded scenarios).
     rows = [
         row(
             "Emergency demand surge",
@@ -830,6 +1085,7 @@ def _build_simulation_scenario_analysis(
             "ER / Triage / Admissions",
             "Reduced waiting time and faster emergency throughput.",
         ),
+
         row(
             "Bed shortage",
             f"Available beds = {available_beds}; required beds = {required_beds}.",
@@ -1506,6 +1762,15 @@ def show_evaluation_panel():
         f"MAPE = {best_model_row['MAPE']:.2f}%"
     )
 
+    # Notes about metric interpretation (important for operational throughput experiments)
+    st.info(
+        "MAPE may be inflated when actual demand is close to zero, so MAE and RMSE are more reliable for this experiment."
+    )
+    st.caption(
+        "ARIMAX may produce convergence warnings during training; this is a training limitation and is reported as such (not hidden)."
+    )
+
+
     fig_metrics = px.bar(
         eval_df,
         x="Model",
@@ -1553,6 +1818,17 @@ def show_evaluation_panel():
 
 def show_explainability_panel():
     page_header("Explainability", "Feature sensitivity analysis for the current forecast input.")
+
+    # Small operational narrative (rule-based) so operators can map the model sensitivity
+    # to day-to-day pressure drivers. This never overwrites model-based outputs.
+    st.subheader("Operational Pressure Explanation")
+    st.caption(
+        "This view is model-based feature sensitivity (what features most affect the forecast). "
+        "Below is an operational, rule-based translation of how forecast pressure typically shows up "
+        "in hospitals (demand, bed shortage, doctor shortage, nurse shortage, appointment backlog, "
+        "OR pressure, delayed discharge, department status, and forecast overload)."
+    )
+
 
     ctx = get_live_context()
     if not ctx["ready"]:

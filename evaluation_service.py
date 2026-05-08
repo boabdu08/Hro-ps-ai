@@ -60,12 +60,37 @@ def _extract_metric_block(payload: dict, split: str):
     return payload.get("test_metrics") or payload.get("test")
 
 
+def _load_metrics_payloads(split: str) -> tuple[dict | None, dict | None, dict | None]:
+    """Load metrics payloads.
+
+    Prefer 72-hour artifacts when available:
+      - artifacts/metrics_72h/*_ops72h_metrics.json
+
+    Fallback to legacy filenames when those artifacts are missing:
+      - lstm_metrics.json / arimax_metrics.json / hybrid_metrics.json
+    """
+
+    split = split.lower()
+
+    # Preferred (72h)
+    lstm_payload = _load_json("artifacts/metrics_72h/lstm_ops72h_metrics.json")
+    arimax_payload = _load_json("artifacts/metrics_72h/arimax_ops72h_metrics.json")
+    hybrid_payload = _load_json("artifacts/metrics_72h/hybrid_ops72h_metrics.json")
+
+    # Fallback to legacy if preferred artifacts are missing.
+    if lstm_payload is None and arimax_payload is None and hybrid_payload is None:
+        lstm_payload = _load_json("lstm_metrics.json")
+        arimax_payload = _load_json("arimax_metrics.json")
+        hybrid_payload = _load_json("hybrid_metrics.json")
+
+    return lstm_payload, arimax_payload, hybrid_payload
+
+
 def build_metrics_dataframe(split: str = "test") -> pd.DataFrame:
     split = split.lower()
 
-    lstm_payload = _load_json("lstm_metrics.json")
-    arimax_payload = _load_json("arimax_metrics.json")
-    hybrid_payload = _load_json("hybrid_metrics.json")
+    lstm_payload, arimax_payload, hybrid_payload = _load_metrics_payloads(split)
+
 
     rows = []
 

@@ -15,9 +15,9 @@
 - [ ] Inspect current implementations for: Shifts, Appointments, OR Bookings, Explainability, Evaluation.
 
 ## Phase 4 — Update evaluation/forecast/digital twin presentation
-- [ ] Ensure Evaluation tab loads real artifacts and avoids fake values.
-- [ ] Ensure Forecast tab plots LSTM/ARIMAX/Hybrid and highlights best.
-- [ ] Ensure Digital Twin tab reads department-level artifacts and handles 216 rows.
+- [x] Ensure Evaluation tab loads real artifacts and avoids fake values (includes MAPE + ARIMAX limitation notes).
+- [x] Ensure Forecast tab plots LSTM/ARIMAX/Hybrid and highlights best (incl. hybrid weights display path).
+- [x] Ensure Digital Twin tab reads department-level artifacts and handles 216 rows.
 
 ## Phase 5 — Make operational demo data look realistic
 - [ ] Replace small demo CSV exports for staff/shifts/appointments/or bookings with medium-hospital sized data.
@@ -28,5 +28,6 @@
 - [x] Run `pytest -q`.
 - [x] Smoke check dashboard tabs for missing/empty data handling.
 
-
+## Phase 7 — Scenario UI integration (Simulation)
+- [x] CSV-driven Simulation scenario analysis loads when `data/updated_exports/what_if_scenarios.csv` passes validation and preserves the 11 required UI columns, with fallback preserved.
 
