@@ -12,7 +12,11 @@
 - [x] Export updated scenarios to agreed path.
 
 ## Phase 3 — Improve operational UI tabs
-- [ ] Inspect current implementations for: Shifts, Appointments, OR Bookings, Explainability, Evaluation.
+- [x] Inspect current implementations for: Shifts, Appointments, OR Bookings, Explainability, Evaluation.
+
+## Phase 3 note (operational demo data)
+- Shifts/Appointments/OR Bookings are now backed by realistic operational demo data exports (Phase 5), while Explainability/Evaluation were already inspected/improved in Phase 4.
+
 
 ## Phase 4 — Update evaluation/forecast/digital twin presentation
 - [x] Ensure Evaluation tab loads real artifacts and avoids fake values (includes MAPE + ARIMAX limitation notes).
@@ -20,8 +24,14 @@
 - [x] Ensure Digital Twin tab reads department-level artifacts and handles 216 rows.
 
 ## Phase 5 — Make operational demo data look realistic
-- [ ] Replace small demo CSV exports for staff/shifts/appointments/or bookings with medium-hospital sized data.
-- [ ] Keep required columns and keep dates synced to today.
+- [x] Replace small demo CSV exports for staff/shifts/appointments/or bookings with medium-hospital sized data.
+- [x] Keep required columns and keep dates synced to today.
+
+### Phase 5 risks / notes
+- Staff seed count may differ from exported `staff_master_data.csv` because export rebuilds staff master from scheduled staff and dedupes by `staff_id`.
+- Appointment/OR doctor linkage is name-based in CSV exports (not a staff_id foreign key).
+- OR bookings = 9 is acceptable for the demo, but can be expanded later if a denser OR schedule is desired.
+
 
 ## Phase 6 — Validation
 - [x] Run `python -m compileall ...`.

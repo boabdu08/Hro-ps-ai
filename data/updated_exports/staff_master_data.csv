@@ -1,7 +1,113 @@
 staff_id,staff_name,role,department,specialty,qualification_level,available_for_shift,max_hours_per_week,notes
-backup_doctor_er,Backup Doctor,doctor,ER,Emergency Medicine,Senior,True,48,derived from current staff schedule
-backup_doctor,Backup Doctor,doctor,ER,Emergency Medicine,Senior,True,48,derived from current staff schedule
-nurse2,Nurse Ali,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
-nurse1,Nurse Mona,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-doctor2,Dr. Sara,doctor,ICU,Critical Care,Senior,True,48,derived from current staff schedule
-doctor1,Dr. Ahmed,doctor,ER,Emergency Medicine,Senior,True,48,derived from current staff schedule
+DOC-008,Dr. Hassan Othman,doctor,ER,Emergency Medicine,Senior,True,48,derived from current staff schedule
+DOC-020,Dr. Huda Othman,doctor,ER,Emergency Medicine,Senior,True,48,derived from current staff schedule
+NUR-005,Nurse Ahmed Al-Sayed,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
+DOC-002,Dr. Sara Abdullah,doctor,ER,Emergency Medicine,Senior,True,48,derived from current staff schedule
+DOC-010,Dr. Rami Abdullah,doctor,ER,Emergency Medicine,Senior,True,48,derived from current staff schedule
+DOC-028,Dr. Omar Othman,doctor,ER,Emergency Medicine,Senior,True,48,derived from current staff schedule
+DOC-013,Dr. Amal Al-Sayed,doctor,ER,Emergency Medicine,Senior,True,48,derived from current staff schedule
+NUR-049,Nurse Ahmed Al-Sayed,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
+NUR-055,Nurse Layla Yasin,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
+NUR-050,Nurse Sara Abdullah,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
+NUR-051,Nurse Mona Yasin,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
+NUR-002,Nurse Huda Abdullah,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
+NUR-061,Nurse Amal Al-Sayed,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
+NUR-085,Nurse Zahra Al-Sayed,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
+NUR-087,Nurse Mariam Yasin,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
+NUR-007,Nurse Mona Yasin,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
+NUR-028,Nurse Sara Othman,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
+DOC-024,Dr. Sara Othman,doctor,ICU,Critical Care,Senior,True,48,derived from current staff schedule
+DOC-014,Dr. Karim Abdullah,doctor,ICU,Critical Care,Senior,True,48,derived from current staff schedule
+NUR-074,Nurse Youssef Abdullah,nurse,ICU,Critical Care,Registered,True,48,derived from current staff schedule
+NUR-017,Nurse Amal Al-Sayed,nurse,ICU,Critical Care,Registered,True,48,derived from current staff schedule
+NUR-080,Nurse Rami Othman,nurse,ICU,Critical Care,Registered,True,48,derived from current staff schedule
+NUR-067,Nurse Noor Yasin,nurse,ICU,Critical Care,Registered,True,48,derived from current staff schedule
+NUR-019,Nurse Zahra Yasin,nurse,ICU,Critical Care,Registered,True,48,derived from current staff schedule
+DOC-011,Dr. Leila Yasin,doctor,General Ward,General Ward,Senior,True,48,derived from current staff schedule
+NUR-010,Nurse Omar Abdullah,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+NUR-030,Nurse Youssef Abdullah,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+DOC-004,Dr. Youssef Othman,doctor,General Ward,General Ward,Senior,True,48,derived from current staff schedule
+NUR-056,Nurse Hassan Othman,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+NUR-004,Nurse Rana Othman,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+NUR-086,Nurse Samir Abdullah,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+NUR-036,Nurse Rami Othman,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+NUR-046,Nurse Huda Abdullah,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+NUR-040,Nurse Karim Othman,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+NUR-008,Nurse Youssef Othman,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+NUR-003,Nurse Tarek Yasin,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+DOC-003,Dr. Mona Yasin,doctor,General Ward,General Ward,Senior,True,48,derived from current staff schedule
+DOC-023,Dr. Ahmed Yasin,doctor,General Ward,General Ward,Senior,True,48,derived from current staff schedule
+NUR-077,Nurse Layla Al-Sayed,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+NUR-039,Nurse Amal Yasin,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+NUR-054,Nurse Omar Abdullah,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+NUR-069,Nurse Tarek Al-Sayed,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+NUR-072,Nurse Sara Othman,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+NUR-068,Nurse Huda Othman,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+NUR-013,Nurse Noura Al-Sayed,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+NUR-020,Nurse Samir Othman,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+NUR-065,Nurse Mariam Al-Sayed,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+NUR-031,Nurse Fatima Yasin,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+NUR-011,Nurse Layla Yasin,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+NUR-042,Nurse Samir Abdullah,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+NUR-029,Nurse Mona Al-Sayed,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+NUR-038,Nurse Ibrahim Abdullah,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
+DOC-009,Dr. Noura Al-Sayed,doctor,Cardiology,Cardiology,Senior,True,48,derived from current staff schedule
+DOC-012,Dr. Ibrahim Othman,doctor,Cardiology,Cardiology,Senior,True,48,derived from current staff schedule
+NUR-073,Nurse Mona Al-Sayed,nurse,Cardiology,Cardiology,Registered,True,48,derived from current staff schedule
+NUR-084,Nurse Karim Othman,nurse,Cardiology,Cardiology,Registered,True,48,derived from current staff schedule
+NUR-082,Nurse Ibrahim Abdullah,nurse,Cardiology,Cardiology,Registered,True,48,derived from current staff schedule
+NUR-058,Nurse Rami Abdullah,nurse,Cardiology,Cardiology,Registered,True,48,derived from current staff schedule
+NUR-048,Nurse Rana Othman,nurse,Cardiology,Cardiology,Registered,True,48,derived from current staff schedule
+NUR-064,Nurse Samir Othman,nurse,Cardiology,Cardiology,Registered,True,48,derived from current staff schedule
+DOC-040,Dr. Fadi Othman,doctor,Orthopedics,Orthopedics,Senior,True,48,derived from current staff schedule
+DOC-030,Dr. Hassan Abdullah,doctor,Orthopedics,Orthopedics,Senior,True,48,derived from current staff schedule
+DOC-018,Dr. Fadi Abdullah,doctor,Orthopedics,Orthopedics,Senior,True,48,derived from current staff schedule
+DOC-036,Dr. Karim Othman,doctor,Orthopedics,Orthopedics,Senior,True,48,derived from current staff schedule
+DOC-033,Dr. Leila Al-Sayed,doctor,Orthopedics,Orthopedics,Senior,True,48,derived from current staff schedule
+NUR-079,Nurse Noura Yasin,nurse,Orthopedics,Orthopedics,Registered,True,48,derived from current staff schedule
+NUR-041,Nurse Zahra Al-Sayed,nurse,Orthopedics,Orthopedics,Registered,True,48,derived from current staff schedule
+NUR-016,Nurse Ibrahim Othman,nurse,Orthopedics,Orthopedics,Registered,True,48,derived from current staff schedule
+NUR-052,Nurse Youssef Othman,nurse,Orthopedics,Orthopedics,Registered,True,48,derived from current staff schedule
+NUR-023,Nurse Noor Yasin,nurse,Orthopedics,Orthopedics,Registered,True,48,derived from current staff schedule
+NUR-043,Nurse Mariam Yasin,nurse,Orthopedics,Orthopedics,Registered,True,48,derived from current staff schedule
+DOC-038,Dr. Samir Abdullah,doctor,Pediatrics,Pediatrics,Senior,True,48,derived from current staff schedule
+NUR-018,Nurse Karim Abdullah,nurse,Pediatrics,Pediatrics,Registered,True,48,derived from current staff schedule
+DOC-022,Dr. Rana Abdullah,doctor,Pediatrics,Pediatrics,Senior,True,48,derived from current staff schedule
+NUR-024,Nurse Huda Othman,nurse,Pediatrics,Pediatrics,Registered,True,48,derived from current staff schedule
+NUR-035,Nurse Noura Yasin,nurse,Pediatrics,Pediatrics,Registered,True,48,derived from current staff schedule
+NUR-015,Nurse Leila Yasin,nurse,Pediatrics,Pediatrics,Registered,True,48,derived from current staff schedule
+DOC-001,Dr. Ahmed Al-Sayed,doctor,Pediatrics,Pediatrics,Senior,True,48,derived from current staff schedule
+DOC-006,Dr. Omar Abdullah,doctor,Pediatrics,Pediatrics,Senior,True,48,derived from current staff schedule
+NUR-009,Nurse Fatima Al-Sayed,nurse,Pediatrics,Pediatrics,Registered,True,48,derived from current staff schedule
+NUR-022,Nurse Fadi Abdullah,nurse,Pediatrics,Pediatrics,Registered,True,48,derived from current staff schedule
+NUR-001,Nurse Noor Al-Sayed,nurse,Pediatrics,Pediatrics,Registered,True,48,derived from current staff schedule
+NUR-062,Nurse Karim Abdullah,nurse,Pediatrics,Pediatrics,Registered,True,48,derived from current staff schedule
+NUR-063,Nurse Zahra Yasin,nurse,Pediatrics,Pediatrics,Registered,True,48,derived from current staff schedule
+NUR-078,Nurse Hassan Abdullah,nurse,Pediatrics,Pediatrics,Registered,True,48,derived from current staff schedule
+DOC-039,Dr. Mariam Yasin,doctor,Surgery,Surgery,Senior,True,48,derived from current staff schedule
+DOC-037,Dr. Zahra Al-Sayed,doctor,Surgery,Surgery,Senior,True,48,derived from current staff schedule
+DOC-007,Dr. Layla Yasin,doctor,Surgery,Surgery,Senior,True,48,derived from current staff schedule
+DOC-031,Dr. Noura Yasin,doctor,Surgery,Surgery,Senior,True,48,derived from current staff schedule
+DOC-032,Dr. Rami Othman,doctor,Surgery,Surgery,Senior,True,48,derived from current staff schedule
+DOC-005,Dr. Fatima Al-Sayed,doctor,Surgery,Surgery,Senior,True,48,derived from current staff schedule
+NUR-081,Nurse Leila Al-Sayed,nurse,Surgery,Surgery,Registered,True,48,derived from current staff schedule
+NUR-053,Nurse Fatima Al-Sayed,nurse,Surgery,Surgery,Registered,True,48,derived from current staff schedule
+NUR-083,Nurse Amal Yasin,nurse,Surgery,Surgery,Registered,True,48,derived from current staff schedule
+NUR-026,Nurse Rana Abdullah,nurse,Surgery,Surgery,Registered,True,48,derived from current staff schedule
+NUR-090,Nurse Huda Abdullah,nurse,Radiology,Radiology,Registered,True,48,derived from current staff schedule
+NUR-076,Nurse Omar Othman,nurse,Laboratory,Laboratory,Registered,True,48,derived from current staff schedule
+NUR-089,Nurse Noor Al-Sayed,nurse,Laboratory,Laboratory,Registered,True,48,derived from current staff schedule
+NUR-033,Nurse Layla Al-Sayed,nurse,Laboratory,Laboratory,Registered,True,48,derived from current staff schedule
+NUR-060,Nurse Ibrahim Othman,nurse,Laboratory,Laboratory,Registered,True,48,derived from current staff schedule
+NUR-025,Nurse Tarek Al-Sayed,nurse,Laboratory,Laboratory,Registered,True,48,derived from current staff schedule
+NUR-044,Nurse Fadi Othman,nurse,Pharmacy,Pharmacy,Registered,True,48,derived from current staff schedule
+NUR-075,Nurse Fatima Yasin,nurse,Pharmacy,Pharmacy,Registered,True,48,derived from current staff schedule
+NUR-037,Nurse Leila Al-Sayed,nurse,Pharmacy,Pharmacy,Registered,True,48,derived from current staff schedule
+NUR-047,Nurse Tarek Yasin,nurse,Outpatient Clinics,Outpatient Clinics,Registered,True,48,derived from current staff schedule
+NUR-021,Nurse Mariam Al-Sayed,nurse,Outpatient Clinics,Outpatient Clinics,Registered,True,48,derived from current staff schedule
+DOC-034,Dr. Ibrahim Abdullah,doctor,Outpatient Clinics,Outpatient Clinics,Senior,True,48,derived from current staff schedule
+DOC-025,Dr. Mona Al-Sayed,doctor,Outpatient Clinics,Outpatient Clinics,Senior,True,48,derived from current staff schedule
+NUR-070,Nurse Rana Abdullah,nurse,Outpatient Clinics,Outpatient Clinics,Registered,True,48,derived from current staff schedule
+NUR-014,Nurse Rami Abdullah,nurse,Outpatient Clinics,Outpatient Clinics,Registered,True,48,derived from current staff schedule
+NUR-088,Nurse Fadi Othman,nurse,Outpatient Clinics,Outpatient Clinics,Registered,True,48,derived from current staff schedule
+NUR-032,Nurse Omar Othman,nurse,Outpatient Clinics,Outpatient Clinics,Registered,True,48,derived from current staff schedule

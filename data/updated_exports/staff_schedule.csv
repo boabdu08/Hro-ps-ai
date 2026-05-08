@@ -1,9 +1,241 @@
 staff_id,staff_name,role,department,shift_date,shift_type,shift_start_time,shift_end_time,status,notes
-backup_doctor_er,Backup Doctor,doctor,ER,2026-05-08,Morning,08:00,16:00,Auto-Assigned,generated from legacy staff_shifts table
-backup_doctor,Backup Doctor,doctor,ER,2026-05-08,Morning,08:00,16:00,Auto-Assigned,generated from legacy staff_shifts table
-doctor1,Dr. Ahmed,doctor,ER,2026-05-08,Morning,08:00,16:00,Assigned,generated from legacy staff_shifts table
-nurse2,Nurse Ali,nurse,ER,2026-05-08,Night,00:00,08:00,Assigned,generated from legacy staff_shifts table
-nurse1,Nurse Mona,nurse,General Ward,2026-05-08,Evening,16:00,00:00,Assigned,generated from legacy staff_shifts table
-nurse1,Nurse Mona,nurse,General Ward,2026-05-08,Morning,08:00,16:00,Assigned,generated from legacy staff_shifts table
-doctor2,Dr. Sara,doctor,ICU,2026-05-08,Night,00:00,08:00,Assigned,generated from legacy staff_shifts table
-doctor1,Dr. Ahmed,doctor,ER,2026-05-08,Evening,16:00,00:00,Assigned,generated from legacy staff_shifts table
+DOC-002,Dr. Sara Abdullah,doctor,ER,2026-05-08,Morning,08:00,16:00,Available,demo schedule
+DOC-010,Dr. Rami Abdullah,doctor,ER,2026-05-08,Morning,08:00,16:00,Available,demo schedule
+DOC-008,Dr. Hassan Othman,doctor,ER,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+DOC-013,Dr. Amal Al-Sayed,doctor,ER,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-050,Nurse Sara Abdullah,nurse,ER,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-005,Nurse Ahmed Al-Sayed,nurse,ER,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-055,Nurse Layla Yasin,nurse,ER,2026-05-08,Morning,08:00,16:00,Available,demo schedule
+NUR-061,Nurse Amal Al-Sayed,nurse,ER,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-049,Nurse Ahmed Al-Sayed,nurse,ER,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-002,Nurse Huda Abdullah,nurse,ER,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-051,Nurse Mona Yasin,nurse,ER,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-028,Nurse Sara Othman,nurse,ER,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-007,Nurse Mona Yasin,nurse,ER,2026-05-08,Morning,08:00,16:00,Available,demo schedule
+NUR-085,Nurse Zahra Al-Sayed,nurse,ER,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+DOC-002,Dr. Sara Abdullah,doctor,ER,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+DOC-028,Dr. Omar Othman,doctor,ER,2026-05-08,Evening,16:00,00:00,Available,demo schedule
+DOC-020,Dr. Huda Othman,doctor,ER,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+DOC-013,Dr. Amal Al-Sayed,doctor,ER,2026-05-08,Evening,16:00,00:00,Available,demo schedule
+NUR-087,Nurse Mariam Yasin,nurse,ER,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-050,Nurse Sara Abdullah,nurse,ER,2026-05-08,Evening,16:00,00:00,On Leave,demo schedule
+NUR-085,Nurse Zahra Al-Sayed,nurse,ER,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-055,Nurse Layla Yasin,nurse,ER,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-005,Nurse Ahmed Al-Sayed,nurse,ER,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-051,Nurse Mona Yasin,nurse,ER,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-002,Nurse Huda Abdullah,nurse,ER,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-007,Nurse Mona Yasin,nurse,ER,2026-05-08,Evening,16:00,00:00,Absent,demo schedule
+NUR-049,Nurse Ahmed Al-Sayed,nurse,ER,2026-05-08,Evening,16:00,00:00,Available,demo schedule
+NUR-061,Nurse Amal Al-Sayed,nurse,ER,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+DOC-002,Dr. Sara Abdullah,doctor,ER,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+DOC-010,Dr. Rami Abdullah,doctor,ER,2026-05-08,Night,00:00,08:00,Available,demo schedule
+DOC-028,Dr. Omar Othman,doctor,ER,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+DOC-013,Dr. Amal Al-Sayed,doctor,ER,2026-05-08,Night,00:00,08:00,Available,demo schedule
+NUR-049,Nurse Ahmed Al-Sayed,nurse,ER,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-055,Nurse Layla Yasin,nurse,ER,2026-05-08,Night,00:00,08:00,Available,demo schedule
+NUR-050,Nurse Sara Abdullah,nurse,ER,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-051,Nurse Mona Yasin,nurse,ER,2026-05-08,Night,00:00,08:00,Absent,demo schedule
+NUR-002,Nurse Huda Abdullah,nurse,ER,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-061,Nurse Amal Al-Sayed,nurse,ER,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-085,Nurse Zahra Al-Sayed,nurse,ER,2026-05-08,Night,00:00,08:00,Available,demo schedule
+NUR-087,Nurse Mariam Yasin,nurse,ER,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-007,Nurse Mona Yasin,nurse,ER,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-028,Nurse Sara Othman,nurse,ER,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+DOC-014,Dr. Karim Abdullah,doctor,ICU,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+DOC-024,Dr. Sara Othman,doctor,ICU,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-067,Nurse Noor Yasin,nurse,ICU,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-019,Nurse Zahra Yasin,nurse,ICU,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-017,Nurse Amal Al-Sayed,nurse,ICU,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-074,Nurse Youssef Abdullah,nurse,ICU,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-080,Nurse Rami Othman,nurse,ICU,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+DOC-014,Dr. Karim Abdullah,doctor,ICU,2026-05-08,Evening,16:00,00:00,Available,demo schedule
+DOC-024,Dr. Sara Othman,doctor,ICU,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-017,Nurse Amal Al-Sayed,nurse,ICU,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-080,Nurse Rami Othman,nurse,ICU,2026-05-08,Evening,16:00,00:00,Available,demo schedule
+NUR-019,Nurse Zahra Yasin,nurse,ICU,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-067,Nurse Noor Yasin,nurse,ICU,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-074,Nurse Youssef Abdullah,nurse,ICU,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+DOC-024,Dr. Sara Othman,doctor,ICU,2026-05-08,Night,00:00,08:00,Available,demo schedule
+DOC-014,Dr. Karim Abdullah,doctor,ICU,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-074,Nurse Youssef Abdullah,nurse,ICU,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-017,Nurse Amal Al-Sayed,nurse,ICU,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-080,Nurse Rami Othman,nurse,ICU,2026-05-08,Night,00:00,08:00,Available,demo schedule
+NUR-067,Nurse Noor Yasin,nurse,ICU,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-019,Nurse Zahra Yasin,nurse,ICU,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+DOC-003,Dr. Mona Yasin,doctor,General Ward,2026-05-08,Morning,08:00,16:00,Available,demo schedule
+DOC-011,Dr. Leila Yasin,doctor,General Ward,2026-05-08,Morning,08:00,16:00,Available,demo schedule
+NUR-036,Nurse Rami Othman,nurse,General Ward,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-086,Nurse Samir Abdullah,nurse,General Ward,2026-05-08,Morning,08:00,16:00,Available,demo schedule
+NUR-056,Nurse Hassan Othman,nurse,General Ward,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-020,Nurse Samir Othman,nurse,General Ward,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-038,Nurse Ibrahim Abdullah,nurse,General Ward,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-010,Nurse Omar Abdullah,nurse,General Ward,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-008,Nurse Youssef Othman,nurse,General Ward,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-029,Nurse Mona Al-Sayed,nurse,General Ward,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-030,Nurse Youssef Abdullah,nurse,General Ward,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-054,Nurse Omar Abdullah,nurse,General Ward,2026-05-08,Morning,08:00,16:00,Available,demo schedule
+NUR-046,Nurse Huda Abdullah,nurse,General Ward,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-072,Nurse Sara Othman,nurse,General Ward,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-031,Nurse Fatima Yasin,nurse,General Ward,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-077,Nurse Layla Al-Sayed,nurse,General Ward,2026-05-08,Morning,08:00,16:00,Available,demo schedule
+DOC-003,Dr. Mona Yasin,doctor,General Ward,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+DOC-004,Dr. Youssef Othman,doctor,General Ward,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-042,Nurse Samir Abdullah,nurse,General Ward,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-056,Nurse Hassan Othman,nurse,General Ward,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-039,Nurse Amal Yasin,nurse,General Ward,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-031,Nurse Fatima Yasin,nurse,General Ward,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-004,Nurse Rana Othman,nurse,General Ward,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-069,Nurse Tarek Al-Sayed,nurse,General Ward,2026-05-08,Evening,16:00,00:00,On Leave,demo schedule
+NUR-086,Nurse Samir Abdullah,nurse,General Ward,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-036,Nurse Rami Othman,nurse,General Ward,2026-05-08,Evening,16:00,00:00,Available,demo schedule
+NUR-046,Nurse Huda Abdullah,nurse,General Ward,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-054,Nurse Omar Abdullah,nurse,General Ward,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-040,Nurse Karim Othman,nurse,General Ward,2026-05-08,Evening,16:00,00:00,Available,demo schedule
+NUR-038,Nurse Ibrahim Abdullah,nurse,General Ward,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-008,Nurse Youssef Othman,nurse,General Ward,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-003,Nurse Tarek Yasin,nurse,General Ward,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+DOC-003,Dr. Mona Yasin,doctor,General Ward,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+DOC-023,Dr. Ahmed Yasin,doctor,General Ward,2026-05-08,Night,00:00,08:00,Available,demo schedule
+NUR-077,Nurse Layla Al-Sayed,nurse,General Ward,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-039,Nurse Amal Yasin,nurse,General Ward,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-054,Nurse Omar Abdullah,nurse,General Ward,2026-05-08,Night,00:00,08:00,Available,demo schedule
+NUR-069,Nurse Tarek Al-Sayed,nurse,General Ward,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-072,Nurse Sara Othman,nurse,General Ward,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-068,Nurse Huda Othman,nurse,General Ward,2026-05-08,Night,00:00,08:00,Absent,demo schedule
+NUR-013,Nurse Noura Al-Sayed,nurse,General Ward,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-020,Nurse Samir Othman,nurse,General Ward,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-065,Nurse Mariam Al-Sayed,nurse,General Ward,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-031,Nurse Fatima Yasin,nurse,General Ward,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-011,Nurse Layla Yasin,nurse,General Ward,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-042,Nurse Samir Abdullah,nurse,General Ward,2026-05-08,Night,00:00,08:00,Available,demo schedule
+NUR-029,Nurse Mona Al-Sayed,nurse,General Ward,2026-05-08,Night,00:00,08:00,On Leave,demo schedule
+NUR-038,Nurse Ibrahim Abdullah,nurse,General Ward,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+DOC-009,Dr. Noura Al-Sayed,doctor,Cardiology,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+DOC-012,Dr. Ibrahim Othman,doctor,Cardiology,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-082,Nurse Ibrahim Abdullah,nurse,Cardiology,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-084,Nurse Karim Othman,nurse,Cardiology,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-048,Nurse Rana Othman,nurse,Cardiology,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-064,Nurse Samir Othman,nurse,Cardiology,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-073,Nurse Mona Al-Sayed,nurse,Cardiology,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-058,Nurse Rami Abdullah,nurse,Cardiology,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+DOC-009,Dr. Noura Al-Sayed,doctor,Cardiology,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+DOC-012,Dr. Ibrahim Othman,doctor,Cardiology,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-048,Nurse Rana Othman,nurse,Cardiology,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-073,Nurse Mona Al-Sayed,nurse,Cardiology,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-064,Nurse Samir Othman,nurse,Cardiology,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-058,Nurse Rami Abdullah,nurse,Cardiology,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-082,Nurse Ibrahim Abdullah,nurse,Cardiology,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-084,Nurse Karim Othman,nurse,Cardiology,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+DOC-009,Dr. Noura Al-Sayed,doctor,Cardiology,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+DOC-012,Dr. Ibrahim Othman,doctor,Cardiology,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-073,Nurse Mona Al-Sayed,nurse,Cardiology,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-084,Nurse Karim Othman,nurse,Cardiology,2026-05-08,Night,00:00,08:00,Available,demo schedule
+NUR-082,Nurse Ibrahim Abdullah,nurse,Cardiology,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-058,Nurse Rami Abdullah,nurse,Cardiology,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-048,Nurse Rana Othman,nurse,Cardiology,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-064,Nurse Samir Othman,nurse,Cardiology,2026-05-08,Night,00:00,08:00,Available,demo schedule
+DOC-033,Dr. Leila Al-Sayed,doctor,Orthopedics,2026-05-08,Morning,08:00,16:00,Available,demo schedule
+DOC-040,Dr. Fadi Othman,doctor,Orthopedics,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-016,Nurse Ibrahim Othman,nurse,Orthopedics,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-079,Nurse Noura Yasin,nurse,Orthopedics,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-052,Nurse Youssef Othman,nurse,Orthopedics,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-043,Nurse Mariam Yasin,nurse,Orthopedics,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-023,Nurse Noor Yasin,nurse,Orthopedics,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-041,Nurse Zahra Al-Sayed,nurse,Orthopedics,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+DOC-030,Dr. Hassan Abdullah,doctor,Orthopedics,2026-05-08,Evening,16:00,00:00,Absent,demo schedule
+DOC-018,Dr. Fadi Abdullah,doctor,Orthopedics,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-016,Nurse Ibrahim Othman,nurse,Orthopedics,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-043,Nurse Mariam Yasin,nurse,Orthopedics,2026-05-08,Evening,16:00,00:00,Absent,demo schedule
+NUR-041,Nurse Zahra Al-Sayed,nurse,Orthopedics,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-023,Nurse Noor Yasin,nurse,Orthopedics,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-079,Nurse Noura Yasin,nurse,Orthopedics,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-052,Nurse Youssef Othman,nurse,Orthopedics,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+DOC-036,Dr. Karim Othman,doctor,Orthopedics,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+DOC-033,Dr. Leila Al-Sayed,doctor,Orthopedics,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-079,Nurse Noura Yasin,nurse,Orthopedics,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-041,Nurse Zahra Al-Sayed,nurse,Orthopedics,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-016,Nurse Ibrahim Othman,nurse,Orthopedics,2026-05-08,Night,00:00,08:00,Available,demo schedule
+NUR-052,Nurse Youssef Othman,nurse,Orthopedics,2026-05-08,Night,00:00,08:00,Available,demo schedule
+NUR-023,Nurse Noor Yasin,nurse,Orthopedics,2026-05-08,Night,00:00,08:00,Available,demo schedule
+NUR-043,Nurse Mariam Yasin,nurse,Orthopedics,2026-05-08,Night,00:00,08:00,Available,demo schedule
+DOC-038,Dr. Samir Abdullah,doctor,Pediatrics,2026-05-08,Morning,08:00,16:00,Available,demo schedule
+DOC-001,Dr. Ahmed Al-Sayed,doctor,Pediatrics,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-015,Nurse Leila Yasin,nurse,Pediatrics,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-018,Nurse Karim Abdullah,nurse,Pediatrics,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-078,Nurse Hassan Abdullah,nurse,Pediatrics,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-024,Nurse Huda Othman,nurse,Pediatrics,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-001,Nurse Noor Al-Sayed,nurse,Pediatrics,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-062,Nurse Karim Abdullah,nurse,Pediatrics,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+DOC-001,Dr. Ahmed Al-Sayed,doctor,Pediatrics,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+DOC-022,Dr. Rana Abdullah,doctor,Pediatrics,2026-05-08,Evening,16:00,00:00,Absent,demo schedule
+NUR-024,Nurse Huda Othman,nurse,Pediatrics,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-009,Nurse Fatima Al-Sayed,nurse,Pediatrics,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-035,Nurse Noura Yasin,nurse,Pediatrics,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-001,Nurse Noor Al-Sayed,nurse,Pediatrics,2026-05-08,Evening,16:00,00:00,Available,demo schedule
+NUR-062,Nurse Karim Abdullah,nurse,Pediatrics,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-015,Nurse Leila Yasin,nurse,Pediatrics,2026-05-08,Evening,16:00,00:00,Available,demo schedule
+DOC-001,Dr. Ahmed Al-Sayed,doctor,Pediatrics,2026-05-08,Night,00:00,08:00,Available,demo schedule
+DOC-006,Dr. Omar Abdullah,doctor,Pediatrics,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-009,Nurse Fatima Al-Sayed,nurse,Pediatrics,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-022,Nurse Fadi Abdullah,nurse,Pediatrics,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-001,Nurse Noor Al-Sayed,nurse,Pediatrics,2026-05-08,Night,00:00,08:00,Available,demo schedule
+NUR-062,Nurse Karim Abdullah,nurse,Pediatrics,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-063,Nurse Zahra Yasin,nurse,Pediatrics,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-078,Nurse Hassan Abdullah,nurse,Pediatrics,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+DOC-007,Dr. Layla Yasin,doctor,Surgery,2026-05-08,Morning,08:00,16:00,Available,demo schedule
+DOC-005,Dr. Fatima Al-Sayed,doctor,Surgery,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+DOC-039,Dr. Mariam Yasin,doctor,Surgery,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-026,Nurse Rana Abdullah,nurse,Surgery,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-053,Nurse Fatima Al-Sayed,nurse,Surgery,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-081,Nurse Leila Al-Sayed,nurse,Surgery,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-083,Nurse Amal Yasin,nurse,Surgery,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+DOC-037,Dr. Zahra Al-Sayed,doctor,Surgery,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+DOC-032,Dr. Rami Othman,doctor,Surgery,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+DOC-007,Dr. Layla Yasin,doctor,Surgery,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-083,Nurse Amal Yasin,nurse,Surgery,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-081,Nurse Leila Al-Sayed,nurse,Surgery,2026-05-08,Evening,16:00,00:00,Available,demo schedule
+NUR-026,Nurse Rana Abdullah,nurse,Surgery,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-053,Nurse Fatima Al-Sayed,nurse,Surgery,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+DOC-031,Dr. Noura Yasin,doctor,Surgery,2026-05-08,Night,00:00,08:00,Available,demo schedule
+DOC-032,Dr. Rami Othman,doctor,Surgery,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+DOC-005,Dr. Fatima Al-Sayed,doctor,Surgery,2026-05-08,Night,00:00,08:00,Available,demo schedule
+NUR-081,Nurse Leila Al-Sayed,nurse,Surgery,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-053,Nurse Fatima Al-Sayed,nurse,Surgery,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-083,Nurse Amal Yasin,nurse,Surgery,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-026,Nurse Rana Abdullah,nurse,Surgery,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-090,Nurse Huda Abdullah,nurse,Radiology,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-090,Nurse Huda Abdullah,nurse,Radiology,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-090,Nurse Huda Abdullah,nurse,Radiology,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-060,Nurse Ibrahim Othman,nurse,Laboratory,2026-05-08,Morning,08:00,16:00,Available,demo schedule
+NUR-025,Nurse Tarek Al-Sayed,nurse,Laboratory,2026-05-08,Morning,08:00,16:00,Available,demo schedule
+NUR-076,Nurse Omar Othman,nurse,Laboratory,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-060,Nurse Ibrahim Othman,nurse,Laboratory,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-025,Nurse Tarek Al-Sayed,nurse,Laboratory,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-089,Nurse Noor Al-Sayed,nurse,Laboratory,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-033,Nurse Layla Al-Sayed,nurse,Laboratory,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-060,Nurse Ibrahim Othman,nurse,Laboratory,2026-05-08,Night,00:00,08:00,Available,demo schedule
+NUR-025,Nurse Tarek Al-Sayed,nurse,Laboratory,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-037,Nurse Leila Al-Sayed,nurse,Pharmacy,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-044,Nurse Fadi Othman,nurse,Pharmacy,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-044,Nurse Fadi Othman,nurse,Pharmacy,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-037,Nurse Leila Al-Sayed,nurse,Pharmacy,2026-05-08,Evening,16:00,00:00,On Leave,demo schedule
+NUR-075,Nurse Fatima Yasin,nurse,Pharmacy,2026-05-08,Night,00:00,08:00,Available,demo schedule
+NUR-037,Nurse Leila Al-Sayed,nurse,Pharmacy,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+DOC-025,Dr. Mona Al-Sayed,doctor,Outpatient Clinics,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+DOC-034,Dr. Ibrahim Abdullah,doctor,Outpatient Clinics,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-088,Nurse Fadi Othman,nurse,Outpatient Clinics,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-032,Nurse Omar Othman,nurse,Outpatient Clinics,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+NUR-047,Nurse Tarek Yasin,nurse,Outpatient Clinics,2026-05-08,Morning,08:00,16:00,Available,demo schedule
+NUR-014,Nurse Rami Abdullah,nurse,Outpatient Clinics,2026-05-08,Morning,08:00,16:00,Assigned,demo schedule
+DOC-034,Dr. Ibrahim Abdullah,doctor,Outpatient Clinics,2026-05-08,Evening,16:00,00:00,Available,demo schedule
+DOC-025,Dr. Mona Al-Sayed,doctor,Outpatient Clinics,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-047,Nurse Tarek Yasin,nurse,Outpatient Clinics,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+NUR-021,Nurse Mariam Al-Sayed,nurse,Outpatient Clinics,2026-05-08,Evening,16:00,00:00,Available,demo schedule
+NUR-014,Nurse Rami Abdullah,nurse,Outpatient Clinics,2026-05-08,Evening,16:00,00:00,Available,demo schedule
+NUR-070,Nurse Rana Abdullah,nurse,Outpatient Clinics,2026-05-08,Evening,16:00,00:00,Assigned,demo schedule
+DOC-034,Dr. Ibrahim Abdullah,doctor,Outpatient Clinics,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+DOC-025,Dr. Mona Al-Sayed,doctor,Outpatient Clinics,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-070,Nurse Rana Abdullah,nurse,Outpatient Clinics,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-014,Nurse Rami Abdullah,nurse,Outpatient Clinics,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-088,Nurse Fadi Othman,nurse,Outpatient Clinics,2026-05-08,Night,00:00,08:00,Assigned,demo schedule
+NUR-032,Nurse Omar Othman,nurse,Outpatient Clinics,2026-05-08,Night,00:00,08:00,Assigned,demo schedule

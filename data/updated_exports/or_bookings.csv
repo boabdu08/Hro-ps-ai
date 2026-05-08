@@ -1,4 +1,10 @@
 booking_id,room,doctor,department,booking_date,time_slot,procedure,status,notes
-OR003,OR-1,Dr. Ahmed,ER,2026-05-08,13:00-14:30,Follow-up Operation,Confirmed,
-OR002,OR-2,Dr. Sara,ICU,2026-05-08,11:00-12:30,Critical Procedure,Priority Review,
-OR001,OR-1,Dr. Ahmed,ER,2026-05-08,09:00-10:30,Emergency Surgery,Confirmed,
+OR-001-01,OR-001-01,Dr. Noor Yasin,Surgery,2026-05-08,08:00-10:00,Emergency Surgery,Scheduled,
+OR-001-02,OR-001-02,Dr. Rami Othman,Surgery,2026-05-08,10:00-12:00,Elective Hernia Repair,Scheduled,
+OR-001-03,OR-001-03,Dr. Noor Yasin,Surgery,2026-05-08,13:00-15:00,Appendectomy,Scheduled,
+OR-002-01,OR-002-01,Dr. Karim Othman,Orthopedics,2026-05-08,08:00-10:00,Orthopedic repair,Scheduled,
+OR-002-02,OR-002-02,Dr. Fadi Abdullah,Orthopedics,2026-05-08,10:00-12:00,Spinal procedure,Scheduled,
+OR-002-03,OR-002-03,Dr. Fadi Abdullah,Orthopedics,2026-05-08,13:00-15:00,Wound debridement,Scheduled,
+OR-003-01,OR-003-01,Dr. Ibrahim Othman,Cardiology,2026-05-08,08:00-10:00,Cardiac catheterization,Scheduled,
+OR-003-02,OR-003-02,Dr. Ibrahim Othman,Cardiology,2026-05-08,10:00-12:00,Cardiac catheterization,Scheduled,
+OR-003-03,OR-003-03,Dr. Noura Al-Sayed,Cardiology,2026-05-08,13:00-15:00,Cardiac catheterization,Scheduled,

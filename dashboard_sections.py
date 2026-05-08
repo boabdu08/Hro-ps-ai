@@ -1585,8 +1585,8 @@ def render_digital_twin(*, key_prefix: str = "twin"):
     })
     fig = px.area(twin_df, x="datetime", y=series_name, title="")
     fig.update_traces(
-        line=dict(color="rgba(91,92,255,0.95)", width=3),
-        fillcolor="rgba(91,92,255,0.14)",
+        line=dict(color="rgba(99,102,241,0.95)", width=3),
+        fillcolor="rgba(99,102,241,0.16)",
     )
     fig.update_layout(height=320, xaxis_title="Forecast time", yaxis_title="Predicted patients", margin=dict(l=10, r=10, t=10, b=10))
     st.plotly_chart(fig, use_container_width=True, key=scoped_key(key_prefix, "forecast_curve"))

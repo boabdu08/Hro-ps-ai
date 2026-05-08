@@ -447,51 +447,236 @@ def generate_or_bookings(*, staff_master: pd.DataFrame | None = None) -> pd.Data
     procedures_fallback = ["Appendectomy", "Orthopedic repair", "Emergency procedure"]
 
     rows: list[dict] = []
-    for i in range(len(time_slots)):
-        # alternate department for realism
-        dept = "Surgery" if i < 2 else "ER"
-
-        procedure_choices = OR_PROCEDURES.get(dept, procedures_fallback)
-        procedure = procedure_choices[i % len(procedure_choices)]
-
+    for i, dept in enumerate(["Surgery", "Orthopedics", "Cardiology"]):
         dept_docs = doctor_pool[doctor_pool["department"].astype(str).eq(dept)]
         if dept_docs.empty:
             dept_docs = doctor_pool
-        doc_person = dept_docs.sample(n=1, random_state=45 + i).iloc[0]
-
-        rows.append(
-            {
-                "booking_id": f"OR-{i+1:03d}",
-                "room": f"OR-{i+1}",
-                "doctor": doc_person["staff_name"],
-                "department": dept,
-                "booking_date": today,
-                "time_slot": time_slots[i],
-                "procedure": procedure,
-                "status": "Scheduled",
-                "notes": "demo booking",
-            }
-        )
+        procedures = OR_PROCEDURES.get(dept, procedures_fallback)
+        for j, slot in enumerate(time_slots):
+            doc_person = dept_docs.sample(n=1, random_state=45 + i * 10 + j).iloc[0]
+            proc = procedures[j % len(procedures)]
+            rows.append(
+                {
+                    "or_booking_id": f"OR-{i+1:03d}-{j+1:02d}",
+                    "department": dept,
+                    "procedure": proc,
+                    "surgeon": doc_person["staff_name"],
+                    "date": today,
+                    "time_slot": slot,
+                    "notes": "demo OR booking",
+                }
+            )
 
     df = pd.DataFrame(rows)
 
-    cols = [
-        "booking_id",
-        "room",
-        "doctor",
-        "department",
-        "booking_date",
-        "time_slot",
-        "procedure",
-        "status",
-        "notes",
-    ]
-    if hasattr(od, "OR_BOOKINGS_COLUMNS"):
-        cols = od.OR_BOOKINGS_COLUMNS
-
+    # Align to operational workflow schema.
+    cols = ["or_booking_id", "department", "procedure", "surgeon", "date", "time_slot", "notes"]
     df = _normalize_cols(df, cols)
+
+    # Map to OR_BOOKINGS_COLUMNS expected by export.
+    # export expects: booking_id, room, doctor, department, booking_date, time_slot, procedure, status, notes
+    # We keep "status" out of generator; export/workflow will default to Scheduled.
+    df = df.rename(
+        columns={
+            "or_booking_id": "booking_id",
+            "surgeon": "doctor",
+            "date": "booking_date",
+        }
+    )
+    if "room" not in df.columns:
+        df["room"] = df["booking_id"].astype(str)
+
+    # Provide status if workflow checks/needs it.
+    if "status" not in df.columns:
+        df["status"] = "Scheduled"
+
+    # Ensure final order for our insertion mapping and dedupe keys.
     df = _dedupe(df, ["booking_id"])
     return df
 
-                "department": dept,
-                "booking_date": today,
+
+def seed_database(force: bool = True) -> dict:
+    """Seed StaffMaster, StaffSchedule, Appointment, ORBooking tables.
+
+    If ORM/DB schema mismatch prevents safe insertion, exports generated data
+    to data/updated_exports/* CSV paths as a fallback.
+    """
+
+    staff_master_df = generate_staff_master()
+    staff_schedule_df = generate_staff_schedule(staff_master=staff_master_df)
+    appointments_df = generate_appointments(staff_master=staff_master_df)
+    or_bookings_df = generate_or_bookings(staff_master=staff_master_df)
+
+    # Normalize generator columns to model field names.
+    staff_master_records = staff_master_df.to_dict(orient="records")
+    staff_schedule_records = staff_schedule_df.to_dict(orient="records")
+    appointment_records = appointments_df.to_dict(orient="records")
+    # ORBooking model expects: booking_id, room, doctor, department, date, time_slot, procedure, status
+    # generator produces booking_date; store it into model.date.
+    or_records_raw = or_bookings_df.copy()
+    if "booking_date" in or_records_raw.columns and "date" not in or_records_raw.columns:
+        or_records_raw["date"] = or_records_raw["booking_date"]
+    or_records = or_records_raw.to_dict(orient="records")
+
+    db = SessionLocal()
+    seeded_via_db = False
+    db_error: str | None = None
+
+    try:
+        # Ensure tables exist.
+        # NOTE: This is dev-friendly create_all; repo already depends on it.
+        from database import init_db
+
+        init_db()
+
+        # Basic overwrite behavior.
+        if force:
+            # Use bulk delete for simplicity.
+            db.query(StaffSchedule).delete(synchronize_session=False)
+            db.query(Appointment).delete(synchronize_session=False)
+            db.query(ORBooking).delete(synchronize_session=False)
+            db.query(StaffMaster).delete(synchronize_session=False)
+
+        for rec in staff_master_records:
+            db.add(StaffMaster(**rec))
+
+        for rec in staff_schedule_records:
+            db.add(StaffSchedule(**rec))
+
+        for rec in appointment_records:
+            db.add(Appointment(**rec))
+
+        for rec in or_records:
+            # Drop unused keys that may not exist on the ORM model.
+            # This avoids unsupported columns without changing the ORM schema.
+            allowed = {
+                "booking_id",
+                "room",
+                "doctor",
+                "department",
+                "date",
+                "time_slot",
+                "procedure",
+                "status",
+            }
+            rec2 = {k: v for k, v in rec.items() if k in allowed}
+            db.add(ORBooking(**rec2))
+
+        db.commit()
+        seeded_via_db = True
+    except Exception as e:
+        db.rollback()
+        db_error = f"{type(e).__name__}: {e}"
+    finally:
+        db.close()
+
+    if not seeded_via_db:
+        # Safe fallback: export generated data directly to operational export paths.
+        # Do NOT rely on operational_data_workflow for fallback export.
+        try:
+            out_dir = "data/updated_exports"
+            staff_master_df.to_csv(f"{out_dir}/staff_master_data.csv", index=False)
+            # staff_schedule generator matches export columns; rename to what export expects.
+            staff_schedule_df.to_csv(f"{out_dir}/staff_schedule.csv", index=False)
+
+            # appointments: workflow expects appointments_updated.csv with header names as in workflow.
+            appointments_df.to_csv(f"{out_dir}/appointments_updated.csv", index=False)
+
+            # OR: export expects OR bookings CSV named or_bookings.csv
+            # Our generator now uses booking_id/room/doctor/booking_date.
+            # If booking_date exists, rename to match export.
+            or_export_df = or_bookings_df.copy()
+            if "booking_date" in or_export_df.columns:
+                or_export_df = or_export_df.rename(columns={"booking_date": "booking_date"})
+            or_export_df.to_csv(f"{out_dir}/or_bookings.csv", index=False)
+        except Exception as e:
+            # If fallback fails, surface the DB limitation loudly.
+            raise RuntimeError(
+                "DB seeding failed and CSV fallback export also failed: "
+                f"DB error={db_error}; fallback_error={type(e).__name__}: {e}"
+            ) from e
+
+        print("DB seeding limitation detected; used CSV fallback instead.")
+        print("DB limitation:", db_error)
+        return {
+            "seeded_via_db": False,
+            "db_error": db_error,
+            "counts": {
+                "staff": len(staff_master_df),
+                "staff_schedule": len(staff_schedule_df),
+                "appointments": len(appointments_df),
+                "or_bookings": len(or_bookings_df),
+            },
+        }
+
+    # Count after commit.
+    db2 = SessionLocal()
+    try:
+        staff_count = db2.query(StaffMaster).count()
+        schedule_count = db2.query(StaffSchedule).count()
+        appt_count = db2.query(Appointment).count()
+        or_count = db2.query(ORBooking).count()
+
+        doc_count = (
+            db2.query(StaffMaster).filter(StaffMaster.role == "doctor").count()
+        )
+        nurse_count = (
+            db2.query(StaffMaster).filter(StaffMaster.role == "nurse").count()
+        )
+
+        return {
+            "seeded_via_db": True,
+            "db_error": None,
+            "counts": {
+                "staff": staff_count,
+                "doctors": doc_count,
+                "nurses": nurse_count,
+                "staff_schedule": schedule_count,
+                "appointments": appt_count,
+                "or_bookings": or_count,
+            },
+        }
+    finally:
+        db2.close()
+
+
+def export_and_seed_phase5(force: bool = True) -> dict:
+    """Seed DB (or CSV fallback) then export updated operational CSVs.
+
+    If CSV fallback was used, we do not overwrite the realistic CSVs with
+    smaller DB-derived exports.
+    """
+
+    seed_result = seed_database(force=force)
+    seeded_via_db = bool(seed_result.get("seeded_via_db"))
+
+    counts = seed_result.get("counts", {})
+
+    if seeded_via_db:
+        # Export from DB; expected to be complete.
+        od.export_updated_operational_data()
+    else:
+        print("Skipping operational_data_workflow export to avoid overwriting CSV fallback.")
+
+    doctors = counts.get("doctors")
+    nurses = counts.get("nurses")
+    staff_count = counts.get("staff")
+
+    result = {
+        "staff": staff_count,
+        "doctors": doctors,
+        "nurses": nurses,
+        "staff_schedule": counts.get("staff_schedule"),
+        "appointments": counts.get("appointments"),
+        "or_bookings": counts.get("or_bookings"),
+        "seeded_via_db": seeded_via_db,
+    }
+
+    print("Phase 5 operational demo seeding summary:")
+    print(result)
+    return result
+
+
+if __name__ == "__main__":
+    export_and_seed_phase5(force=True)
+

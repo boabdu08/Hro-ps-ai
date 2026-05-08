@@ -1,5 +1,56 @@
 appointment_id,department,doctor,date,time_slot,patient_count,status
-AP004,General Ward,Dr. Ward Team,2026-05-08,12:00-14:00,20,Reschedule Required
-AP003,ICU,Dr. Sara,2026-05-08,09:00-11:00,8,Scheduled
-AP002,ER,Dr. Ahmed,2026-05-08,10:00-12:00,15,Reschedule Required
-AP001,ER,Dr. Ahmed,2026-05-08,08:00-10:00,12,Scheduled
+APT-001-01,ER,Dr. Fatima Yasin,2026-05-08,08:00-10:00,18,Scheduled
+APT-001-02,ER,Dr. Fatima Yasin,2026-05-08,10:00-12:00,8,Checked In
+APT-001-03,ER,Dr. Amal Al-Sayed,2026-05-08,12:00-14:00,22,Waiting
+APT-001-04,ER,Dr. Rami Abdullah,2026-05-08,14:00-16:00,7,In Consultation
+APT-001-05,ER,Dr. Huda Othman,2026-05-08,16:00-18:00,5,Completed
+APT-002-01,ICU,Dr. Karim Abdullah,2026-05-08,08:00-10:00,18,Checked In
+APT-002-02,ICU,Dr. Karim Abdullah,2026-05-08,10:00-12:00,8,Waiting
+APT-002-03,ICU,Dr. Karim Abdullah,2026-05-08,12:00-14:00,22,In Consultation
+APT-002-04,ICU,Dr. Karim Abdullah,2026-05-08,14:00-16:00,7,Completed
+APT-002-05,ICU,Dr. Karim Abdullah,2026-05-08,16:00-18:00,5,Cancelled
+APT-003-01,General Ward,Dr. Leila Yasin,2026-05-08,08:00-10:00,18,Waiting
+APT-003-02,General Ward,Dr. Leila Yasin,2026-05-08,10:00-12:00,8,In Consultation
+APT-003-03,General Ward,Dr. Mona Yasin,2026-05-08,12:00-14:00,22,Completed
+APT-003-04,General Ward,Dr. Mona Yasin,2026-05-08,14:00-16:00,7,Cancelled
+APT-003-05,General Ward,Dr. Youssef Othman,2026-05-08,16:00-18:00,5,No Show
+APT-004-01,Cardiology,Dr. Ibrahim Othman,2026-05-08,08:00-10:00,18,In Consultation
+APT-004-02,Cardiology,Dr. Ibrahim Othman,2026-05-08,10:00-12:00,8,Completed
+APT-004-03,Cardiology,Dr. Noura Al-Sayed,2026-05-08,12:00-14:00,22,Cancelled
+APT-004-04,Cardiology,Dr. Noura Al-Sayed,2026-05-08,14:00-16:00,7,No Show
+APT-004-05,Cardiology,Dr. Noura Al-Sayed,2026-05-08,16:00-18:00,5,Reschedule Required
+APT-005-01,Orthopedics,Dr. Fadi Othman,2026-05-08,08:00-10:00,18,Completed
+APT-005-02,Orthopedics,Dr. Fadi Othman,2026-05-08,10:00-12:00,8,Cancelled
+APT-005-03,Orthopedics,Dr. Hassan Abdullah,2026-05-08,12:00-14:00,22,No Show
+APT-005-04,Orthopedics,Dr. Fadi Abdullah,2026-05-08,14:00-16:00,7,Reschedule Required
+APT-005-05,Orthopedics,Dr. Hassan Abdullah,2026-05-08,16:00-18:00,5,Scheduled
+APT-006-01,Pediatrics,Dr. Samir Abdullah,2026-05-08,08:00-10:00,18,Cancelled
+APT-006-02,Pediatrics,Dr. Samir Abdullah,2026-05-08,10:00-12:00,8,No Show
+APT-006-03,Pediatrics,Dr. Omar Abdullah,2026-05-08,12:00-14:00,22,Reschedule Required
+APT-006-04,Pediatrics,Dr. Ahmed Al-Sayed,2026-05-08,14:00-16:00,7,Scheduled
+APT-006-05,Pediatrics,Dr. Rana Abdullah,2026-05-08,16:00-18:00,5,Checked In
+APT-007-01,Surgery,Dr. Rami Othman,2026-05-08,08:00-10:00,18,No Show
+APT-007-02,Surgery,Dr. Zahra Al-Sayed,2026-05-08,10:00-12:00,8,Reschedule Required
+APT-007-03,Surgery,Dr. Noura Yasin,2026-05-08,12:00-14:00,22,Scheduled
+APT-007-04,Surgery,Dr. Noura Yasin,2026-05-08,14:00-16:00,7,Checked In
+APT-007-05,Surgery,Dr. Noura Yasin,2026-05-08,16:00-18:00,5,Waiting
+APT-008-01,Radiology,Dr. Fatima Yasin,2026-05-08,08:00-10:00,18,Reschedule Required
+APT-008-02,Radiology,Dr. Rana Abdullah,2026-05-08,10:00-12:00,8,Scheduled
+APT-008-03,Radiology,Dr. Youssef Abdullah,2026-05-08,12:00-14:00,22,Checked In
+APT-008-04,Radiology,Dr. Noor Yasin,2026-05-08,14:00-16:00,7,Waiting
+APT-008-05,Radiology,Dr. Huda Othman,2026-05-08,16:00-18:00,5,In Consultation
+APT-009-01,Laboratory,Dr. Noor Yasin,2026-05-08,08:00-10:00,18,Scheduled
+APT-009-02,Laboratory,Dr. Leila Al-Sayed,2026-05-08,10:00-12:00,8,Checked In
+APT-009-03,Laboratory,Dr. Huda Othman,2026-05-08,12:00-14:00,22,Waiting
+APT-009-04,Laboratory,Dr. Leila Yasin,2026-05-08,14:00-16:00,7,In Consultation
+APT-009-05,Laboratory,Dr. Zahra Al-Sayed,2026-05-08,16:00-18:00,5,Completed
+APT-010-01,Pharmacy,Dr. Leila Al-Sayed,2026-05-08,08:00-10:00,18,Checked In
+APT-010-02,Pharmacy,Dr. Hassan Abdullah,2026-05-08,10:00-12:00,8,Waiting
+APT-010-03,Pharmacy,Dr. Karim Abdullah,2026-05-08,12:00-14:00,22,In Consultation
+APT-010-04,Pharmacy,Dr. Karim Othman,2026-05-08,14:00-16:00,7,Completed
+APT-010-05,Pharmacy,Dr. Sara Othman,2026-05-08,16:00-18:00,5,Cancelled
+APT-011-01,Outpatient Clinics,Dr. Mona Al-Sayed,2026-05-08,08:00-10:00,18,Waiting
+APT-011-02,Outpatient Clinics,Dr. Mona Al-Sayed,2026-05-08,10:00-12:00,8,In Consultation
+APT-011-03,Outpatient Clinics,Dr. Mona Al-Sayed,2026-05-08,12:00-14:00,22,Completed
+APT-011-04,Outpatient Clinics,Dr. Ibrahim Abdullah,2026-05-08,14:00-16:00,7,Cancelled
+APT-011-05,Outpatient Clinics,Dr. Mona Al-Sayed,2026-05-08,16:00-18:00,5,No Show

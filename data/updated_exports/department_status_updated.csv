@@ -1,6 +1,6 @@
 department,current_patients,occupied_beds,available_beds,needed_beds,bed_shortage,available_doctors,needed_doctors,doctor_shortage,available_nurses,needed_nurses,nurse_shortage,department_status
-ER,2,1,29,2,0,3,1,0,0,1,1,Warning
-ICU,1,1,19,1,0,0,1,1,0,1,1,Warning
-General Ward,1,1,79,1,0,0,1,1,1,1,0,Warning
-Surgery,0,0,10,0,0,0,1,1,0,1,1,Warning
-Radiology,0,0,15,0,0,0,1,1,0,1,1,Warning
+ER,2,1,29,2,0,4,1,0,10,1,0,Stable
+ICU,1,1,19,1,0,2,1,0,5,1,0,Stable
+General Ward,1,1,79,1,0,2,1,0,14,1,0,Stable
+Surgery,0,0,10,0,0,3,1,0,4,1,0,Stable
+Radiology,0,0,15,0,0,0,1,1,1,1,0,Warning
