@@ -59,6 +59,52 @@ def _load_hybrid_cfg():
     return json.loads(p.read_text(encoding="utf-8"))
 
 
+def _seasonal_naive_fallback(df_hist: pd.DataFrame, horizon: int) -> np.ndarray:
+    """Safe time-aware fallback: repeat the recent hourly pattern, not a flat line."""
+
+    hist = df_hist.copy().sort_values("datetime").reset_index(drop=True)
+    vals = pd.to_numeric(hist.get("patients"), errors="coerce").dropna().astype(float).values
+    if len(vals) == 0:
+        return np.zeros(horizon, dtype=float)
+    pattern_len = min(72, len(vals)) if len(vals) >= 24 else len(vals)
+    pattern = vals[-pattern_len:]
+    if len(pattern) == 0:
+        pattern = np.array([float(np.nanmedian(vals))], dtype=float)
+    reps = int(np.ceil(horizon / len(pattern)))
+    out = np.tile(pattern, reps)[:horizon].astype(float)
+    return np.clip(out, 0.0, None)
+
+
+def _validate_forecast_vector(name: str, values: np.ndarray, df_hist: pd.DataFrame) -> tuple[bool, list[str]]:
+    reasons: list[str] = []
+    arr = np.array(values, dtype=float).reshape(-1)
+    if len(arr) == 0:
+        return False, [f"{name} output is empty"]
+    if not np.isfinite(arr).all():
+        reasons.append(f"{name} output contains NaN/Inf")
+    if (arr < 0).any():
+        reasons.append(f"{name} output contains negative values")
+    if len(arr) >= 6 and float(np.nanmax(arr) - np.nanmin(arr)) < 0.5:
+        reasons.append(f"{name} output is nearly flat")
+
+    hist_vals = pd.to_numeric(df_hist.get("patients"), errors="coerce").dropna().astype(float).values
+    if len(hist_vals):
+        hist_max = float(np.nanmax(hist_vals))
+        hist_p99 = float(np.nanpercentile(hist_vals, 99))
+        upper = max(hist_max * 3.0, hist_p99 * 3.0, 50.0)
+        if float(np.nanmax(arr)) > upper:
+            reasons.append(f"{name} output exceeds safe historical range")
+    return len(reasons) == 0, reasons
+
+
+def _safe_model_output(name: str, values: np.ndarray, df_hist: pd.DataFrame, horizon: int) -> tuple[np.ndarray, bool, list[str]]:
+    ok, reasons = _validate_forecast_vector(name, values, df_hist)
+    if ok:
+        return np.clip(np.array(values, dtype=float).reshape(-1)[:horizon], 0.0, None), True, []
+    fallback = _seasonal_naive_fallback(df_hist, horizon)
+    return fallback, False, reasons + [f"{name} replaced by seasonal-naive fallback"]
+
+
 def _predict_lstm_next_hours(df_hist: pd.DataFrame, horizon: int) -> np.ndarray:
     loaded = _load_lstm_artifacts()
     if loaded is None:
@@ -137,21 +183,38 @@ def forecast_ops72h(*, tenant_id: int | None = None, horizon_hours: int = 72) ->
     last_dt = pd.to_datetime(hist["datetime"].iloc[-1])
     future_index = pd.date_range(start=last_dt + pd.Timedelta(hours=1), periods=horizon_hours, freq="h")
 
-    lstm_pred = _predict_lstm_next_hours(hist, horizon_hours)
-    arimax_pred = _predict_arimax_next_hours(hist, horizon_hours)
+    raw_lstm_pred = _predict_lstm_next_hours(hist, horizon_hours)
+    raw_arimax_pred = _predict_arimax_next_hours(hist, horizon_hours)
+    lstm_pred, lstm_ok, lstm_reasons = _safe_model_output("LSTM", raw_lstm_pred, hist, horizon_hours)
+    arimax_pred, arimax_ok, arimax_reasons = _safe_model_output("ARIMAX", raw_arimax_pred, hist, horizon_hours)
     cfg = _load_hybrid_cfg()
     w_lstm = float(cfg.get("lstm_weight", 0.85))
     w_ar = float(cfg.get("arimax_weight", 0.15))
-    hybrid = w_lstm * lstm_pred + w_ar * arimax_pred
+    if not lstm_ok and arimax_ok:
+        w_lstm, w_ar = 0.0, 1.0
+    elif lstm_ok and not arimax_ok:
+        w_lstm, w_ar = 1.0, 0.0
+    elif not lstm_ok and not arimax_ok:
+        # Both model outputs were invalid; use the time-aware fallback once.
+        w_lstm, w_ar = 1.0, 0.0
+        lstm_pred = _seasonal_naive_fallback(hist, horizon_hours)
+        arimax_pred = lstm_pred.copy()
+    else:
+        total = max(w_lstm + w_ar, 1e-9)
+        w_lstm, w_ar = w_lstm / total, w_ar / total
+    hybrid = np.clip(w_lstm * lstm_pred + w_ar * arimax_pred, 0.0, None)
 
     overall = pd.DataFrame(
         {
             "datetime": future_index,
-            "lstm_pred": lstm_pred,
-            "arimax_pred": arimax_pred,
+            "lstm_pred": np.clip(lstm_pred, 0.0, None),
+            "arimax_pred": np.clip(arimax_pred, 0.0, None),
             "hybrid_pred": hybrid,
         }
     )
+    overall["lstm_valid"] = bool(lstm_ok)
+    overall["arimax_valid"] = bool(arimax_ok)
+    overall["validation_note"] = "; ".join(lstm_reasons + arimax_reasons)
 
     # Department-level forecast: distribute overall hybrid forecast by latest dept shares
     by_department = pd.DataFrame()
@@ -175,7 +238,7 @@ def forecast_ops72h(*, tenant_id: int | None = None, horizon_hours: int = 72) ->
                 {
                     "datetime": dt,
                     "department": dept,
-                    "hybrid_pred": float(hybrid[i]) * float(share),
+            "hybrid_pred": max(0.0, float(hybrid[i]) * float(share)),
                 }
             )
     by_department = pd.DataFrame(rows)
@@ -185,5 +248,11 @@ def forecast_ops72h(*, tenant_id: int | None = None, horizon_hours: int = 72) ->
         horizon_hours=horizon_hours,
         overall=overall,
         by_department=by_department,
-        weights={"lstm": w_lstm, "arimax": w_ar},
+        weights={
+            "lstm": w_lstm,
+            "arimax": w_ar,
+            "lstm_valid": bool(lstm_ok),
+            "arimax_valid": bool(arimax_ok),
+            "fallback_reasons": lstm_reasons + arimax_reasons,
+        },
     )

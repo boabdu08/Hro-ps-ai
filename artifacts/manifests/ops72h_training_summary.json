@@ -1,13 +1,21 @@
 {
   "forecast_horizon_hours": 72,
-  "generated_at": "2026-05-09T21:47:04.565246",
+  "generated_at": "2026-05-09T22:29:45.488050",
   "overall_forecast_path": "artifacts\\forecast_outputs\\ops72h_overall_forecast.csv",
   "department_forecast_path": "artifacts\\forecast_outputs\\ops72h_department_forecast.csv",
-  "metrics_csv_path": "artifacts\\metrics\\ops72h_model_metrics.csv",
+  "metrics_csv_path": "artifacts\\metrics_72h\\ops72h_model_metrics.csv",
   "best_model": "ARIMAX",
   "weights": {
-    "lstm": 0.8,
-    "arimax": 0.2
+    "lstm": 1.0,
+    "arimax": 0.0,
+    "lstm_valid": false,
+    "arimax_valid": false,
+    "fallback_reasons": [
+      "LSTM output contains negative values",
+      "LSTM replaced by seasonal-naive fallback",
+      "ARIMAX output is nearly flat",
+      "ARIMAX replaced by seasonal-naive fallback"
+    ]
   },
   "hybrid_config": {
     "lstm_weight": 0.8,

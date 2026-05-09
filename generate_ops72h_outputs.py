@@ -16,9 +16,11 @@ from forecast_inference_ops72h import forecast_ops72h
 
 
 FORECAST_DIR = Path("artifacts") / "forecast_outputs"
-METRICS_DIR = Path("artifacts") / "metrics"
+METRICS_DIR = Path("artifacts") / "metrics_72h"
+MANIFEST_DIR = Path("artifacts") / "manifests"
 FORECAST_DIR.mkdir(parents=True, exist_ok=True)
 METRICS_DIR.mkdir(parents=True, exist_ok=True)
+MANIFEST_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _read_json(path: Path) -> dict:
@@ -70,10 +72,11 @@ def main() -> None:
         "weights": fc.weights,
         "hybrid_config": hybrid_metrics,
     }
-    (METRICS_DIR / "ops72h_training_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    (MANIFEST_DIR / "ops72h_training_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     print("Saved overall forecast:", overall_path)
     print("Saved department forecast:", dept_path)
     print("Saved metrics:", METRICS_DIR / "ops72h_model_metrics.csv")
+    print("Saved manifest:", MANIFEST_DIR / "ops72h_training_summary.json")
     print("Best model:", best_model)
 
 

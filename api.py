@@ -13,7 +13,7 @@ from sqlalchemy import text
 
 from artifacts import artifact_diagnostics, load_manifest
 from feature_spec import FEATURE_COLUMNS, ARIMAX_EXOG_COLUMNS, SEQUENCE_LENGTH
-from evaluation_service import compare_models
+from evaluation_service import build_detailed_predictions_dataframe, build_metrics_dataframe, compare_models
 from database import get_db, init_db, engine, SessionLocal
 from db_migrations import (
     ensure_alerts_notifications,
@@ -31,6 +31,8 @@ from schemas import LoginRequest
 from etl_pipeline import ingest_patient_flow, ingest_appointments, ingest_or
 from auth import create_token, bearer_from_header, decode_token, verify_password, hash_password
 from forecast_inference import load_assets as _load_assets, predict_hybrid as _predict_hybrid
+from forecast_runtime import generate_multistep_forecast
+from forecast_state import build_canonical_forecast_state, forecast_state_to_dict
 import os
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -443,6 +445,35 @@ def calculate_recommended_resources(predicted_patients: float):
     }
 
 
+def _build_state_from_sequence(sequence_array: np.ndarray | None = None) -> tuple[object, dict | None]:
+    """Build canonical ForecastState with live next-hour/24h values when possible."""
+
+    if sequence_array is None:
+        state = build_canonical_forecast_state()
+        return state, None
+
+    result = predict_hybrid(sequence_array)
+    predicted_patients = float(result["hybrid_prediction"])
+    patients_idx = FEATURE_COLUMNS.index("patients") if "patients" in FEATURE_COLUMNS else 0
+    current_patients = float(sequence_array[-1][patients_idx])
+
+    def _predict_for_multistep(seq):
+        pred = predict_hybrid(np.array(seq, dtype=float))
+        return {"predicted_patients_next_hour": float(pred["hybrid_prediction"])}
+
+    forecast_24h = generate_multistep_forecast(
+        last_sequence=sequence_array,
+        predict_fn=_predict_for_multistep,
+        steps=24,
+    )
+    state = build_canonical_forecast_state(
+        current_patients=current_patients,
+        predicted_next_hour=predicted_patients,
+        forecast_24h_values=[float(v) for v in forecast_24h],
+    )
+    return state, result
+
+
 def explain_feature_importance(sequence_array: np.ndarray):
     base_result = predict_hybrid(sequence_array)
     base_pred = float(base_result["hybrid_prediction"])
@@ -823,29 +854,19 @@ def health_db(_token: dict = Depends(require_staff_or_admin)):
 
 @system_router.get("/status")
 def system_status(_token: dict = Depends(require_staff_or_admin)):
-    diag = artifact_diagnostics()
-    manifest = load_manifest()
-    weights = None
-
-    if not diag.get("missing"):
-        try:
-            assets = _get_assets_or_503()
-            weights = {
-                "lstm": float(getattr(assets, "lstm_weight", None)),
-                "arimax": float(getattr(assets, "arimax_weight", None)),
-            }
-        except Exception:
-            weights = None
+    state = build_canonical_forecast_state()
+    state_payload = forecast_state_to_dict(state)
 
     return {
         "system": "Hospital AI",
         "model": "Hybrid Forecast (LSTM + ARIMAX)",
         "status": "running",
-        "hybrid_weights": weights or {"lstm": None, "arimax": None},
+        "hybrid_weights": state.model_weights or {"lstm": None, "arimax": None},
         "feature_count": FEATURE_COUNT,
         "sequence_length": SEQUENCE_LENGTH,
-        "artifacts": diag,
-        "artifact_manifest": manifest,
+        "artifacts": state_payload["artifact_freshness"],
+        "artifact_manifest": state_payload,
+        "forecast_state": state_payload,
     }
 
 
@@ -895,7 +916,30 @@ def get_feature_config(_token: dict = Depends(require_staff_or_admin)):
 
 @system_router.get("/artifacts/manifest")
 def get_artifacts_manifest(_token: dict = Depends(require_admin)):
-    return load_manifest()
+    state = build_canonical_forecast_state()
+    return forecast_state_to_dict(state, include_frames=False)
+
+
+@ml_router.get("/forecast_state")
+def get_forecast_state_endpoint(_token: dict = Depends(require_staff_or_admin)):
+    state = build_canonical_forecast_state()
+    return forecast_state_to_dict(state, include_frames=True)
+
+
+@ml_router.get("/forecast")
+def get_forecast_endpoint(_token: dict = Depends(require_staff_or_admin)):
+    state = build_canonical_forecast_state()
+    payload = forecast_state_to_dict(state, include_frames=True)
+    return {
+        "source": "ForecastState",
+        "forecast_72h_values": payload["forecast_72h_values"],
+        "overall_forecast_72h": payload.get("overall_forecast_72h", []),
+        "department_forecast_72h": payload.get("department_forecast_72h", []),
+        "peak_72h": payload["peak_72h"],
+        "avg_72h": payload["avg_72h"],
+        "artifact_freshness": payload["artifact_freshness"],
+        "artifact_timestamp": payload["forecast_timestamp"],
+    }
 
 
 @messages_router.get("/templates")
@@ -1438,7 +1482,13 @@ def optimize_resources_endpoint(
     """Run optimization and persist the run for audit + approvals."""
 
     tenant_id = get_tenant_id(_token, db)
-    result = optimize_resources(predicted_patients, tenant_id=int(tenant_id))
+    state = build_canonical_forecast_state(predicted_next_hour=float(predicted_patients))
+    optimization_input = float(state.resource_recommendation_input or state.predicted_patients_next_hour or predicted_patients)
+    result = optimize_resources(optimization_input, tenant_id=int(tenant_id))
+    if isinstance(result, dict):
+        result["source"] = "ForecastState"
+        result["forecast_state_input"] = optimization_input
+        result["forecast_state"] = forecast_state_to_dict(state, include_frames=False)
     summary = result.get("summary", {}) if isinstance(result, dict) else {}
 
     try:
@@ -1446,7 +1496,7 @@ def optimize_resources_endpoint(
             tenant_id=int(tenant_id),
             run_id=_new_run_id("OPT"),
             timestamp=parse_datetime_now(),
-            predicted_patients=float(predicted_patients),
+            predicted_patients=float(optimization_input),
             objective=float(summary.get("objective")) if summary.get("objective") is not None else None,
             summary_json=json.dumps(summary, ensure_ascii=False),
             allocations_json=json.dumps(result.get("department_allocations", []), ensure_ascii=False),
@@ -1861,19 +1911,20 @@ def predict(
         )
 
     try:
-        result = predict_hybrid(sequence_array)
+        state, result = _build_state_from_sequence(sequence_array)
     except Exception as e:
         # Most common reasons:
         # - Missing artifacts (model/scalers)
         # - TensorFlow not installed in the API runtime
         # - Feature drift (wrong feature count)
         raise HTTPException(status_code=503, detail=f"Forecast service unavailable: {e}")
-    predicted_patients = float(result["hybrid_prediction"])
+    predicted_patients = float(state.predicted_patients_next_hour or result["hybrid_prediction"])
 
     return {
         "predicted_patients_next_hour": predicted_patients,
-        "emergency_level": predict_emergency_load(predicted_patients),
+        "emergency_level": state.risk_level or predict_emergency_load(predicted_patients),
         "recommended_resources": calculate_recommended_resources(predicted_patients),
+        "forecast_state": forecast_state_to_dict(state, include_frames=False),
         **result,
     }
 
@@ -1931,12 +1982,30 @@ def evaluate(
     payload: EvaluateRequest,
     _token: dict = Depends(require_admin),
 ):
-    return compare_models(
+    state = build_canonical_forecast_state()
+    return {
+        "source": "ForecastState",
+        "artifact_state": forecast_state_to_dict(state, include_frames=False),
+        "submitted_metrics": compare_models(
         actual=payload.actual,
         lstm=payload.lstm,
         arimax=payload.arimax,
         hybrid=payload.hybrid,
-    )
+        ),
+        "artifact_metrics": build_metrics_dataframe(split="test").to_dict(orient="records"),
+    }
+
+
+@ml_router.get("/evaluation")
+def get_evaluation(_token: dict = Depends(require_staff_or_admin)):
+    state = build_canonical_forecast_state()
+    detailed = build_detailed_predictions_dataframe(split="test")
+    return {
+        "source": "ForecastState",
+        "artifact_state": forecast_state_to_dict(state, include_frames=False),
+        "metrics": build_metrics_dataframe(split="test").to_dict(orient="records"),
+        "detailed_predictions": detailed.to_dict(orient="records") if isinstance(detailed, np.ndarray) is False and not detailed.empty else [],
+    }
 
 
 @upload_router.post("/patient_flow")

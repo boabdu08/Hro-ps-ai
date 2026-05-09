@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 
 import numpy as np
@@ -18,7 +17,8 @@ from api_client import (
     simulate,
 )
 
-from forecast_state import build_canonical_forecast_state
+from forecast_state import ForecastState, build_canonical_forecast_state
+
 
 from evaluation_service import build_detailed_predictions_dataframe, build_metrics_dataframe
 from forecast_runtime import generate_multistep_forecast
@@ -42,8 +42,8 @@ from ui_components import (
 
 OPS72H_OVERALL_FORECAST_PATH = Path("artifacts") / "forecast_outputs" / "ops72h_overall_forecast.csv"
 OPS72H_DEPARTMENT_FORECAST_PATH = Path("artifacts") / "forecast_outputs" / "ops72h_department_forecast.csv"
-OPS72H_MODEL_METRICS_PATH = Path("artifacts") / "metrics" / "ops72h_model_metrics.csv"
-OPS72H_TRAINING_SUMMARY_PATH = Path("artifacts") / "metrics" / "ops72h_training_summary.json"
+OPS72H_MODEL_METRICS_PATH = Path("artifacts") / "metrics_72h" / "ops72h_model_metrics.csv"
+OPS72H_TRAINING_SUMMARY_PATH = Path("artifacts") / "manifests" / "ops72h_training_summary.json"
 
 
 COUNT_DISPLAY_HINTS = (
@@ -188,7 +188,31 @@ def _build_scenario_summary_report(scenario_df: pd.DataFrame) -> tuple[pd.DataFr
     return report_df, report_text
 
 
-def _load_ops72h_outputs() -> dict:
+def _forecast_state_summary(state: ForecastState) -> dict:
+    return {
+        "forecast_horizon_hours": 72,
+        "generated_at": state.forecast_timestamp,
+        "best_model": state.selected_model,
+        "weights": dict(state.model_weights or {}),
+        "artifact_freshness": {
+            "ready": state.artifact_freshness.ready,
+            "artifact_timestamp": state.artifact_freshness.artifact_timestamp,
+            "checked_at": state.artifact_freshness.checked_at,
+            "missing": list(state.artifact_freshness.missing or []),
+            "invalid_reasons": list(state.artifact_freshness.invalid_reasons or []),
+        },
+        "model_status": {
+            "lstm_ok": state.model_status.lstm_ok,
+            "arimax_ok": state.model_status.arimax_ok,
+            "hybrid_ok": state.model_status.hybrid_ok,
+            "fallback_used": state.model_status.fallback_used,
+            "reasons": list(state.model_status.reasons or []),
+        },
+        "artifact_paths": dict(state.artifact_paths or {}),
+    }
+
+
+def _load_ops72h_outputs(state: ForecastState | None = None) -> dict:
     """Load saved 72-hour forecast artifacts for Forecast and Digital Twin tabs.
 
     REFACTORED: we delegate to the canonical ForecastState builder.
@@ -196,51 +220,46 @@ def _load_ops72h_outputs() -> dict:
     """
 
 
-    required_paths = {
-        "overall forecast": OPS72H_OVERALL_FORECAST_PATH,
-        "department forecast": OPS72H_DEPARTMENT_FORECAST_PATH,
-        "model metrics": OPS72H_MODEL_METRICS_PATH,
-        "training summary": OPS72H_TRAINING_SUMMARY_PATH,
-    }
-    missing = [f"{label}: {path}" for label, path in required_paths.items() if not path.exists()]
-    if missing:
-        return {"ready": False, "missing": missing}
+    state = state or build_canonical_forecast_state()
+    missing = list(state.artifact_freshness.missing or [])
+    invalid = list(state.artifact_freshness.invalid_reasons or [])
+    if not state.artifact_freshness.ready:
+        return {"ready": False, "missing": missing, "error": "; ".join(invalid), "state": state}
 
-    try:
-        overall_df = pd.read_csv(OPS72H_OVERALL_FORECAST_PATH)
-        department_df = pd.read_csv(OPS72H_DEPARTMENT_FORECAST_PATH)
-        metrics_df = pd.read_csv(OPS72H_MODEL_METRICS_PATH)
-        summary = json.loads(OPS72H_TRAINING_SUMMARY_PATH.read_text(encoding="utf-8"))
-    except Exception as exc:
-        return {"ready": False, "error": str(exc), "missing": []}
+    overall_df = state.overall_forecast_72h.copy() if isinstance(state.overall_forecast_72h, pd.DataFrame) else pd.DataFrame()
+    department_df = state.department_forecast_72h.copy() if isinstance(state.department_forecast_72h, pd.DataFrame) else pd.DataFrame()
+    metrics_df = state.metrics.copy() if isinstance(state.metrics, pd.DataFrame) else pd.DataFrame()
 
-    for df in [overall_df, department_df]:
-        if "datetime" in df.columns:
-            df["datetime"] = pd.to_datetime(df["datetime"], errors="coerce")
-
-    for col in ["lstm_pred", "arimax_pred", "hybrid_pred"]:
-        if col in overall_df.columns:
-            overall_df[col] = pd.to_numeric(overall_df[col], errors="coerce")
-    if "hybrid_pred" in department_df.columns:
-        department_df["hybrid_pred"] = pd.to_numeric(department_df["hybrid_pred"], errors="coerce")
-    for col in ["MAE", "RMSE", "MAPE"]:
-        if col in metrics_df.columns:
-            metrics_df[col] = pd.to_numeric(metrics_df[col], errors="coerce")
-
-    required_overall_cols = {"datetime", "hybrid_pred"}
-    required_department_cols = {"datetime", "department", "hybrid_pred"}
-    if not required_overall_cols.issubset(overall_df.columns):
-        return {"ready": False, "error": f"Overall forecast missing columns: {sorted(required_overall_cols - set(overall_df.columns))}", "missing": []}
-    if not required_department_cols.issubset(department_df.columns):
-        return {"ready": False, "error": f"Department forecast missing columns: {sorted(required_department_cols - set(department_df.columns))}", "missing": []}
+    if overall_df.empty or not state.forecast_72h_values:
+        return {"ready": False, "missing": [], "error": "ForecastState has no 72h overall forecast rows", "state": state}
 
     return {
         "ready": True,
+        "state": state,
         "overall": overall_df.dropna(subset=["datetime", "hybrid_pred"]).reset_index(drop=True),
         "department": department_df.dropna(subset=["datetime", "department", "hybrid_pred"]).reset_index(drop=True),
         "metrics": metrics_df,
-        "summary": summary,
+        "summary": _forecast_state_summary(state),
     }
+
+
+def _dashboard_forecast_state_from_live_context() -> ForecastState:
+    """Return the same ForecastState shape used by Command Center.
+
+    In a healthy live dashboard session this comes from get_live_context(), which
+    includes current patients, next-hour prediction, 24h forecast, 72h artifact
+    series, metrics, risk, and artifact timestamp. If the prediction API is not
+    reachable, artifact-only tabs still render from the canonical loader but make
+    the missing live values explicit.
+    """
+
+    try:
+        ctx = get_live_context()
+        if isinstance(ctx, dict) and ctx.get("ready") and isinstance(ctx.get("forecast_state"), ForecastState):
+            return ctx["forecast_state"]
+    except Exception:
+        pass
+    return build_canonical_forecast_state()
 
 
 def _show_ops72h_missing_state(bundle: dict) -> None:
@@ -382,13 +401,19 @@ def get_live_context():
     current_patients = int(last_sequence[-1][patients_idx])
 
     prediction = float(result["predicted_patients_next_hour"])
-    optimization = get_optimization(prediction) or {}
     forecast_values = generate_multistep_forecast(
         last_sequence=last_sequence,
         predict_fn=get_prediction,
         steps=24,
     )
     peak = float(max(forecast_values)) if forecast_values else prediction
+    forecast_state = build_canonical_forecast_state(
+        current_patients=float(current_patients),
+        predicted_next_hour=float(prediction),
+        forecast_24h_values=[float(v) for v in forecast_values],
+    )
+    optimization_input = float(forecast_state.resource_recommendation_input or prediction)
+    optimization = get_optimization(optimization_input) or {}
 
     return {
         "ready": True,
@@ -397,11 +422,13 @@ def get_live_context():
         "feature_columns": feature_columns,
         "sequence_length": sequence_length,
         "prediction_result": result,
-        "prediction": prediction,
-        "current_patients": current_patients,
+        "prediction": float(forecast_state.predicted_patients_next_hour or prediction),
+        "current_patients": float(forecast_state.current_patients or current_patients),
         "optimization": optimization,
-        "peak": peak,
-        "forecast_values": forecast_values,
+        "optimization_input": optimization_input,
+        "peak": float(forecast_state.peak_24h or peak),
+        "forecast_values": list(forecast_state.forecast_24h_values or forecast_values),
+        "forecast_state": forecast_state,
     }
 
 
@@ -412,6 +439,7 @@ def show_overview():
         return
 
     result = ctx["prediction_result"]
+    forecast_state = ctx["forecast_state"]
     optimization = ctx["optimization"]
     summary = optimization.get("summary", {})
 
@@ -421,22 +449,32 @@ def show_overview():
     section_header("Summary", "Current load, short-horizon forecast, and capacity signal")
 
     # KPI row: 4–6 top metrics
-    emergency_level = result.get("emergency_level", "LOW")
+    emergency_level = forecast_state.risk_level or result.get("emergency_level", "LOW")
     risk_status = "critical" if emergency_level == "HIGH" else "warning" if emergency_level == "MEDIUM" else "success"
     beds_needed_total = int(summary.get("beds_needed_total", result["recommended_resources"]["beds_needed"]))
     doctors_needed_total = int(summary.get("doctors_needed_total", result["recommended_resources"]["doctors_needed"]))
 
     k1, k2, k3, k4, k5 = st.columns(5)
     with k1:
-        kpi_card("Total patients", ctx["current_patients"], status="info")
+        kpi_card("Total patients", fmt_patients(forecast_state.current_patients), status="info")
     with k2:
-        kpi_card("Next-hour forecast", int(ctx["prediction"]), status="normal")
+        kpi_card("Next-hour forecast", fmt_patients(forecast_state.predicted_patients_next_hour), status="normal")
     with k3:
-        kpi_card("24h peak", int(ctx.get("peak") or ctx["prediction"]), status="warning" if float(ctx.get("peak") or 0) >= 120 else "normal")
+        kpi_card("24h peak", fmt_patients(forecast_state.peak_24h), status="warning" if float(forecast_state.peak_24h or 0) >= 120 else "normal")
     with k4:
         kpi_card("Beds needed", beds_needed_total, delta="system-wide", status="warning")
     with k5:
         kpi_card("Risk signal", emergency_level, delta="pressure", status=risk_status)
+
+    f1, f2, f3 = st.columns(3)
+    with f1:
+        kpi_card("72h peak", fmt_patients(forecast_state.peak_72h), status="warning" if float(forecast_state.peak_72h or 0) >= 120 else "normal")
+    with f2:
+        kpi_card("72h average", fmt_patients(forecast_state.avg_72h), status="normal")
+    with f3:
+        artifact_time = forecast_state.artifact_freshness.artifact_timestamp or forecast_state.forecast_timestamp or "-"
+        kpi_card("Artifact timestamp", artifact_time, status="info")
+    st.caption("Command Center KPIs are sourced from the canonical ForecastState used by Forecast, Digital Twin, Optimization, Evaluation, and API runtime.")
 
     # Decision banner
     if emergency_level == "HIGH":
@@ -572,7 +610,8 @@ def show_forecast():
         "Demand outlook across the next 72 hours — trends, peaks, and actual vs predicted.",
     )
 
-    ops72h = _load_ops72h_outputs()
+    state = _dashboard_forecast_state_from_live_context()
+    ops72h = _load_ops72h_outputs(state)
     if not ops72h.get("ready"):
         _show_ops72h_missing_state(ops72h)
         return
@@ -581,6 +620,7 @@ def show_forecast():
     department_df = ops72h["department"].copy()
     metrics_df = ops72h["metrics"].copy()
     summary = ops72h["summary"] or {}
+    state = ops72h.get("state") or state
 
     if overall_df.empty:
         empty_state("72-hour overall forecast file is empty.")
@@ -600,7 +640,7 @@ def show_forecast():
 
     # Summary KPIs
     peak = float(max(predictions))
-    next_hour = float(predictions[0])
+    next_hour = float(state.predicted_patients_next_hour if state.predicted_patients_next_hour is not None else predictions[0])
     avg_72h = float(np.mean(predictions))
     k1, k2, k3, k4, k5 = st.columns(5)
     with k1:
@@ -624,6 +664,7 @@ def show_forecast():
         )
     with k5:
         kpi_card("72h average", fmt_patients(avg_72h), status="normal")
+    st.caption("Forecast tab is rendering from the same canonical ForecastState object shape used by Command Center; the 72h series is ForecastState.forecast_72h_values.")
 
     m1, m2, m3, m4, m5 = st.columns(5)
     with m1:
@@ -1774,7 +1815,8 @@ def render_digital_twin(*, key_prefix: str = "twin"):
 
     key_prefix = str(key_prefix or "twin").strip() or "twin"
 
-    ops72h = _load_ops72h_outputs()
+    state = _dashboard_forecast_state_from_live_context()
+    ops72h = _load_ops72h_outputs(state)
     if not ops72h.get("ready"):
         _show_ops72h_missing_state(ops72h)
         return
@@ -1782,12 +1824,13 @@ def render_digital_twin(*, key_prefix: str = "twin"):
     overall_df = ops72h["overall"].copy().sort_values("datetime").reset_index(drop=True)
     department_df = ops72h["department"].copy().sort_values(["department", "datetime"]).reset_index(drop=True)
     summary = ops72h["summary"] or {}
+    state = ops72h.get("state") or state
 
     if overall_df.empty:
         empty_state("72-hour overall forecast output is empty.")
         return
 
-    forecast_values = overall_df["hybrid_pred"].astype(float).tolist()
+    forecast_values = list(state.forecast_72h_values or overall_df["hybrid_pred"].astype(float).tolist())
     dept_options = ["All"]
     if not department_df.empty and "department" in department_df.columns:
         dept_options += sorted([str(d) for d in department_df["department"].dropna().unique().tolist()])

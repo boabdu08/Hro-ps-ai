@@ -27,10 +27,11 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
-from artifacts import artifact_diagnostics, get_artifact_paths
+from artifacts import artifact_diagnostics
 
 
-DEFAULT_ARTIFACT_DIR = Path(os.getenv("ARTIFACT_DIR") or ".").resolve()
+
+DEFAULT_ARTIFACT_DIR = (Path(os.getenv("ARTIFACT_DIR") or "artifacts").resolve())
 
 
 @dataclass(frozen=True)
@@ -62,6 +63,7 @@ class ForecastState:
     peak_24h: Optional[float]
 
     # 72h curve (required for Forecast/Digital Twin)
+    overall_forecast_72h: Optional[pd.DataFrame]
     forecast_72h_values: List[float]
     peak_72h: Optional[float]
     avg_72h: Optional[float]
@@ -72,11 +74,15 @@ class ForecastState:
     # Model info
     selected_model: Optional[str]
     model_weights: Dict[str, float]
+    metrics: Optional[pd.DataFrame]
     artifact_freshness: ArtifactFreshness
     model_status: ModelStatus
 
     # UI metadata
     forecast_timestamp: Optional[str]
+    risk_level: Optional[str]
+    resource_recommendation_input: Optional[float]
+    artifact_paths: Dict[str, str] = field(default_factory=dict)
 
 
 def _utc_now_iso() -> str:
@@ -177,14 +183,33 @@ def _compute_selected_model(metrics_df: pd.DataFrame) -> Optional[str]:
         return None
 
 
+def _risk_level(value: Optional[float]) -> Optional[str]:
+    if value is None:
+        return None
+    try:
+        v = float(value)
+    except Exception:
+        return None
+    if v < 80:
+        return "LOW"
+    if v < 120:
+        return "MEDIUM"
+    return "HIGH"
+
+
 def _load_ops72h_artifacts(*, artifact_dir: Path = DEFAULT_ARTIFACT_DIR) -> Dict[str, Any]:
     base = artifact_dir
     overall_path = base / "forecast_outputs" / "ops72h_overall_forecast.csv"
     dept_path = base / "forecast_outputs" / "ops72h_department_forecast.csv"
-    metrics_path = base / "metrics" / "ops72h_model_metrics.csv"
-    summary_path = base / "metrics" / "ops72h_training_summary.json"
+    metrics_path = base / "metrics_72h" / "ops72h_model_metrics.csv"
+    summary_path = base / "manifests" / "ops72h_training_summary.json"
 
-    out: Dict[str, Any] = {"overall_path": str(overall_path)}
+    out: Dict[str, Any] = {
+        "overall_path": str(overall_path),
+        "dept_path": str(dept_path),
+        "metrics_path": str(metrics_path),
+        "summary_path": str(summary_path),
+    }
     missing = []
     for label, p in [
         ("overall", overall_path),
@@ -206,6 +231,9 @@ def _load_ops72h_artifacts(*, artifact_dir: Path = DEFAULT_ARTIFACT_DIR) -> Dict
 
     return {
         "overall_path": str(overall_path),
+        "dept_path": str(dept_path),
+        "metrics_path": str(metrics_path),
+        "summary_path": str(summary_path),
         "overall_df": overall_df,
         "dept_df": dept_df,
         "metrics_df": metrics_df,
@@ -217,9 +245,14 @@ def _load_ops72h_artifacts(*, artifact_dir: Path = DEFAULT_ARTIFACT_DIR) -> Dict
 def build_canonical_forecast_state(*, current_patients: Optional[float] = None,
                                     predicted_next_hour: Optional[float] = None,
                                     forecast_24h_values: Optional[List[float]] = None) -> ForecastState:
-    """Build ForecastState from ops72h artifacts and optional live 24h values."""
+    """Build ForecastState from ops72h artifacts and optional live 24h values.
+
+    If current_patients/predicted_next_hour are not provided, they remain None.
+    UI/API callers that need them should pass live values (from Prediction API).
+    """
 
     checked_at = _utc_now_iso()
+
 
     # Validate core model/scalers presence (not horizon CSV)
     diag = artifact_diagnostics()
@@ -231,6 +264,11 @@ def build_canonical_forecast_state(*, current_patients: Optional[float] = None,
         missing=list(diag.get("missing") or []),
         invalid_reasons=[],
     )
+
+    # NOTE: ops72h artifacts (forecast_outputs + metrics_72h) must be generated
+    # by the ops72h pipeline. This module should not guess fallback values
+    # for the 72h horizon; it will mark artifact_freshness.ready=False.
+
 
     ops72h = _load_ops72h_artifacts(artifact_dir=DEFAULT_ARTIFACT_DIR)
     missing = list(ops72h.get("missing") or [])
@@ -263,25 +301,41 @@ def build_canonical_forecast_state(*, current_patients: Optional[float] = None,
             predicted_patients_next_hour=predicted_next_hour,
             forecast_24h_values=list(forecast_24h_values or []),
             peak_24h=float(max(forecast_24h_values)) if forecast_24h_values else None,
+            overall_forecast_72h=None,
             forecast_72h_values=[],
             peak_72h=None,
             avg_72h=None,
             department_forecast_72h=None,
             selected_model=None,
             model_weights={},
+            metrics=None,
             artifact_freshness=artifact_freshness,
             model_status=model_status,
             forecast_timestamp=None,
+            risk_level=_risk_level(predicted_next_hour),
+            resource_recommendation_input=predicted_next_hour,
+            artifact_paths={
+                "overall_forecast": str(Path(ops72h.get("overall_path", ""))),
+                "department_forecast": str(Path(ops72h.get("dept_path", ""))),
+                "metrics": str(Path(ops72h.get("metrics_path", ""))),
+                "manifest": str(Path(ops72h.get("summary_path", ""))),
+            },
         )
 
     overall_df = ops72h["overall_df"]
     dept_df = ops72h["dept_df"]
-    metrics_df = ops72h.get("metrics_df") or pd.DataFrame()
+    metrics_df = ops72h.get("metrics_df") if ops72h.get("metrics_df") is not None else pd.DataFrame()
     summary = ops72h.get("summary") or {}
 
     # Timestamp from summary if present
     forecast_timestamp = summary.get("generated_at") or summary.get("timestamp")
-    artifact_freshness.artifact_timestamp = str(forecast_timestamp) if forecast_timestamp else None
+    artifact_freshness = ArtifactFreshness(
+        ready=artifact_freshness.ready,
+        artifact_timestamp=str(forecast_timestamp) if forecast_timestamp else None,
+        checked_at=artifact_freshness.checked_at,
+        missing=artifact_freshness.missing,
+        invalid_reasons=artifact_freshness.invalid_reasons,
+    )
 
     # Validate CSV schemas and values
     overall_ok, overall_reasons = _validate_ops72h_forecast_df(overall_df)
@@ -294,8 +348,13 @@ def build_canonical_forecast_state(*, current_patients: Optional[float] = None,
     # If schema/value checks fail, mark invalid.
     invalid_value_reasons = [r for r in reasons if any(k in r for k in ["missing required", "NaNs", "negative", "empty", "invalid datetime"])]
     if invalid_value_reasons or (not overall_ok) or (not dept_ok):
-        artifact_freshness.invalid_reasons = invalid_value_reasons or reasons
-        artifact_freshness.ready = False
+        artifact_freshness = ArtifactFreshness(
+            ready=False,
+            artifact_timestamp=artifact_freshness.artifact_timestamp,
+            checked_at=artifact_freshness.checked_at,
+            missing=artifact_freshness.missing,
+            invalid_reasons=invalid_value_reasons or reasons,
+        )
         hybrid_ok = False
 
     # Flatness is credibility issue, but not always fatal. We'll flag hybrid_status.
@@ -340,21 +399,35 @@ def build_canonical_forecast_state(*, current_patients: Optional[float] = None,
         dept_df["hybrid_pred"] = pd.to_numeric(dept_df["hybrid_pred"], errors="coerce").astype(float)
         dept_df["hybrid_pred"] = np.where(dept_df["hybrid_pred"] < 0, 0.0, dept_df["hybrid_pred"])
 
-    artifact_freshness.ready = bool(overall_df.shape[0]) and (artifact_freshness.ready or True)
-    # If we set invalid, keep ready False.
+    if metrics_df is not None and not metrics_df.empty:
+        metrics_df = metrics_df.copy()
+        for col in ["MAE", "RMSE", "MAPE", "WAPE", "SMAPE"]:
+            if col in metrics_df.columns:
+                metrics_df[col] = pd.to_numeric(metrics_df[col], errors="coerce")
+
+    # If we set invalid, keep ready False (ArtifactFreshness is frozen, so readiness
+    # is handled by re-instantiating ArtifactFreshness below).
     if not hybrid_ok:
-        # still ready for display, but state can mark fallback.
         pass
 
     # Mark readiness when at least schema OK.
+    # readiness is computed once when we assemble the new ArtifactFreshness
+    # (artifact_freshness is frozen)
     if not artifact_freshness.invalid_reasons:
-        artifact_freshness.ready = True
+        artifact_freshness = ArtifactFreshness(
+            ready=True,
+            artifact_timestamp=artifact_freshness.artifact_timestamp,
+            checked_at=artifact_freshness.checked_at,
+            missing=artifact_freshness.missing,
+            invalid_reasons=artifact_freshness.invalid_reasons,
+        )
 
     return ForecastState(
         current_patients=current_patients,
         predicted_patients_next_hour=predicted_next_hour,
         forecast_24h_values=list(forecast_24h_values or []),
         peak_24h=float(max(forecast_24h_values)) if forecast_24h_values else None,
+        overall_forecast_72h=overall_df,
         forecast_72h_values=forecast_72h_values,
         peak_72h=peak_72h,
         avg_72h=avg_72h,
@@ -362,8 +435,70 @@ def build_canonical_forecast_state(*, current_patients: Optional[float] = None,
         selected_model=selected_model,
         model_weights={"lstm": float(weights.get("lstm_weight") or weights.get("lstm") or 0.0),
                        "arimax": float(weights.get("arimax_weight") or weights.get("arimax") or 0.0)},
+        metrics=metrics_df,
         artifact_freshness=artifact_freshness,
         model_status=model_status,
         forecast_timestamp=str(forecast_timestamp) if forecast_timestamp else None,
+        risk_level=_risk_level(predicted_next_hour),
+        resource_recommendation_input=predicted_next_hour,
+        artifact_paths={
+            "overall_forecast": str(ops72h.get("overall_path")),
+            "department_forecast": str(ops72h.get("dept_path")),
+            "metrics": str(ops72h.get("metrics_path")),
+            "manifest": str(ops72h.get("summary_path")),
+        },
     )
+
+
+def forecast_state_to_dict(state: ForecastState, *, include_frames: bool = False) -> Dict[str, Any]:
+    """Serialize ForecastState for API responses and smoke checks.
+
+    DataFrames are omitted by default and represented as records only when the
+    caller explicitly asks for frames.
+    """
+
+    payload: Dict[str, Any] = {
+        "current_patients": state.current_patients,
+        "predicted_patients_next_hour": state.predicted_patients_next_hour,
+        "forecast_24h_values": list(state.forecast_24h_values or []),
+        "peak_24h": state.peak_24h,
+        "forecast_72h_values": list(state.forecast_72h_values or []),
+        "peak_72h": state.peak_72h,
+        "avg_72h": state.avg_72h,
+        "selected_model": state.selected_model,
+        "model_weights": dict(state.model_weights or {}),
+        "artifact_freshness": {
+            "ready": state.artifact_freshness.ready,
+            "artifact_timestamp": state.artifact_freshness.artifact_timestamp,
+            "checked_at": state.artifact_freshness.checked_at,
+            "missing": list(state.artifact_freshness.missing or []),
+            "invalid_reasons": list(state.artifact_freshness.invalid_reasons or []),
+        },
+        "model_status": {
+            "lstm_ok": state.model_status.lstm_ok,
+            "arimax_ok": state.model_status.arimax_ok,
+            "hybrid_ok": state.model_status.hybrid_ok,
+            "fallback_used": state.model_status.fallback_used,
+            "reasons": list(state.model_status.reasons or []),
+        },
+        "forecast_timestamp": state.forecast_timestamp,
+        "risk_level": state.risk_level,
+        "resource_recommendation_input": state.resource_recommendation_input,
+        "artifact_paths": dict(state.artifact_paths or {}),
+        "metrics": state.metrics.to_dict(orient="records") if isinstance(state.metrics, pd.DataFrame) else [],
+    }
+    if include_frames:
+        payload["overall_forecast_72h"] = (
+            state.overall_forecast_72h.to_dict(orient="records")
+            if isinstance(state.overall_forecast_72h, pd.DataFrame)
+            else []
+        )
+        payload["department_forecast_72h"] = (
+            state.department_forecast_72h.to_dict(orient="records")
+            if isinstance(state.department_forecast_72h, pd.DataFrame)
+            else []
+        )
+    return payload
+
+
 

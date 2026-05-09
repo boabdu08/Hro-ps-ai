@@ -1,8 +1,14 @@
 import json
 import os
+from pathlib import Path
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error
+
+from forecast_state import build_canonical_forecast_state
+
+
+METRICS_72H_DIR = Path("artifacts") / "metrics_72h"
 
 
 def calculate_metrics(actual, predicted):
@@ -63,31 +69,29 @@ def _extract_metric_block(payload: dict, split: str):
 def _load_metrics_payloads(split: str) -> tuple[dict | None, dict | None, dict | None]:
     """Load metrics payloads.
 
-    Prefer 72-hour artifacts when available:
-      - artifacts/metrics_72h/*_ops72h_metrics.json
-
-    Fallback to legacy filenames when those artifacts are missing:
-      - lstm_metrics.json / arimax_metrics.json / hybrid_metrics.json
+    Canonical source is artifacts/metrics_72h only. We intentionally do not
+    fall back to root-level legacy metric files because dashboard/API runtime
+    must reflect the same ForecastState artifact state.
     """
 
     split = split.lower()
 
-    # Preferred (72h)
-    lstm_payload = _load_json("artifacts/metrics_72h/lstm_ops72h_metrics.json")
-    arimax_payload = _load_json("artifacts/metrics_72h/arimax_ops72h_metrics.json")
-    hybrid_payload = _load_json("artifacts/metrics_72h/hybrid_ops72h_metrics.json")
-
-    # Fallback to legacy if preferred artifacts are missing.
-    if lstm_payload is None and arimax_payload is None and hybrid_payload is None:
-        lstm_payload = _load_json("lstm_metrics.json")
-        arimax_payload = _load_json("arimax_metrics.json")
-        hybrid_payload = _load_json("hybrid_metrics.json")
+    lstm_payload = _load_json(str(METRICS_72H_DIR / "lstm_ops72h_metrics.json"))
+    arimax_payload = _load_json(str(METRICS_72H_DIR / "arimax_ops72h_metrics.json"))
+    hybrid_payload = _load_json(str(METRICS_72H_DIR / "hybrid_ops72h_metrics.json"))
 
     return lstm_payload, arimax_payload, hybrid_payload
 
 
 def build_metrics_dataframe(split: str = "test") -> pd.DataFrame:
     split = split.lower()
+
+    # Test split is the canonical metrics table carried by ForecastState.
+    # Validation remains available from the canonical metrics_72h JSON payloads.
+    if split == "test":
+        state = build_canonical_forecast_state()
+        if isinstance(state.metrics, pd.DataFrame) and not state.metrics.empty:
+            return state.metrics.copy()
 
     lstm_payload, arimax_payload, hybrid_payload = _load_metrics_payloads(split)
 
@@ -137,10 +141,10 @@ def build_metrics_dataframe(split: str = "test") -> pd.DataFrame:
 def build_detailed_predictions_dataframe(split: str = "test") -> pd.DataFrame:
     split = split.lower()
 
-    lstm_file = "lstm_val_outputs.npz" if split == "validation" else "lstm_test_outputs.npz"
-    arimax_file = "arimax_val_outputs.npz" if split == "validation" else "arimax_test_outputs.npz"
+    lstm_file = METRICS_72H_DIR / ("lstm_ops72h_val_outputs.npz" if split == "validation" else "lstm_ops72h_test_outputs.npz")
+    arimax_file = METRICS_72H_DIR / ("arimax_ops72h_val_outputs.npz" if split == "validation" else "arimax_ops72h_test_outputs.npz")
 
-    if not os.path.exists(lstm_file) or not os.path.exists(arimax_file):
+    if not lstm_file.exists() or not arimax_file.exists():
         return pd.DataFrame()
 
     lstm_data = np.load(lstm_file)
@@ -160,9 +164,10 @@ def build_detailed_predictions_dataframe(split: str = "test") -> pd.DataFrame:
     lstm_pred = lstm_pred[-min_len:]
     arimax_pred = arimax_pred[-min_len:]
 
-    hybrid_cfg = _load_json("hybrid_config.json") or {}
-    lstm_weight = float(hybrid_cfg.get("lstm_weight", 0.9))
-    arimax_weight = float(hybrid_cfg.get("arimax_weight", 0.1))
+    state = build_canonical_forecast_state()
+    hybrid_cfg = state.model_weights or {}
+    lstm_weight = float(hybrid_cfg.get("lstm", hybrid_cfg.get("lstm_weight", 0.9)))
+    arimax_weight = float(hybrid_cfg.get("arimax", hybrid_cfg.get("arimax_weight", 0.1)))
     hybrid_pred = (lstm_weight * lstm_pred) + (arimax_weight * arimax_pred)
 
     return pd.DataFrame({
