@@ -17,6 +17,9 @@ from api_client import (
     get_prediction,
     simulate,
 )
+
+from forecast_state import build_canonical_forecast_state
+
 from evaluation_service import build_detailed_predictions_dataframe, build_metrics_dataframe
 from forecast_runtime import generate_multistep_forecast
 from ui_components import (
@@ -188,9 +191,10 @@ def _build_scenario_summary_report(scenario_df: pd.DataFrame) -> tuple[pd.DataFr
 def _load_ops72h_outputs() -> dict:
     """Load saved 72-hour forecast artifacts for Forecast and Digital Twin tabs.
 
-    Missing or malformed files are reported to the UI by callers instead of
-    raising, so the dashboard does not crash when exports have not been generated.
+    REFACTORED: we delegate to the canonical ForecastState builder.
+    This ensures all tabs use the same validation + status + metrics.
     """
+
 
     required_paths = {
         "overall forecast": OPS72H_OVERALL_FORECAST_PATH,
