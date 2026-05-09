@@ -21,8 +21,8 @@ The deployment must include the saved artifacts used by dashboard/API runtime pa
 
 - `artifacts/forecast_outputs/ops72h_overall_forecast.csv`
 - `artifacts/forecast_outputs/ops72h_department_forecast.csv`
-- `artifacts/metrics/ops72h_model_metrics.csv`
-- `artifacts/metrics/ops72h_training_summary.json`
+- `artifacts/metrics_72h/ops72h_model_metrics.csv`
+- `artifacts/manifests/ops72h_training_summary.json`
 
 ### 72-hour evaluation artifacts
 

@@ -1983,27 +1983,29 @@ def evaluate(
     _token: dict = Depends(require_admin),
 ):
     state = build_canonical_forecast_state()
+    state_payload = forecast_state_to_dict(state, include_frames=False)
     return {
         "source": "ForecastState",
-        "artifact_state": forecast_state_to_dict(state, include_frames=False),
+        "artifact_state": state_payload,
         "submitted_metrics": compare_models(
-        actual=payload.actual,
-        lstm=payload.lstm,
-        arimax=payload.arimax,
-        hybrid=payload.hybrid,
+            actual=payload.actual,
+            lstm=payload.lstm,
+            arimax=payload.arimax,
+            hybrid=payload.hybrid,
         ),
-        "artifact_metrics": build_metrics_dataframe(split="test").to_dict(orient="records"),
+        "artifact_metrics": state_payload.get("metrics", []),
     }
 
 
 @ml_router.get("/evaluation")
 def get_evaluation(_token: dict = Depends(require_staff_or_admin)):
     state = build_canonical_forecast_state()
+    state_payload = forecast_state_to_dict(state, include_frames=False)
     detailed = build_detailed_predictions_dataframe(split="test")
     return {
         "source": "ForecastState",
-        "artifact_state": forecast_state_to_dict(state, include_frames=False),
-        "metrics": build_metrics_dataframe(split="test").to_dict(orient="records"),
+        "artifact_state": state_payload,
+        "metrics": state_payload.get("metrics", []),
         "detailed_predictions": detailed.to_dict(orient="records") if isinstance(detailed, np.ndarray) is False and not detailed.empty else [],
     }
 

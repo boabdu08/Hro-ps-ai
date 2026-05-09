@@ -212,6 +212,52 @@ def _forecast_state_summary(state: ForecastState) -> dict:
     }
 
 
+def command_center_source_values(state: ForecastState) -> dict:
+    """Canonical values used by Command Center KPIs."""
+
+    return {
+        "source": "ForecastState",
+        "current_patients": state.current_patients,
+        "predicted_patients_next_hour": state.predicted_patients_next_hour,
+        "peak_24h": state.peak_24h,
+        "peak_72h": state.peak_72h,
+        "avg_72h": state.avg_72h,
+        "risk_level": state.risk_level,
+        "artifact_timestamp": state.artifact_freshness.artifact_timestamp or state.forecast_timestamp,
+    }
+
+
+def forecast_tab_source_values(state: ForecastState) -> dict:
+    """Canonical values used by the Forecast tab."""
+
+    return {
+        "source": "ForecastState",
+        "predicted_patients_next_hour": state.predicted_patients_next_hour,
+        "forecast_72h_values": list(state.forecast_72h_values or []),
+        "peak_72h": state.peak_72h,
+        "avg_72h": state.avg_72h,
+        "metrics": state.metrics.copy() if isinstance(state.metrics, pd.DataFrame) else pd.DataFrame(),
+    }
+
+
+def digital_twin_source_series(state: ForecastState) -> list[float]:
+    """Canonical 72h series used by the Digital Twin all-hospital view."""
+
+    return list(state.forecast_72h_values or [])
+
+
+def optimization_source_input(state: ForecastState) -> float | None:
+    """Canonical optimization input: the same next-hour forecast in ForecastState."""
+
+    return state.resource_recommendation_input or state.predicted_patients_next_hour
+
+
+def evaluation_source_metrics(state: ForecastState) -> pd.DataFrame:
+    """Canonical metrics table used by Evaluation and API evaluation endpoints."""
+
+    return state.metrics.copy() if isinstance(state.metrics, pd.DataFrame) else pd.DataFrame()
+
+
 def _load_ops72h_outputs(state: ForecastState | None = None) -> dict:
     """Load saved 72-hour forecast artifacts for Forecast and Digital Twin tabs.
 
@@ -440,6 +486,7 @@ def show_overview():
 
     result = ctx["prediction_result"]
     forecast_state = ctx["forecast_state"]
+    source_values = command_center_source_values(forecast_state)
     optimization = ctx["optimization"]
     summary = optimization.get("summary", {})
 
@@ -456,11 +503,11 @@ def show_overview():
 
     k1, k2, k3, k4, k5 = st.columns(5)
     with k1:
-        kpi_card("Total patients", fmt_patients(forecast_state.current_patients), status="info")
+        kpi_card("Total patients", fmt_patients(source_values["current_patients"]), status="info")
     with k2:
-        kpi_card("Next-hour forecast", fmt_patients(forecast_state.predicted_patients_next_hour), status="normal")
+        kpi_card("Next-hour forecast", fmt_patients(source_values["predicted_patients_next_hour"]), status="normal")
     with k3:
-        kpi_card("24h peak", fmt_patients(forecast_state.peak_24h), status="warning" if float(forecast_state.peak_24h or 0) >= 120 else "normal")
+        kpi_card("24h peak", fmt_patients(source_values["peak_24h"]), status="warning" if float(source_values["peak_24h"] or 0) >= 120 else "normal")
     with k4:
         kpi_card("Beds needed", beds_needed_total, delta="system-wide", status="warning")
     with k5:
@@ -468,11 +515,11 @@ def show_overview():
 
     f1, f2, f3 = st.columns(3)
     with f1:
-        kpi_card("72h peak", fmt_patients(forecast_state.peak_72h), status="warning" if float(forecast_state.peak_72h or 0) >= 120 else "normal")
+        kpi_card("72h peak", fmt_patients(source_values["peak_72h"]), status="warning" if float(source_values["peak_72h"] or 0) >= 120 else "normal")
     with f2:
-        kpi_card("72h average", fmt_patients(forecast_state.avg_72h), status="normal")
+        kpi_card("72h average", fmt_patients(source_values["avg_72h"]), status="normal")
     with f3:
-        artifact_time = forecast_state.artifact_freshness.artifact_timestamp or forecast_state.forecast_timestamp or "-"
+        artifact_time = source_values["artifact_timestamp"] or "-"
         kpi_card("Artifact timestamp", artifact_time, status="info")
     st.caption("Command Center KPIs are sourced from the canonical ForecastState used by Forecast, Digital Twin, Optimization, Evaluation, and API runtime.")
 
@@ -621,6 +668,7 @@ def show_forecast():
     metrics_df = ops72h["metrics"].copy()
     summary = ops72h["summary"] or {}
     state = ops72h.get("state") or state
+    source_values = forecast_tab_source_values(state)
 
     if overall_df.empty:
         empty_state("72-hour overall forecast file is empty.")
@@ -628,7 +676,7 @@ def show_forecast():
 
     overall_df = overall_df.sort_values("datetime").reset_index(drop=True)
     overall_df["hour_ahead"] = np.arange(1, len(overall_df) + 1)
-    predictions = overall_df["hybrid_pred"].astype(float).tolist()
+    predictions = list(source_values["forecast_72h_values"]) or overall_df["hybrid_pred"].astype(float).tolist()
 
     best_model = _model_name(summary.get("best_model") or "")
     if not best_model and not metrics_df.empty and "RMSE" in metrics_df.columns and "Model" in metrics_df.columns:
@@ -640,8 +688,8 @@ def show_forecast():
 
     # Summary KPIs
     peak = float(max(predictions))
-    next_hour = float(state.predicted_patients_next_hour if state.predicted_patients_next_hour is not None else predictions[0])
-    avg_72h = float(np.mean(predictions))
+    next_hour = float(source_values["predicted_patients_next_hour"] if source_values["predicted_patients_next_hour"] is not None else predictions[0])
+    avg_72h = float(source_values["avg_72h"] if source_values["avg_72h"] is not None else np.mean(predictions))
     k1, k2, k3, k4, k5 = st.columns(5)
     with k1:
         # Best-model correctness/presentation: use RMSE-basis and explain in-text below.
@@ -801,6 +849,8 @@ def show_optimization():
         empty_state(ctx["reason"])
         return
 
+    forecast_state = ctx["forecast_state"]
+    canonical_input = optimization_source_input(forecast_state)
     optimization = ctx["optimization"]
     summary = optimization.get("summary", {})
     allocations = optimization.get("department_allocations", [])
@@ -819,6 +869,10 @@ def show_optimization():
         kpi_card("Nurses needed", int(summary.get("nurses_needed_total", 0)), status="normal")
     with c4:
         kpi_card("Top priority", top_dept, delta=f"Objective: {objective}" if objective is not None else None, status="info")
+
+    st.caption(
+        f"Optimization input is ForecastState.predicted_patients_next_hour = {fmt_patients(canonical_input)}; recommendations and allocations are generated from that same value."
+    )
 
     left, right = st.columns([1.35, 1])
     with left:
@@ -1830,7 +1884,7 @@ def render_digital_twin(*, key_prefix: str = "twin"):
         empty_state("72-hour overall forecast output is empty.")
         return
 
-    forecast_values = list(state.forecast_72h_values or overall_df["hybrid_pred"].astype(float).tolist())
+    forecast_values = digital_twin_source_series(state) or overall_df["hybrid_pred"].astype(float).tolist()
     dept_options = ["All"]
     if not department_df.empty and "department" in department_df.columns:
         dept_options += sorted([str(d) for d in department_df["department"].dropna().unique().tolist()])
@@ -2047,6 +2101,7 @@ def show_operations_center(*, key_prefix: str = "ops"):
 def show_evaluation_panel():
     page_header("Evaluation", "Model comparison with MAE/RMSE as primary decision metrics and MAPE shown as a caution metric.")
 
+    state = _dashboard_forecast_state_from_live_context()
     split = st.radio(
         "Evaluation Split",
         ["test", "validation"],
@@ -2054,12 +2109,14 @@ def show_evaluation_panel():
         key="eval_split_selector",
     )
 
-    eval_df = build_metrics_dataframe(split=split)
+    eval_df = evaluation_source_metrics(state) if split == "test" else build_metrics_dataframe(split=split)
     detailed_df = build_detailed_predictions_dataframe(split=split)
 
     if eval_df.empty:
         empty_state("Evaluation files not found. Run the v2 training pipeline first.")
         return
+
+    st.caption("Evaluation test metrics are sourced from the same canonical ForecastState metrics table used by Forecast and API artifact status.")
 
     display_eval_df = _round_display_dataframe(eval_df)
     modern_table(display_eval_df, key=scoped_key("evaluation", "metrics_table"))

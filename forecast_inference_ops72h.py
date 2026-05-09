@@ -60,18 +60,78 @@ def _load_hybrid_cfg():
 
 
 def _seasonal_naive_fallback(df_hist: pd.DataFrame, horizon: int) -> np.ndarray:
-    """Safe time-aware fallback: repeat the recent hourly pattern, not a flat line."""
+    """Safe time-aware fallback from comparable historical non-zero hours.
+
+    The operational exports can contain long zero-filled gaps after continuous
+    hourly reindexing. Repeating the last 72 raw rows can therefore create an
+    unrealistic "all zeros then one spike" forecast. This fallback uses real
+    historical patient counts, but prefers non-zero observations for the same
+    hour/day pattern and falls back to robust medians when sparse.
+    """
 
     hist = df_hist.copy().sort_values("datetime").reset_index(drop=True)
-    vals = pd.to_numeric(hist.get("patients"), errors="coerce").dropna().astype(float).values
-    if len(vals) == 0:
+    hist["datetime"] = pd.to_datetime(hist.get("datetime"), errors="coerce")
+    hist["patients"] = pd.to_numeric(hist.get("patients"), errors="coerce")
+    hist = hist.dropna(subset=["datetime", "patients"])
+    if hist.empty:
         return np.zeros(horizon, dtype=float)
-    pattern_len = min(72, len(vals)) if len(vals) >= 24 else len(vals)
-    pattern = vals[-pattern_len:]
-    if len(pattern) == 0:
-        pattern = np.array([float(np.nanmedian(vals))], dtype=float)
-    reps = int(np.ceil(horizon / len(pattern)))
-    out = np.tile(pattern, reps)[:horizon].astype(float)
+
+    hist = hist[hist["patients"] >= 0].copy()
+    hist["hour"] = hist["datetime"].dt.hour
+    hist["day_of_week"] = hist["datetime"].dt.dayofweek
+    last_dt = hist["datetime"].max()
+    recent_cutoff = last_dt - pd.Timedelta(days=90)
+    recent = hist[hist["datetime"] >= recent_cutoff].copy()
+    positive_recent = recent[recent["patients"] > 0].copy()
+    positive_all = hist[hist["patients"] > 0].copy()
+
+    # Require enough recent positives to represent a daily cycle. If today's
+    # exports only have a few live non-zero rows, use the broader historical
+    # demo pattern instead of a single repeated value.
+    baseline_pool = positive_recent if len(positive_recent) >= 24 else positive_all
+    if baseline_pool.empty:
+        baseline_pool = recent if not recent.empty else hist
+
+    global_median = float(baseline_pool["patients"].median())
+    if not np.isfinite(global_median):
+        global_median = 0.0
+
+    # Modest trend adjustment from recent non-zero demand, capped so fallback
+    # remains a baseline rather than an invented surge.
+    recent_pos = positive_recent.sort_values("datetime")
+    trend_factor = 1.0
+    if len(recent_pos) >= 48:
+        tail = recent_pos.tail(24)["patients"].median()
+        prev = recent_pos.iloc[-48:-24]["patients"].median()
+        if np.isfinite(tail) and np.isfinite(prev) and prev > 0:
+            trend_factor = float(np.clip(tail / prev, 0.85, 1.15))
+
+    out = []
+    for i in range(horizon):
+        future_dt = last_dt + pd.Timedelta(hours=i + 1)
+        hour = int(future_dt.hour)
+        dow = int(future_dt.dayofweek)
+
+        pool = baseline_pool[
+            (baseline_pool["hour"] == hour)
+            & (baseline_pool["day_of_week"] == dow)
+        ]
+        if len(pool) < 3:
+            pool = baseline_pool[baseline_pool["hour"] == hour]
+        if len(pool) < 3:
+            value = global_median
+        else:
+            value = float(pool["patients"].median())
+
+        out.append(max(0.0, value * trend_factor))
+
+    out = np.array(out, dtype=float)
+    if len(out) >= 24 and float(np.nanmax(out) - np.nanmin(out)) < 0.5:
+        hourly = baseline_pool.groupby("hour")["patients"].median()
+        if len(hourly) > 1:
+            for i in range(horizon):
+                future_hour = int((last_dt + pd.Timedelta(hours=i + 1)).hour)
+                out[i] = float(hourly.get(future_hour, global_median))
     return np.clip(out, 0.0, None)
 
 
@@ -84,8 +144,12 @@ def _validate_forecast_vector(name: str, values: np.ndarray, df_hist: pd.DataFra
         reasons.append(f"{name} output contains NaN/Inf")
     if (arr < 0).any():
         reasons.append(f"{name} output contains negative values")
-    if len(arr) >= 6 and float(np.nanmax(arr) - np.nanmin(arr)) < 0.5:
-        reasons.append(f"{name} output is nearly flat")
+    if len(arr) >= 6:
+        arr_range = float(np.nanmax(arr) - np.nanmin(arr))
+        arr_mean = float(np.nanmean(np.abs(arr)))
+        min_dynamic_range = max(0.5, arr_mean * 0.05)
+        if arr_range < min_dynamic_range:
+            reasons.append(f"{name} output is nearly flat")
 
     hist_vals = pd.to_numeric(df_hist.get("patients"), errors="coerce").dropna().astype(float).values
     if len(hist_vals):
@@ -125,21 +189,40 @@ def _predict_lstm_next_hours(df_hist: pd.DataFrame, horizon: int) -> np.ndarray:
         x_hist = np.vstack([pad, x_hist])
     seed = x_hist[-seq_len:].copy()
 
+    last_dt = pd.to_datetime(hist["datetime"].iloc[-1]) if "datetime" in hist.columns else pd.Timestamp.now()
     preds = []
     rolling = seed
-    for _ in range(horizon):
+    for step in range(horizon):
         x_in = rolling.reshape(1, rolling.shape[0], rolling.shape[1])
         y_s = model.predict(x_in, verbose=0).reshape(-1, 1)
         y = float(y_scaler.inverse_transform(y_s)[0, 0])
         preds.append(y)
 
-        # Roll window: we do not have future exogenous features for demo purposes,
-        # so we copy last row and update only the `patients` feature (autoregressive).
+        # Roll window with time-aware future calendar features. We keep the
+        # autoregressive patient signal but update hour/day/weekend seasonality
+        # so the LSTM is not fed an artificial constant horizon.
+        future_dt = last_dt + pd.Timedelta(hours=step + 1)
         next_row = rolling[-1].copy()
-        # patients feature is included in feature_cols by design.
         if "patients" in feature_cols:
             idx = feature_cols.index("patients")
             next_row[idx] = y_scaler.transform(np.array([[y]], dtype=np.float32))[0, 0]
+        raw_updates = {
+            "hour": float(future_dt.hour),
+            "day_of_week": float(future_dt.dayofweek),
+            "month": float(future_dt.month),
+            "is_weekend": float(future_dt.dayofweek >= 5),
+            "hour_sin": float(np.sin(2 * np.pi * future_dt.hour / 24.0)),
+            "hour_cos": float(np.cos(2 * np.pi * future_dt.hour / 24.0)),
+        }
+        for col, value in raw_updates.items():
+            if col in feature_cols:
+                idx = feature_cols.index(col)
+                try:
+                    temp = np.zeros((1, len(feature_cols)), dtype=np.float32)
+                    temp[0, idx] = float(value)
+                    next_row[idx] = x_scaler.transform(temp)[0, idx]
+                except Exception:
+                    next_row[idx] = float(value)
         rolling = np.vstack([rolling[1:], next_row])
 
     return np.array(preds, dtype=float)
@@ -159,10 +242,27 @@ def _predict_arimax_next_hours(df_hist: pd.DataFrame, horizon: int) -> np.ndarra
     for c in exog_cols:
         hist[c] = pd.to_numeric(hist[c], errors="coerce").fillna(0.0)
 
-    # For demo: use last known exog row repeated.
+    last_dt = pd.to_datetime(hist["datetime"].iloc[-1]) if "datetime" in hist.columns else pd.Timestamp.now()
+
+    # Build time-aware future exogenous values where the trained columns are
+    # known calendar features. Unknown exogenous columns fall back to the last
+    # observed value, which is safer than dropping the model input shape.
     if exog_cols:
         last = hist[exog_cols].iloc[-1:].values.astype(float)
         exog_future = np.repeat(last, repeats=horizon, axis=0)
+        for i in range(horizon):
+            future_dt = last_dt + pd.Timedelta(hours=i + 1)
+            updates = {
+                "hour": float(future_dt.hour),
+                "day_of_week": float(future_dt.dayofweek),
+                "month": float(future_dt.month),
+                "is_weekend": float(future_dt.dayofweek >= 5),
+                "hour_sin": float(np.sin(2 * np.pi * future_dt.hour / 24.0)),
+                "hour_cos": float(np.cos(2 * np.pi * future_dt.hour / 24.0)),
+            }
+            for col, value in updates.items():
+                if col in exog_cols:
+                    exog_future[i, exog_cols.index(col)] = float(value)
     else:
         exog_future = None
 

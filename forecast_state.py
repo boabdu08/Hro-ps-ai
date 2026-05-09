@@ -131,8 +131,8 @@ def _validate_ops72h_forecast_df(df: pd.DataFrame) -> Tuple[bool, List[str]]:
     if (vals < 0).any():
         reasons.append("hybrid_pred contains negative values")
 
-    if len(vals) < 24:
-        reasons.append("hybrid_pred horizon appears shorter than expected")
+    if len(vals) != 72:
+        reasons.append(f"hybrid_pred horizon must contain exactly 72 rows, got {len(vals)}")
 
     # Strong credibility check: ensure not flat unless mathematically justified.
     # We do not reject; we flag. If it is flat AND artifacts are fresh, we still return ready but with model_status.
@@ -163,9 +163,10 @@ def _validate_ops72h_department_df(df: pd.DataFrame) -> Tuple[bool, List[str]]:
     if (vals < 0).any():
         reasons.append("department hybrid_pred contains negative values")
 
-    # Expect 72 hours worth of rows per department (not necessarily exactly 72 depending on exports).
-    if len(df) < 72:
-        reasons.append("department forecast row count seems too low for 72h")
+    counts = df.groupby("department")["datetime"].count() if "department" in df.columns else pd.Series(dtype=int)
+    bad_counts = {str(k): int(v) for k, v in counts.items() if int(v) != 72}
+    if bad_counts:
+        reasons.append(f"department forecast must contain exactly 72 rows per department: {bad_counts}")
 
     return len(reasons) == 0, reasons
 
@@ -181,6 +182,19 @@ def _compute_selected_model(metrics_df: pd.DataFrame) -> Optional[str]:
         return str(row.get("Model"))
     except Exception:
         return None
+
+
+def _invalid_artifact_reasons(reasons: List[str]) -> List[str]:
+    fatal_markers = [
+        "missing required",
+        "NaNs",
+        "negative",
+        "empty",
+        "invalid datetime",
+        "horizon must contain exactly 72",
+        "exactly 72 rows per department",
+    ]
+    return [r for r in reasons if any(marker in r for marker in fatal_markers)]
 
 
 def _risk_level(value: Optional[float]) -> Optional[str]:
@@ -275,7 +289,7 @@ def build_canonical_forecast_state(*, current_patients: Optional[float] = None,
 
     reasons: List[str] = []
 
-    # Model status starts as OK; we flip based on validations.
+    # Model status starts as OK; we flip based on validations and manifest.
     lstm_ok = True
     arimax_ok = True
     hybrid_ok = True
@@ -344,10 +358,10 @@ def build_canonical_forecast_state(*, current_patients: Optional[float] = None,
     reasons.extend(overall_reasons)
     reasons.extend(dept_reasons)
 
-    # Determine readiness: allow flatness but mark in model_status
-    # If schema/value checks fail, mark invalid.
-    invalid_value_reasons = [r for r in reasons if any(k in r for k in ["missing required", "NaNs", "negative", "empty", "invalid datetime"])]
-    if invalid_value_reasons or (not overall_ok) or (not dept_ok):
+    # Determine readiness: allow flatness but mark in model_status. Schema,
+    # horizon, NaN, negative, and datetime failures remain fatal.
+    invalid_value_reasons = _invalid_artifact_reasons(reasons)
+    if invalid_value_reasons:
         artifact_freshness = ArtifactFreshness(
             ready=False,
             artifact_timestamp=artifact_freshness.artifact_timestamp,
@@ -365,6 +379,13 @@ def build_canonical_forecast_state(*, current_patients: Optional[float] = None,
 
     # Model weights (from summary)
     weights = summary.get("weights") or {}
+    if "lstm_valid" in weights:
+        lstm_ok = bool(weights.get("lstm_valid"))
+    if "arimax_valid" in weights:
+        arimax_ok = bool(weights.get("arimax_valid"))
+    fallback_reasons = [str(r) for r in (weights.get("fallback_reasons") or [])]
+    if fallback_reasons:
+        fallback_used = True
     selected_model = _compute_selected_model(metrics_df)
 
     model_status = ModelStatus(
@@ -375,6 +396,7 @@ def build_canonical_forecast_state(*, current_patients: Optional[float] = None,
         reasons=[
             *artifact_freshness.invalid_reasons,
             *([r for r in reasons if r not in artifact_freshness.invalid_reasons]),
+            *fallback_reasons,
         ],
     )
 
@@ -488,13 +510,18 @@ def forecast_state_to_dict(state: ForecastState, *, include_frames: bool = False
         "metrics": state.metrics.to_dict(orient="records") if isinstance(state.metrics, pd.DataFrame) else [],
     }
     if include_frames:
+        overall_frame = state.overall_forecast_72h.copy() if isinstance(state.overall_forecast_72h, pd.DataFrame) else pd.DataFrame()
+        dept_frame = state.department_forecast_72h.copy() if isinstance(state.department_forecast_72h, pd.DataFrame) else pd.DataFrame()
+        for frame in [overall_frame, dept_frame]:
+            if not frame.empty and "datetime" in frame.columns:
+                frame["datetime"] = pd.to_datetime(frame["datetime"], errors="coerce").dt.strftime("%Y-%m-%d %H:%M:%S")
         payload["overall_forecast_72h"] = (
-            state.overall_forecast_72h.to_dict(orient="records")
+            overall_frame.to_dict(orient="records")
             if isinstance(state.overall_forecast_72h, pd.DataFrame)
             else []
         )
         payload["department_forecast_72h"] = (
-            state.department_forecast_72h.to_dict(orient="records")
+            dept_frame.to_dict(orient="records")
             if isinstance(state.department_forecast_72h, pd.DataFrame)
             else []
         )
