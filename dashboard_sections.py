@@ -44,6 +44,7 @@ OPS72H_OVERALL_FORECAST_PATH = Path("artifacts") / "forecast_outputs" / "ops72h_
 OPS72H_DEPARTMENT_FORECAST_PATH = Path("artifacts") / "forecast_outputs" / "ops72h_department_forecast.csv"
 OPS72H_MODEL_METRICS_PATH = Path("artifacts") / "metrics_72h" / "ops72h_model_metrics.csv"
 OPS72H_TRAINING_SUMMARY_PATH = Path("artifacts") / "manifests" / "ops72h_training_summary.json"
+MAIN_CLEAN_DATASET_PATH = Path("clean_data(AutoRecovered).csv")
 
 
 COUNT_DISPLAY_HINTS = (
@@ -127,6 +128,49 @@ def _stable_tail_note(values, *, label: str, tail_hours: int = 12, threshold: fl
     except Exception:
         return None
     return None
+
+
+def _build_recent_actual_forecast_comparison(hours: int = 24) -> tuple[pd.DataFrame, float | None]:
+    """Return an aligned last-N-hour actual-vs-forecast comparison.
+
+    The Command Center chart must not compare historical actuals against future
+    forecasts. The recent comparison uses held-out test predictions from the
+    canonical metrics artifacts, aligned to the same final timestamps in the
+    main dataset.
+    """
+
+    detailed_df = build_detailed_predictions_dataframe(split="test")
+    if detailed_df.empty or "actual" not in detailed_df.columns or "hybrid_pred" not in detailed_df.columns:
+        return pd.DataFrame(), None
+
+    recent = detailed_df.tail(int(hours)).copy().reset_index(drop=True)
+    if recent.empty:
+        return pd.DataFrame(), None
+
+    timestamps = pd.Series(dtype="datetime64[ns]")
+    if MAIN_CLEAN_DATASET_PATH.exists():
+        try:
+            main_df = pd.read_csv(MAIN_CLEAN_DATASET_PATH, usecols=["datetime"])
+            timestamps = pd.to_datetime(main_df["datetime"], errors="coerce").dropna().tail(len(recent)).reset_index(drop=True)
+        except Exception:
+            timestamps = pd.Series(dtype="datetime64[ns]")
+
+    if len(timestamps) != len(recent):
+        timestamps = pd.date_range(end=pd.Timestamp.now().floor("h"), periods=len(recent), freq="h").to_series(index=range(len(recent)))
+
+    compare_df = pd.DataFrame(
+        {
+            "datetime": timestamps.values,
+            "Actual": pd.to_numeric(recent["actual"], errors="coerce"),
+            "Forecast": pd.to_numeric(recent["hybrid_pred"], errors="coerce"),
+        }
+    ).dropna(subset=["datetime", "Actual", "Forecast"])
+
+    if compare_df.empty:
+        return pd.DataFrame(), None
+
+    mae = float(np.mean(np.abs(compare_df["Actual"].astype(float) - compare_df["Forecast"].astype(float))))
+    return compare_df, mae
 
 
 def _model_name(value) -> str:
@@ -581,22 +625,49 @@ def show_overview():
 
     with right:
         with st.container(border=True):
-            section_header("Actual vs forecast (recent window)", "Are we tracking reality?")
-            if not ctx["df"].empty and forecast_values:
-                df = ctx["df"].copy().reset_index(drop=True)
-                actual = df["patients"].tail(len(forecast_values)).values.astype(float)
-                forecast_vals = np.array(forecast_values, dtype=float)
-                min_len = int(min(len(actual), len(forecast_vals)))
-                compare_df = pd.DataFrame({
-                    "time_index": list(range(min_len)),
-                    "Actual": actual[:min_len],
-                    "Forecast": forecast_vals[:min_len],
-                })
-                fig_compare = px.line(compare_df, x="time_index", y=["Actual", "Forecast"], title="")
-                fig_compare.update_layout(height=330, xaxis_title="Recent window", yaxis_title="Patients")
+            section_header("How well did our forecast match reality (last 24h)?", "Aligned backtest window from the same timestamps")
+            compare_df, recent_mae = _build_recent_actual_forecast_comparison(hours=24)
+            if not compare_df.empty:
+                plot_df = compare_df.melt(
+                    id_vars="datetime",
+                    value_vars=["Actual", "Forecast"],
+                    var_name="Series",
+                    value_name="Patients",
+                )
+                plot_df["Patients"] = pd.to_numeric(plot_df["Patients"], errors="coerce").round(0)
+                fig_compare = px.line(
+                    plot_df,
+                    x="datetime",
+                    y="Patients",
+                    color="Series",
+                    markers=True,
+                    title="How well did our forecast match reality (last 24h)?",
+                )
+                fig_compare.update_layout(
+                    height=330,
+                    xaxis_title="Same 24-hour historical window",
+                    yaxis_title="Patients",
+                    yaxis=dict(rangemode="tozero"),
+                    margin=dict(l=8, r=8, t=42, b=8),
+                    legend_title_text="",
+                )
+                fig_compare.add_annotation(
+                    text=f"Recent MAE: {recent_mae:.1f} patients" if recent_mae is not None else "Recent MAE: unavailable",
+                    xref="paper",
+                    yref="paper",
+                    x=0.01,
+                    y=0.98,
+                    showarrow=False,
+                    bgcolor="rgba(255,255,255,0.82)",
+                    bordercolor="rgba(15,23,42,0.18)",
+                    borderwidth=1,
+                    font=dict(size=12),
+                )
+                fig_compare.update_traces(hovertemplate="%{x}<br>%{fullData.name}: %{y:.0f} patients<extra></extra>")
                 st.plotly_chart(fig_compare, use_container_width=True, key=scoped_key("overview", "core_actual_vs_forecast"))
+                st.caption("Actual and Forecast are aligned to the same last 24 historical timestamps; the gap is forecast error.")
             else:
-                empty_state("Need historical data to compare actual vs forecast.")
+                empty_state("Need canonical test predictions and main dataset timestamps to compare actual vs forecast.")
 
     # ------------------------------------------------------------
     # ACTION (interactive control + before/after)
