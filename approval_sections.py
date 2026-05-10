@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from database import SessionLocal
 from settings import get_settings
 from models import Appointment, AuditEvent, ORBooking, RecommendationRecord, StaffShift, Tenant
-from ui_components import alert_box, empty_state, page_header, section_header, status_badge
+from ui_components import alert_box, empty_state, modern_table, page_header, scoped_key, section_header, status_badge
 
 LEGACY_RECOMMENDATION_FILE = "recommendation_log.csv"  # import-only (not runtime)
 REQUIRED_LOG_COLS = [
@@ -415,6 +415,40 @@ def sync_recommendations(peak, beds_needed, doctors_needed, emergency_level):
         db.close()
 
 
+def _decision_history_from_audit() -> pd.DataFrame:
+    """Fallback decision history from immutable audit events when records are absent."""
+
+    db = SessionLocal()
+    try:
+        tenant_id = _get_default_tenant_id(db)
+        rows = (
+            db.query(AuditEvent)
+            .filter(AuditEvent.tenant_id == int(tenant_id))
+            .filter(AuditEvent.action.in_(["approve_recommendation", "reject_recommendation"]))
+            .order_by(AuditEvent.id.desc())
+            .all()
+        )
+        data = []
+        for row in rows:
+            action = _normalize(row.action)
+            data.append(
+                {
+                    "Request ID": _normalize(row.target),
+                    "Created time": _normalize(row.timestamp),
+                    "Request type": action.replace("_recommendation", ""),
+                    "Reason / recommendation": _normalize(row.details),
+                    "Status": "approved" if action == "approve_recommendation" else "rejected",
+                    "Decision by": _normalize(row.actor),
+                    "Execution status": _normalize(row.status),
+                    "Execution note": _normalize(row.details),
+                    "Affected records": _normalize(row.target),
+                }
+            )
+        return pd.DataFrame(data)
+    finally:
+        db.close()
+
+
 def execute_staff_decision(db: Session, message: str) -> Tuple[str, str, str]:
     tenant_id = _get_default_tenant_id(db)
     department = infer_department_from_message(message)
@@ -657,7 +691,12 @@ def show_admin_approval_panel(peak, beds_needed, doctors_needed, emergency_level
     section_header("Decision history", "Approved and rejected recommendations with execution notes")
     history_df = pd.concat([approved_df, rejected_df], ignore_index=True)
     if history_df.empty:
-        empty_state("No processed recommendations yet.")
+        audit_history_df = _decision_history_from_audit()
+        if audit_history_df.empty:
+            empty_state("No processed recommendations yet.")
+        else:
+            st.caption("Decision history recovered from the audit trail.")
+            modern_table(audit_history_df, key=scoped_key("approvals", "audit_decision_history"))
     else:
         history_df = history_df.sort_values(by="timestamp", ascending=False)
         display_df = history_df.rename(
@@ -673,4 +712,4 @@ def show_admin_approval_panel(peak, beds_needed, doctors_needed, emergency_level
                 "affected_files": "Affected records",
             }
         )
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
+        modern_table(display_df, key=scoped_key("approvals", "decision_history"))

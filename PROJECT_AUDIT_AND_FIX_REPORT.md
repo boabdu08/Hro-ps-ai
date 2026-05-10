@@ -160,3 +160,155 @@ python -m compileall dashboard.py dashboard_sections.py staff_sections.py api.py
   - `artifacts/models_72h/`
   - `artifacts/manifests/`
 - Do not present this as production hospital SaaS. It is deployment-ready for a graduation demo after verifying the deployed environment has the same artifacts, dependencies, database seed, and secrets.
+---
+
+## Final Data-Model-UI Hardening Pass
+
+### Main Dataset Correction
+
+- Exact main dataset found: `clean_data(AutoRecovered).csv`.
+- Previous expansion status: the prior pass expanded `data/updated_exports/*` and `clean_data.csv`, but not the exact AutoRecovered file.
+- Old main dataset shape: `8760 x 23`.
+- New main dataset shape: `17520 x 61`.
+- Old date range: `2025-01-01 00:00:00` to `2025-12-31 23:00:00`.
+- New date range: `2024-01-01 00:00:00` to `2025-12-31 23:00:00`.
+- Training source now used by `forecasting_pipeline.py`: `clean_data(AutoRecovered).csv`, then fallback candidates only if it is missing.
+- LSTM and ARIMAX metrics JSON files record `D:\hro-ps-ai\clean_data(AutoRecovered).csv` as `training_source`.
+
+### Files Changed
+
+- `scripts/build_realistic_demo_data.py`
+- `clean_data(AutoRecovered).csv`
+- `data/updated_exports/patient_flow_hourly_updated.csv`
+- `data/updated_exports/ops_hourly_overall.csv`
+- `data/updated_exports/updated_hospital_data.csv`
+- `data/updated_exports/ops_hourly_by_department.csv`
+- `data/updated_exports/staff_master_data.csv`
+- `data/updated_exports/staff_schedule.csv`
+- `data/updated_exports/appointments_updated.csv`
+- `data/updated_exports/or_bookings.csv`
+- `data/updated_exports/patient_tracking.csv`
+- `data/updated_exports/department_status_updated.csv`
+- `data/updated_exports/what_if_scenarios.csv`
+- `data/updated_exports/export_summary.txt`
+- `artifacts/forecast_outputs/ops72h_overall_forecast.csv`
+- `artifacts/forecast_outputs/ops72h_department_forecast.csv`
+- `artifacts/metrics_72h/ops72h_model_metrics.csv`
+- `artifacts/metrics_72h/lstm_ops72h_metrics.json`
+- `artifacts/metrics_72h/arimax_ops72h_metrics.json`
+- `artifacts/metrics_72h/hybrid_ops72h_metrics.json`
+- `artifacts/manifests/ops72h_training_summary.json`
+- `forecasting_pipeline.py`
+- `train_lstm_ops72h.py`
+- `train_arimax_ops72h.py`
+- `build_hybrid_ops72h.py`
+- `forecast_inference_ops72h.py`
+- `dashboard_sections.py`
+- `staff_sections.py`
+- `notification_sections.py`
+- `message_center_sections.py`
+- `approval_sections.py`
+- `resource_optimizer.py`
+- `ui_components.py`
+- `requirements-api.txt`
+- `requirements-dashboard.txt`
+- `DATA_AUDIT_REPORT.md`
+- `MODEL_TRAINING_SUMMARY.md`
+- `DEPLOYMENT_CHECKLIST.md`
+
+### Root Causes Addressed
+
+- The previous data exports were too sparse and uneven for credible 72-hour forecasting.
+- Department coverage was incomplete in department-level forecast artifacts.
+- Hybrid weighting could collapse into a single-model output.
+- ARIMAX exogenous features did not include the full required operational calendar context.
+- Several UI sections displayed correct data through weak presentation: raw timestamps, unfiltered department tables, misleading chart axes, missing labels, or inconsistent status wording.
+- Staff KPI cards counted shift rows rather than unique staff members.
+- Optimization did not expose a true integer programming step.
+
+### Forecasting Fixes
+
+- Expanded the exact main dataset `clean_data(AutoRecovered).csv` to 17,520 hourly rows with realistic weekday/weekend, seasonal, shift, appointment, OR, staffing, and bed-pressure patterns.
+- Retrained LSTM on the expanded dataset.
+- Retrained ARIMAX using exogenous regressors including weekend, holiday, season, and shift-period context.
+- Rebuilt Hybrid through constrained grid search with both weights active.
+- Regenerated 72-hour overall and department forecast artifacts.
+- Current Hybrid weights: LSTM `0.8`, ARIMAX `0.2`.
+- Current best operational model by RMSE: Hybrid.
+- Current metrics after retraining from `clean_data(AutoRecovered).csv`:
+  - LSTM: MAE `7.158200`, RMSE `9.005371`, MAPE `5.329422`
+  - ARIMAX: MAE `7.796137`, RMSE `9.317053`, MAPE `5.963158`
+  - Hybrid: MAE `6.622505`, RMSE `8.148527`, MAPE `4.912072`
+
+### Dashboard/UI Fixes
+
+- Command Center now shows artifact timestamp as small metadata, not a large KPI card.
+- Forecast department table now follows the selected department filter.
+- Forecast metrics caption points to `artifacts/metrics_72h/ops72h_model_metrics.csv`.
+- Digital Twin y-axis now starts from zero.
+- Evaluation MAE/RMSE and MAPE bars include value labels.
+- Evaluation includes a visible Known Limitations section.
+- Optimization shows MIP allocation output and explains objective/constraints.
+- Shortage charts include clear legend/title labels.
+- Staff count KPIs now use unique staff counts.
+- Shift charts include all departments and shift types with readable labels.
+- OR chart now shows room utilization when duration data is available.
+- Warning alerts now show `Escalation: Monitor`; Critical alerts show `Escalation: Required`.
+- Messages now render Arabic text right-to-left and show Arabic support in the UI.
+- Approval Decision History can fall back to audit events if processed recommendation rows are absent.
+- `modern_table` now provides a CSV export button for large tables.
+
+### Optimization Fixes
+
+- Added a Mixed Integer Programming allocation check using `scipy.optimize.milp`.
+- The optimization summary now exposes `optimization_method` and `mip_status`.
+- MIP allocation rows are returned in `mip_allocation` and displayed in Optimization.
+- Added `scipy` to API and dashboard requirements so deployment has the solver dependency.
+
+### Commands Run
+
+```powershell
+python scripts\build_realistic_demo_data.py
+$env:HRO_OPS72H_LSTM_EPOCHS='12'; $env:HRO_OPS72H_LSTM_BATCH_SIZE='128'; python train_lstm_ops72h.py
+python train_arimax_ops72h.py
+python build_hybrid_ops72h.py
+python generate_ops72h_outputs.py
+python -m compileall dashboard.py dashboard_sections.py staff_sections.py notification_sections.py message_center_sections.py approval_sections.py audit_sections.py api.py api_client.py database.py ops_live.py resource_optimizer.py operational_data_workflow.py evaluation_service.py forecast_state.py forecast_inference_ops72h.py generate_ops72h_outputs.py -q
+python scripts\smoke_forecast_state.py
+python -m pytest -q
+python -c "import pandas as pd; from pathlib import Path; files=['clean_data(AutoRecovered).csv','clean_data(AutoRecovered)(1).csv','clean_data.csv']; for f in files: p=Path(f); print(f, pd.read_csv(p).shape if p.exists() else 'missing')"
+```
+
+### Smoke Test Output
+
+- Compile: PASS.
+- ForecastState smoke: PASS.
+  - Current patients: `96.0`
+  - Next-hour forecast: `101.0`
+  - 72h row count: `72`
+  - 72h peak after AutoRecovered retrain: `252.63652782074715`
+  - 72h average after AutoRecovered retrain: `222.9677434709386`
+  - Constant forecast detected: `False`
+  - Command Center source: `ForecastState`
+  - Forecast tab source: `ForecastState`
+  - Digital Twin series count: `72`
+  - Optimization input: `101.0`
+  - Evaluation metrics rows: `3`
+- Pytest: PASS, `4 passed`.
+- Warnings only:
+  - FastAPI `on_event` deprecation warning.
+  - Pytest cache write warning for `.pytest_cache`.
+
+### Deployment Readiness Notes
+
+- The demo remains a graduation prototype using realistic synthetic/demo data.
+- No real patient data is used.
+- No Gmail/OAuth/SMS integration was added.
+- Training is not required on startup.
+- Required canonical artifact layout is present under `data/updated_exports/` and `artifacts/`.
+
+### Remaining Honest Limitations
+
+- ARIMAX training can still emit convergence warnings, but the regenerated forecast output is validated and non-flat.
+- The two-year dataset excludes February 29, 2024 to satisfy the exact 17,520-row requirement.
+- MIP allocation is a demo-scale integer optimization step; production nurse rostering would require full labor-law, contract, skill-mix, and fatigue constraints.

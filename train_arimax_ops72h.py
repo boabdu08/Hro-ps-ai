@@ -55,7 +55,8 @@ def main():
     save_ops_hourly_dataset(frame)
 
     df = frame.overall.copy().sort_values("datetime").reset_index(drop=True)
-    max_rows = int(os.getenv("HRO_OPS72H_ARIMAX_MAX_ROWS", "12000"))
+    training_source = str(frame.overall.attrs.get("source_path", "unknown"))
+    max_rows = int(os.getenv("HRO_OPS72H_ARIMAX_MAX_ROWS", "0"))
     if max_rows > 0 and len(df) > max_rows:
         # SARIMAX fitting can be slow on very long hourly histories. Use the
         # most recent window by default for practical retraining while still
@@ -69,7 +70,9 @@ def main():
         "week_number",
         "season",
         "is_weekend",
+        "is_holiday",
         "holiday",
+        "shift_period_code",
         "appointments_count",
         "or_bookings_count",
         "doctors_available",
@@ -120,7 +123,7 @@ def main():
     joblib.dump(final_fit, model_path)
 
     (METRICS_DIR / "arimax_ops72h_metrics.json").write_text(
-        json.dumps({"model": "ARIMAX", "val": val_metrics, "test": test_metrics, "exog_cols": exog_cols}, indent=2),
+        json.dumps({"model": "ARIMAX", "training_source": training_source, "val": val_metrics, "test": test_metrics, "exog_cols": exog_cols}, indent=2),
         encoding="utf-8",
     )
     np.savez_compressed(METRICS_DIR / "arimax_ops72h_val_outputs.npz", y_true=y_val.values.astype(float), y_pred=val_pred.astype(float))

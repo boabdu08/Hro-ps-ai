@@ -1,4 +1,5 @@
 import streamlit as st
+import re
 
 from api_client import (
     acknowledge_message_api,
@@ -21,6 +22,33 @@ TARGET_DEPARTMENT_OPTIONS = [
     "Radiology",
 ]
 PRIORITY_OPTIONS = ["normal", "high", "critical"]
+
+
+def _escape_html(text: str) -> str:
+    return (
+        str(text)
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
+
+def _contains_arabic(text: str) -> bool:
+    return bool(re.search(r"[\u0600-\u06FF]", str(text or "")))
+
+
+def _render_text_body(text: str):
+    body = _clean_text(text)
+    if not body:
+        return
+    if _contains_arabic(body):
+        st.markdown(
+            f"<div dir='rtl' style='text-align:right; line-height:1.8'>{_escape_html(body)}</div>",
+            unsafe_allow_html=True,
+        )
+    else:
+        st.write(body)
 
 
 def _status_tone(status: str) -> str:
@@ -134,7 +162,7 @@ def _render_message_card(
         with c_status:
             status_badge(status.upper(), _status_tone(status))
 
-        st.write(_message_preview(msg.get("message", "")))
+        _render_text_body(_message_preview(msg.get("message", "")))
         m1, m2, m3, m4 = st.columns(4)
         with m1:
             st.caption("Sender")
@@ -199,7 +227,7 @@ def _render_message_card(
                     st.caption("Already archived.")
             with a3:
                 with st.expander("View full message", expanded=False):
-                    st.write(msg.get("message", ""))
+                    _render_text_body(msg.get("message", ""))
                     st.caption(f"Message ID: {message_id}")
 
 
@@ -211,7 +239,13 @@ def _reply_block(msg: dict):
     if not reply:
         return
 
-    st.success(f"Reply: {reply}")
+    if _contains_arabic(reply):
+        st.markdown(
+            f"<div dir='rtl' style='text-align:right; padding:0.75rem; border-radius:0.5rem; background:rgba(34,197,94,0.14); line-height:1.8'><strong>Reply:</strong> {_escape_html(reply)}</div>",
+            unsafe_allow_html=True,
+        )
+    else:
+        st.success(f"Reply: {reply}")
 
     meta = []
     if reply_by:
@@ -252,6 +286,7 @@ def show_admin_message_center(sender_name: str, sender_role: str):
         "This message center is for in-app coordination only. External email/SMS delivery is a future SaaS feature.",
         level="info",
     )
+    st.caption("Arabic supported: Arabic message bodies and replies render right-to-left in the message cards.")
     data = _safe_templates_response()
     templates = data["admin_templates"]
 
@@ -381,6 +416,7 @@ def show_staff_message_center(user_name: str, role: str, department: str):
         "This message center is for in-app coordination only. External email/SMS delivery is a future SaaS feature.",
         level="info",
     )
+    st.caption("Arabic supported: Arabic message bodies and replies render right-to-left in the message cards.")
 
     section_header("Send update to Admin", "Share a staffing, patient-flow, or department coordination update.")
     with st.expander("Compose a quick update", expanded=False):

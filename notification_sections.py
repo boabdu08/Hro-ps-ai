@@ -206,7 +206,7 @@ def _render_alert_card(alert: dict, *, role: str, user_department: str):
     affected_resource = " / ".join(
         [part for part in [_clean(alert.get("related_entity_type"), ""), _clean(alert.get("related_entity_id"), "")] if part]
     ) or "Not specified"
-    escalation = "Required" if severity in {"Critical", "Warning"} else "Monitor"
+    escalation = "Required" if severity == "Critical" else "Monitor"
 
     with st.container(border=True):
         head1, head2, head3 = st.columns([0.62, 0.18, 0.20])

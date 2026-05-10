@@ -1,73 +1,73 @@
 datetime,lstm_pred,arimax_pred,hybrid_pred,lstm_valid,arimax_valid,validation_note
-2026-05-05 22:00:00,92.5,92.5,92.5,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-05 23:00:00,89.5,89.5,89.5,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 00:00:00,83.0,83.0,83.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 01:00:00,80.0,80.0,80.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 02:00:00,75.0,75.0,75.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 03:00:00,72.0,72.0,72.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 04:00:00,72.0,72.0,72.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 05:00:00,75.0,75.0,75.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 06:00:00,78.0,78.0,78.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 07:00:00,84.0,84.0,84.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 08:00:00,88.0,88.0,88.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 09:00:00,93.0,93.0,93.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 10:00:00,95.0,95.0,95.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 11:00:00,100.0,100.0,100.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 12:00:00,104.0,104.0,104.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 13:00:00,109.0,109.0,109.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 14:00:00,112.0,112.0,112.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 15:00:00,112.0,112.0,112.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 16:00:00,114.0,114.0,114.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 17:00:00,111.0,111.0,111.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 18:00:00,111.0,111.0,111.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 19:00:00,107.0,107.0,107.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 20:00:00,105.0,105.0,105.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 21:00:00,99.0,99.0,99.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 22:00:00,91.0,91.0,91.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-06 23:00:00,87.0,87.0,87.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 00:00:00,81.0,81.0,81.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 01:00:00,75.0,75.0,75.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 02:00:00,72.5,72.5,72.5,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 03:00:00,73.0,73.0,73.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 04:00:00,70.5,70.5,70.5,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 05:00:00,71.0,71.0,71.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 06:00:00,77.0,77.0,77.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 07:00:00,80.5,80.5,80.5,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 08:00:00,85.0,85.0,85.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 09:00:00,89.5,89.5,89.5,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 10:00:00,94.5,94.5,94.5,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 11:00:00,100.0,100.0,100.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 12:00:00,104.0,104.0,104.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 13:00:00,105.0,105.0,105.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 14:00:00,110.5,110.5,110.5,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 15:00:00,111.0,111.0,111.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 16:00:00,113.5,113.5,113.5,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 17:00:00,113.0,113.0,113.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 18:00:00,109.5,109.5,109.5,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 19:00:00,108.0,108.0,108.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 20:00:00,103.0,103.0,103.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 21:00:00,97.0,97.0,97.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 22:00:00,96.0,96.0,96.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-07 23:00:00,88.0,88.0,88.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-08 00:00:00,85.5,85.5,85.5,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-08 01:00:00,79.5,79.5,79.5,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-08 02:00:00,76.5,76.5,76.5,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-08 03:00:00,76.5,76.5,76.5,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-08 04:00:00,77.0,77.0,77.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-08 05:00:00,77.5,77.5,77.5,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-08 06:00:00,79.5,79.5,79.5,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-08 07:00:00,82.5,82.5,82.5,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-08 08:00:00,87.0,87.0,87.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-08 09:00:00,91.5,91.5,91.5,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-08 10:00:00,98.0,98.0,98.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-08 11:00:00,103.0,103.0,103.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-08 12:00:00,105.5,105.5,105.5,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-08 13:00:00,110.0,110.0,110.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-08 14:00:00,116.5,116.5,116.5,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-08 15:00:00,116.0,116.0,116.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-08 16:00:00,115.0,115.0,115.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-08 17:00:00,116.5,116.5,116.5,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-08 18:00:00,116.5,116.5,116.5,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-08 19:00:00,113.0,113.0,113.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-08 20:00:00,108.0,108.0,108.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
-2026-05-08 21:00:00,104.0,104.0,104.0,False,False,LSTM output contains negative values; LSTM replaced by seasonal-naive fallback; ARIMAX output is nearly flat; ARIMAX replaced by seasonal-naive fallback
+2026-01-01 00:00:00,140.15586853027344,160.21451828387865,144.16759848099449,True,True,OK
+2026-01-01 01:00:00,132.53713989257812,160.74905982412312,138.17952387888712,True,True,OK
+2026-01-01 02:00:00,130.18955993652344,161.17799656970232,136.38724726315922,True,True,OK
+2026-01-01 03:00:00,133.10244750976562,161.6140843087729,138.8047748695671,True,True,OK
+2026-01-01 04:00:00,140.54705810546875,162.04968782070137,144.84758404851527,True,True,OK
+2026-01-01 05:00:00,151.54373168945312,162.48532412190949,153.7320501759444,True,True,OK
+2026-01-01 06:00:00,164.8479766845703,162.92095820280244,164.46257298821672,True,True,OK
+2026-01-01 07:00:00,179.27664184570312,162.32979585518635,175.8872726475998,True,True,OK
+2026-01-01 08:00:00,196.09304809570312,162.76543007624645,189.42752449181182,True,True,OK
+2026-01-01 09:00:00,210.5538787841797,163.2010642979959,201.08331588694296,True,True,OK
+2026-01-01 10:00:00,221.82852172851562,163.63669851969874,210.19015708675227,True,True,OK
+2026-01-01 11:00:00,230.29605102539062,164.0723327414047,217.05130736859346,True,True,OK
+2026-01-01 12:00:00,236.541748046875,164.50796696311045,222.1349918301221,True,True,OK
+2026-01-01 13:00:00,241.12794494628906,164.94360118481623,225.8910761939945,True,True,OK
+2026-01-01 14:00:00,244.66268920898438,165.37923540652199,228.80599844849192,True,True,OK
+2026-01-01 15:00:00,247.6087646484375,164.78807304937078,231.04462632862416,True,True,OK
+2026-01-01 16:00:00,252.49977111816406,165.22370727107656,235.04455834874656,True,True,OK
+2026-01-01 17:00:00,255.0393829345703,165.65934149278232,237.16337464621273,True,True,OK
+2026-01-01 18:00:00,255.97825622558594,166.0949757144881,238.0016001233664,True,True,OK
+2026-01-01 19:00:00,255.87132263183594,166.53060993619385,238.00318009270754,True,True,OK
+2026-01-01 20:00:00,255.1742401123047,166.96624415789964,237.5326409214237,True,True,OK
+2026-01-01 21:00:00,254.15805053710938,167.4018783796054,236.80681610560862,True,True,OK
+2026-01-01 22:00:00,252.9202423095703,167.83751260131115,235.90369636791849,True,True,OK
+2026-01-01 23:00:00,251.52784729003906,170.32673998073085,235.28762582817745,True,True,OK
+2026-01-02 00:00:00,243.34910583496094,160.04831127665742,226.68894692330025,True,True,OK
+2026-01-02 01:00:00,241.05502319335938,160.4839454983632,224.94080765436016,True,True,OK
+2026-01-02 02:00:00,240.4298095703125,160.91957972006895,224.5277636002638,True,True,OK
+2026-01-02 03:00:00,241.8204345703125,161.3552139417747,225.72739044460496,True,True,OK
+2026-01-02 04:00:00,244.6751708984375,161.7908481634805,228.09830635144613,True,True,OK
+2026-01-02 05:00:00,248.42127990722656,162.22648238518624,231.18232040281853,True,True,OK
+2026-01-02 06:00:00,252.54896545410156,162.66211660689203,234.57159568465968,True,True,OK
+2026-01-02 07:00:00,256.6634216308594,162.07095424974082,237.7449281546357,True,True,OK
+2026-01-02 08:00:00,263.057861328125,162.5065884714466,242.94760675678933,True,True,OK
+2026-01-02 09:00:00,267.34014892578125,162.94222269315236,246.4605636792555,True,True,OK
+2026-01-02 10:00:00,270.45416259765625,163.3778569148581,249.03890146109666,True,True,OK
+2026-01-02 11:00:00,272.3072204589844,163.8134911365639,250.6084745945003,True,True,OK
+2026-01-02 12:00:00,273.21923828125,164.24912535826965,251.42521569665394,True,True,OK
+2026-01-02 13:00:00,273.44793701171875,164.68475957997543,251.6953015253701,True,True,OK
+2026-01-02 14:00:00,273.1899719238281,165.1203938016812,251.57605629939874,True,True,OK
+2026-01-02 15:00:00,272.5959777832031,164.52923144452998,250.9826285154685,True,True,OK
+2026-01-02 16:00:00,274.554443359375,164.96486566623577,252.63652782074715,True,True,OK
+2026-01-02 17:00:00,274.3992614746094,165.40049988794152,252.5995091572758,True,True,OK
+2026-01-02 18:00:00,273.0247497558594,165.8361341096473,251.58702662661696,True,True,OK
+2026-01-02 19:00:00,270.7880859375,166.27176833135306,249.88482241627062,True,True,OK
+2026-01-02 20:00:00,267.96710205078125,166.70740255305884,247.7151621512368,True,True,OK
+2026-01-02 21:00:00,264.7652282714844,167.1430367747646,245.24078997214045,True,True,OK
+2026-01-02 22:00:00,261.5771789550781,167.57867099647035,242.77747736335658,True,True,OK
+2026-01-02 23:00:00,258.31243896484375,170.06789837589005,240.66353084705304,True,True,OK
+2026-01-03 00:00:00,249.98068237304688,137.60366087818676,227.50527807407488,True,True,OK
+2026-01-03 01:00:00,241.14666748046875,138.03929509989254,220.52519300435353,True,True,OK
+2026-01-03 02:00:00,236.4123077392578,138.4749293215983,216.82483205572595,True,True,OK
+2026-01-03 03:00:00,234.3524932861328,138.91056354330405,215.26410733756705,True,True,OK
+2026-01-03 04:00:00,234.3531494140625,139.34619776500983,215.35175908425197,True,True,OK
+2026-01-03 05:00:00,235.83584594726562,139.7818319867156,216.62504315515562,True,True,OK
+2026-01-03 06:00:00,238.27590942382812,140.21746620842137,218.66422078074677,True,True,OK
+2026-01-03 07:00:00,241.2188720703125,139.62630385127017,220.90035842650403,True,True,OK
+2026-01-03 08:00:00,246.4833221435547,140.06193807297595,225.19904532943895,True,True,OK
+2026-01-03 09:00:00,250.27053833007812,140.4975722946817,228.31594512299884,True,True,OK
+2026-01-03 10:00:00,252.82504272460938,140.93320651638746,230.44667548296502,True,True,OK
+2026-01-03 11:00:00,254.36476135253906,141.36884073809324,231.76557722964992,True,True,OK
+2026-01-03 12:00:00,255.1126251220703,141.804474959799,232.45099508961607,True,True,OK
+2026-01-03 13:00:00,255.26290893554688,142.24010918150478,232.65834898473847,True,True,OK
+2026-01-03 14:00:00,254.97740173339844,142.67574340321053,232.51707006736086,True,True,OK
+2026-01-03 15:00:00,254.38882446289062,142.08458104605933,231.9279757795244,True,True,OK
+2026-01-03 16:00:00,255.7970733642578,142.5202152677651,233.1417017449593,True,True,OK
+2026-01-03 17:00:00,255.53575134277344,142.95584948947086,233.01977097211295,True,True,OK
+2026-01-03 18:00:00,254.22537231445312,143.39148371117665,232.05859459379786,True,True,OK
+2026-01-03 19:00:00,252.17474365234375,143.8271179328824,230.5052185084515,True,True,OK
+2026-01-03 20:00:00,249.6242218017578,144.26275215458818,228.5519278723239,True,True,OK
+2026-01-03 21:00:00,246.7550506591797,144.69838637629394,226.34371780260255,True,True,OK
+2026-01-03 22:00:00,243.69955444335938,145.1340205979997,223.98644767428746,True,True,OK
+2026-01-03 23:00:00,240.55038452148438,147.6232479774194,221.96495721267138,True,True,OK

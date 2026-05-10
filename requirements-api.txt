@@ -22,6 +22,7 @@ pandas>=2.2.2
 joblib>=1.4.2
 scikit-learn>=1.3.2
 statsmodels>=0.14.2
+scipy>=1.11.4
 
 # Optional heavy ML runtime for endpoints that load LSTM artifacts.
 # Keep installed for full demo API compatibility; no training runs on startup.

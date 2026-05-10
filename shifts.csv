@@ -1,8 +1,1471 @@
-staff_username,name,role,department,shift_date,shift_type,status
-doctor1,Dr. Ahmed,doctor,ER,2026-03-14,Morning,Assigned
-doctor1,Dr. Ahmed,doctor,ER,2026-03-15,Evening,Assigned
-doctor2,Dr. Sara,doctor,ICU,2026-03-14,Night,Assigned
-nurse1,Nurse Mona,nurse,General Ward,2026-03-14,Morning,Assigned
-nurse1,Nurse Mona,nurse,General Ward,2026-03-15,Evening,Assigned
-nurse2,Nurse Ali,nurse,ER,2026-03-14,Night,Assigned
-backup_doctor,Backup Doctor,doctor,ER,2026-03-17,Emergency Backup,Auto-Assigned
+staff_username,name,staff_username,role,department,shift_date,shift_type,shift_start_time,shift_end_time,status,notes
+STF-0002,Dr. Sara Hassan,stf-0002,doctor,ER,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0009,Dr. Ahmed Ibrahim,stf-0009,doctor,ER,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0012,Nurse Mostafa Fouad,stf-0012,nurse,ER,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0026,Nurse Omar Abdullah,stf-0026,nurse,ER,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0027,Nurse Mona Said,stf-0027,nurse,ER,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0028,Nurse Sara Yasin,stf-0028,nurse,ER,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0003,Dr. Noor Mahmoud,stf-0003,doctor,ER,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0005,Dr. Noor Samir,stf-0005,doctor,ER,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0018,Nurse Youssef Hassan,stf-0018,nurse,ER,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0014,Nurse Noor Fouad,stf-0014,nurse,ER,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0017,Nurse Karim Nasser,stf-0017,nurse,ER,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0021,Nurse Fatima Mahmoud,stf-0021,nurse,ER,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0001,Dr. Karim Mahmoud,stf-0001,doctor,ER,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0005,Dr. Noor Samir,stf-0005,doctor,ER,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0019,Nurse Noor Mahmoud,stf-0019,nurse,ER,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0012,Nurse Mostafa Fouad,stf-0012,nurse,ER,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0029,Nurse Noor Ali,stf-0029,nurse,ER,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0022,Nurse Karim Samir,stf-0022,nurse,ER,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0001,Dr. Karim Mahmoud,stf-0001,doctor,ER,2025-12-25,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0028,Nurse Sara Yasin,stf-0028,nurse,ER,2025-12-25,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0030,Nurse Mona Abdullah,stf-0030,nurse,ER,2025-12-25,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0039,Dr. Sara Nasser,stf-0039,doctor,General Ward,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0035,Dr. Hassan Ibrahim,stf-0035,doctor,General Ward,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0073,Nurse Mona Nasser,stf-0073,nurse,General Ward,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0064,Nurse Mona Fouad,stf-0064,nurse,General Ward,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0066,Nurse Youssef Said,stf-0066,nurse,General Ward,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0052,Nurse Karim Samir,stf-0052,nurse,General Ward,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0036,Dr. Nadine Abdullah,stf-0036,doctor,General Ward,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0041,Dr. Ahmed Mahmoud,stf-0041,doctor,General Ward,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0062,Nurse Nadine Yasin,stf-0062,nurse,General Ward,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0055,Nurse Youssef Abdullah,stf-0055,nurse,General Ward,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0058,Nurse Noor Nasser,stf-0058,nurse,General Ward,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0066,Nurse Youssef Said,stf-0066,nurse,General Ward,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0034,Dr. Mona Fouad,stf-0034,doctor,General Ward,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0042,Dr. Noor Abdullah,stf-0042,doctor,General Ward,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0053,Nurse Youssef Hassan,stf-0053,nurse,General Ward,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0047,Nurse Nadine Fouad,stf-0047,nurse,General Ward,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0050,Nurse Omar Ali,stf-0050,nurse,General Ward,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0048,Nurse Laila Samir,stf-0048,nurse,General Ward,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0034,Dr. Mona Fouad,stf-0034,doctor,General Ward,2025-12-25,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0071,Nurse Karim Abdullah,stf-0071,nurse,General Ward,2025-12-25,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0063,Nurse Laila Fouad,stf-0063,nurse,General Ward,2025-12-25,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0079,Dr. Mostafa Nasser,stf-0079,doctor,ICU,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0080,Dr. Youssef Abdullah,stf-0080,doctor,ICU,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0097,Nurse Mona Hassan,stf-0097,nurse,ICU,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0101,Nurse Sara Yasin,stf-0101,nurse,ICU,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0085,Nurse Hassan Ibrahim,stf-0085,nurse,ICU,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0083,Nurse Karim Nasser,stf-0083,nurse,ICU,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0082,Dr. Nadine Yasin,stf-0082,doctor,ICU,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0077,Dr. Fatima Samir,stf-0077,doctor,ICU,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0090,Nurse Hassan Samir,stf-0090,nurse,ICU,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0095,Nurse Youssef Ali,stf-0095,nurse,ICU,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0102,Nurse Sara Said,stf-0102,nurse,ICU,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0104,Nurse Omar Fouad,stf-0104,nurse,ICU,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0078,Dr. Ahmed Nasser,stf-0078,doctor,ICU,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0079,Dr. Mostafa Nasser,stf-0079,doctor,ICU,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0090,Nurse Hassan Samir,stf-0090,nurse,ICU,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0103,Nurse Mona Samir,stf-0103,nurse,ICU,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0089,Nurse Youssef Hassan,stf-0089,nurse,ICU,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0094,Nurse Fatima Ibrahim,stf-0094,nurse,ICU,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0076,Dr. Sara Yasin,stf-0076,doctor,ICU,2025-12-25,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0092,Nurse Fatima Fouad,stf-0092,nurse,ICU,2025-12-25,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0104,Nurse Omar Fouad,stf-0104,nurse,ICU,2025-12-25,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0110,Dr. Noor Said,stf-0110,doctor,Surgery,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0111,Dr. Mona Yasin,stf-0111,doctor,Surgery,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0128,Nurse Fatima Fouad,stf-0128,nurse,Surgery,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0115,Nurse Ahmed Ibrahim,stf-0115,nurse,Surgery,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0124,Nurse Fatima Said,stf-0124,nurse,Surgery,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0125,Nurse Fatima Mahmoud,stf-0125,nurse,Surgery,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0105,Dr. Omar Samir,stf-0105,doctor,Surgery,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0106,Dr. Laila Mahmoud,stf-0106,doctor,Surgery,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0125,Nurse Fatima Mahmoud,stf-0125,nurse,Surgery,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0132,Nurse Mona Yasin,stf-0132,nurse,Surgery,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0121,Nurse Ahmed Hassan,stf-0121,nurse,Surgery,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0126,Nurse Noor Fouad,stf-0126,nurse,Surgery,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0113,Dr. Youssef Abdullah,stf-0113,doctor,Surgery,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0109,Dr. Karim Abdullah,stf-0109,doctor,Surgery,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0120,Nurse Ahmed Nasser,stf-0120,nurse,Surgery,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0130,Nurse Fatima Hassan,stf-0130,nurse,Surgery,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0125,Nurse Fatima Mahmoud,stf-0125,nurse,Surgery,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0131,Nurse Omar Mahmoud,stf-0131,nurse,Surgery,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0107,Dr. Karim Mahmoud,stf-0107,doctor,Surgery,2025-12-25,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0132,Nurse Mona Yasin,stf-0132,nurse,Surgery,2025-12-25,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0131,Nurse Omar Mahmoud,stf-0131,nurse,Surgery,2025-12-25,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0137,Dr. Fatima Mahmoud,stf-0137,doctor,Radiology,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0145,Nurse Fatima Yasin,stf-0145,nurse,Radiology,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0147,Nurse Laila Nasser,stf-0147,nurse,Radiology,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0141,Nurse Laila Ibrahim,stf-0141,nurse,Radiology,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0146,Nurse Hassan Ibrahim,stf-0146,nurse,Radiology,2025-12-25,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0136,Dr. Fatima Samir,stf-0136,doctor,Radiology,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0144,Nurse Laila Abdullah,stf-0144,nurse,Radiology,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0142,Nurse Youssef Ibrahim,stf-0142,nurse,Radiology,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0148,Nurse Noor Nasser,stf-0148,nurse,Radiology,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0140,Nurse Laila Fouad,stf-0140,nurse,Radiology,2025-12-25,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0136,Dr. Fatima Samir,stf-0136,doctor,Radiology,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0133,Dr. Fatima Ali,stf-0133,doctor,Radiology,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0139,Nurse Mostafa Nasser,stf-0139,nurse,Radiology,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0145,Nurse Fatima Yasin,stf-0145,nurse,Radiology,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0147,Nurse Laila Nasser,stf-0147,nurse,Radiology,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0142,Nurse Youssef Ibrahim,stf-0142,nurse,Radiology,2025-12-25,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2025-12-25,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0147,Nurse Laila Nasser,stf-0147,nurse,Radiology,2025-12-25,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0142,Nurse Youssef Ibrahim,stf-0142,nurse,Radiology,2025-12-25,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0003,Dr. Noor Mahmoud,stf-0003,doctor,ER,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0004,Dr. Mostafa Said,stf-0004,doctor,ER,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0011,Nurse Hassan Yasin,stf-0011,nurse,ER,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0018,Nurse Youssef Hassan,stf-0018,nurse,ER,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0027,Nurse Mona Said,stf-0027,nurse,ER,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0032,Nurse Mona Samir,stf-0032,nurse,ER,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0003,Dr. Noor Mahmoud,stf-0003,doctor,ER,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0005,Dr. Noor Samir,stf-0005,doctor,ER,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0026,Nurse Omar Abdullah,stf-0026,nurse,ER,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0014,Nurse Noor Fouad,stf-0014,nurse,ER,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0032,Nurse Mona Samir,stf-0032,nurse,ER,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0019,Nurse Noor Mahmoud,stf-0019,nurse,ER,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0001,Dr. Karim Mahmoud,stf-0001,doctor,ER,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0007,Dr. Ahmed Mahmoud,stf-0007,doctor,ER,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0025,Nurse Hassan Fouad,stf-0025,nurse,ER,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0017,Nurse Karim Nasser,stf-0017,nurse,ER,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0014,Nurse Noor Fouad,stf-0014,nurse,ER,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0018,Nurse Youssef Hassan,stf-0018,nurse,ER,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0002,Dr. Sara Hassan,stf-0002,doctor,ER,2025-12-26,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0023,Nurse Ahmed Ali,stf-0023,nurse,ER,2025-12-26,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0027,Nurse Mona Said,stf-0027,nurse,ER,2025-12-26,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0036,Dr. Nadine Abdullah,stf-0036,doctor,General Ward,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0044,Dr. Mona Ibrahim,stf-0044,doctor,General Ward,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0064,Nurse Mona Fouad,stf-0064,nurse,General Ward,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0070,Nurse Fatima Mahmoud,stf-0070,nurse,General Ward,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0074,Nurse Fatima Ali,stf-0074,nurse,General Ward,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0065,Nurse Karim Samir,stf-0065,nurse,General Ward,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0040,Dr. Youssef Yasin,stf-0040,doctor,General Ward,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0033,Dr. Hassan Ali,stf-0033,doctor,General Ward,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0054,Nurse Omar Hassan,stf-0054,nurse,General Ward,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0073,Nurse Mona Nasser,stf-0073,nurse,General Ward,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0055,Nurse Youssef Abdullah,stf-0055,nurse,General Ward,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0057,Nurse Karim Fouad,stf-0057,nurse,General Ward,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0037,Dr. Ahmed Hassan,stf-0037,doctor,General Ward,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0034,Dr. Mona Fouad,stf-0034,doctor,General Ward,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0061,Nurse Karim Samir,stf-0061,nurse,General Ward,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0051,Nurse Hassan Ali,stf-0051,nurse,General Ward,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0045,Nurse Mona Ibrahim,stf-0045,nurse,General Ward,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0070,Nurse Fatima Mahmoud,stf-0070,nurse,General Ward,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0044,Dr. Mona Ibrahim,stf-0044,doctor,General Ward,2025-12-26,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0060,Nurse Youssef Ali,stf-0060,nurse,General Ward,2025-12-26,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0071,Nurse Karim Abdullah,stf-0071,nurse,General Ward,2025-12-26,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0078,Dr. Ahmed Nasser,stf-0078,doctor,ICU,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0080,Dr. Youssef Abdullah,stf-0080,doctor,ICU,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0090,Nurse Hassan Samir,stf-0090,nurse,ICU,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0102,Nurse Sara Said,stf-0102,nurse,ICU,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0088,Nurse Nadine Nasser,stf-0088,nurse,ICU,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0089,Nurse Youssef Hassan,stf-0089,nurse,ICU,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0081,Dr. Laila Abdullah,stf-0081,doctor,ICU,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0077,Dr. Fatima Samir,stf-0077,doctor,ICU,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0101,Nurse Sara Yasin,stf-0101,nurse,ICU,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0091,Nurse Ahmed Ibrahim,stf-0091,nurse,ICU,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0088,Nurse Nadine Nasser,stf-0088,nurse,ICU,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0095,Nurse Youssef Ali,stf-0095,nurse,ICU,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0076,Dr. Sara Yasin,stf-0076,doctor,ICU,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0081,Dr. Laila Abdullah,stf-0081,doctor,ICU,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0085,Nurse Hassan Ibrahim,stf-0085,nurse,ICU,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0095,Nurse Youssef Ali,stf-0095,nurse,ICU,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0104,Nurse Omar Fouad,stf-0104,nurse,ICU,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0094,Nurse Fatima Ibrahim,stf-0094,nurse,ICU,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0079,Dr. Mostafa Nasser,stf-0079,doctor,ICU,2025-12-26,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0099,Nurse Sara Hassan,stf-0099,nurse,ICU,2025-12-26,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0089,Nurse Youssef Hassan,stf-0089,nurse,ICU,2025-12-26,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0113,Dr. Youssef Abdullah,stf-0113,doctor,Surgery,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0112,Dr. Fatima Samir,stf-0112,doctor,Surgery,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0116,Nurse Youssef Ali,stf-0116,nurse,Surgery,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0128,Nurse Fatima Fouad,stf-0128,nurse,Surgery,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0115,Nurse Ahmed Ibrahim,stf-0115,nurse,Surgery,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0132,Nurse Mona Yasin,stf-0132,nurse,Surgery,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0113,Dr. Youssef Abdullah,stf-0113,doctor,Surgery,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0105,Dr. Omar Samir,stf-0105,doctor,Surgery,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0115,Nurse Ahmed Ibrahim,stf-0115,nurse,Surgery,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0120,Nurse Ahmed Nasser,stf-0120,nurse,Surgery,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0128,Nurse Fatima Fouad,stf-0128,nurse,Surgery,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0118,Nurse Hassan Samir,stf-0118,nurse,Surgery,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0114,Dr. Fatima Abdullah,stf-0114,doctor,Surgery,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0106,Dr. Laila Mahmoud,stf-0106,doctor,Surgery,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0132,Nurse Mona Yasin,stf-0132,nurse,Surgery,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0115,Nurse Ahmed Ibrahim,stf-0115,nurse,Surgery,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0130,Nurse Fatima Hassan,stf-0130,nurse,Surgery,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0128,Nurse Fatima Fouad,stf-0128,nurse,Surgery,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0108,Dr. Fatima Abdullah,stf-0108,doctor,Surgery,2025-12-26,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0132,Nurse Mona Yasin,stf-0132,nurse,Surgery,2025-12-26,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0124,Nurse Fatima Said,stf-0124,nurse,Surgery,2025-12-26,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0136,Dr. Fatima Samir,stf-0136,doctor,Radiology,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0140,Nurse Laila Fouad,stf-0140,nurse,Radiology,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0141,Nurse Laila Ibrahim,stf-0141,nurse,Radiology,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0145,Nurse Fatima Yasin,stf-0145,nurse,Radiology,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0139,Nurse Mostafa Nasser,stf-0139,nurse,Radiology,2025-12-26,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0133,Dr. Fatima Ali,stf-0133,doctor,Radiology,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0144,Nurse Laila Abdullah,stf-0144,nurse,Radiology,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0139,Nurse Mostafa Nasser,stf-0139,nurse,Radiology,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0146,Nurse Hassan Ibrahim,stf-0146,nurse,Radiology,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2025-12-26,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0138,Dr. Karim Nasser,stf-0138,doctor,Radiology,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0139,Nurse Mostafa Nasser,stf-0139,nurse,Radiology,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0142,Nurse Youssef Ibrahim,stf-0142,nurse,Radiology,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0144,Nurse Laila Abdullah,stf-0144,nurse,Radiology,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0140,Nurse Laila Fouad,stf-0140,nurse,Radiology,2025-12-26,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0134,Dr. Laila Fouad,stf-0134,doctor,Radiology,2025-12-26,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2025-12-26,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0148,Nurse Noor Nasser,stf-0148,nurse,Radiology,2025-12-26,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0001,Dr. Karim Mahmoud,stf-0001,doctor,ER,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0006,Dr. Hassan Abdullah,stf-0006,doctor,ER,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0032,Nurse Mona Samir,stf-0032,nurse,ER,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0013,Nurse Omar Ali,stf-0013,nurse,ER,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0021,Nurse Fatima Mahmoud,stf-0021,nurse,ER,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0026,Nurse Omar Abdullah,stf-0026,nurse,ER,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0010,Dr. Hassan Said,stf-0010,doctor,ER,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0009,Dr. Ahmed Ibrahim,stf-0009,doctor,ER,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0025,Nurse Hassan Fouad,stf-0025,nurse,ER,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0029,Nurse Noor Ali,stf-0029,nurse,ER,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0011,Nurse Hassan Yasin,stf-0011,nurse,ER,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0024,Nurse Fatima Said,stf-0024,nurse,ER,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0007,Dr. Ahmed Mahmoud,stf-0007,doctor,ER,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0004,Dr. Mostafa Said,stf-0004,doctor,ER,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0026,Nurse Omar Abdullah,stf-0026,nurse,ER,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0032,Nurse Mona Samir,stf-0032,nurse,ER,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0013,Nurse Omar Ali,stf-0013,nurse,ER,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0017,Nurse Karim Nasser,stf-0017,nurse,ER,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0007,Dr. Ahmed Mahmoud,stf-0007,doctor,ER,2025-12-27,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0014,Nurse Noor Fouad,stf-0014,nurse,ER,2025-12-27,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0015,Nurse Karim Ibrahim,stf-0015,nurse,ER,2025-12-27,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0037,Dr. Ahmed Hassan,stf-0037,doctor,General Ward,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0033,Dr. Hassan Ali,stf-0033,doctor,General Ward,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0051,Nurse Hassan Ali,stf-0051,nurse,General Ward,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0048,Nurse Laila Samir,stf-0048,nurse,General Ward,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0055,Nurse Youssef Abdullah,stf-0055,nurse,General Ward,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0050,Nurse Omar Ali,stf-0050,nurse,General Ward,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0040,Dr. Youssef Yasin,stf-0040,doctor,General Ward,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0038,Dr. Karim Abdullah,stf-0038,doctor,General Ward,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0049,Nurse Sara Fouad,stf-0049,nurse,General Ward,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0058,Nurse Noor Nasser,stf-0058,nurse,General Ward,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0068,Nurse Youssef Samir,stf-0068,nurse,General Ward,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0051,Nurse Hassan Ali,stf-0051,nurse,General Ward,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0039,Dr. Sara Nasser,stf-0039,doctor,General Ward,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0035,Dr. Hassan Ibrahim,stf-0035,doctor,General Ward,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0056,Nurse Karim Nasser,stf-0056,nurse,General Ward,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0069,Nurse Mostafa Fouad,stf-0069,nurse,General Ward,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0071,Nurse Karim Abdullah,stf-0071,nurse,General Ward,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0046,Nurse Mona Fouad,stf-0046,nurse,General Ward,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0036,Dr. Nadine Abdullah,stf-0036,doctor,General Ward,2025-12-27,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0046,Nurse Mona Fouad,stf-0046,nurse,General Ward,2025-12-27,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0067,Nurse Ahmed Mahmoud,stf-0067,nurse,General Ward,2025-12-27,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0076,Dr. Sara Yasin,stf-0076,doctor,ICU,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0075,Dr. Karim Said,stf-0075,doctor,ICU,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0096,Nurse Laila Ali,stf-0096,nurse,ICU,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0084,Nurse Mostafa Samir,stf-0084,nurse,ICU,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0098,Nurse Noor Said,stf-0098,nurse,ICU,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0102,Nurse Sara Said,stf-0102,nurse,ICU,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0080,Dr. Youssef Abdullah,stf-0080,doctor,ICU,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0077,Dr. Fatima Samir,stf-0077,doctor,ICU,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0094,Nurse Fatima Ibrahim,stf-0094,nurse,ICU,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0096,Nurse Laila Ali,stf-0096,nurse,ICU,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0088,Nurse Nadine Nasser,stf-0088,nurse,ICU,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0089,Nurse Youssef Hassan,stf-0089,nurse,ICU,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0079,Dr. Mostafa Nasser,stf-0079,doctor,ICU,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0081,Dr. Laila Abdullah,stf-0081,doctor,ICU,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0101,Nurse Sara Yasin,stf-0101,nurse,ICU,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0088,Nurse Nadine Nasser,stf-0088,nurse,ICU,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0093,Nurse Omar Hassan,stf-0093,nurse,ICU,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0098,Nurse Noor Said,stf-0098,nurse,ICU,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0079,Dr. Mostafa Nasser,stf-0079,doctor,ICU,2025-12-27,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0103,Nurse Mona Samir,stf-0103,nurse,ICU,2025-12-27,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0090,Nurse Hassan Samir,stf-0090,nurse,ICU,2025-12-27,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0107,Dr. Karim Mahmoud,stf-0107,doctor,Surgery,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0105,Dr. Omar Samir,stf-0105,doctor,Surgery,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0131,Nurse Omar Mahmoud,stf-0131,nurse,Surgery,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0132,Nurse Mona Yasin,stf-0132,nurse,Surgery,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0117,Nurse Noor Mahmoud,stf-0117,nurse,Surgery,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0116,Nurse Youssef Ali,stf-0116,nurse,Surgery,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0110,Dr. Noor Said,stf-0110,doctor,Surgery,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0105,Dr. Omar Samir,stf-0105,doctor,Surgery,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0129,Nurse Omar Ali,stf-0129,nurse,Surgery,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0132,Nurse Mona Yasin,stf-0132,nurse,Surgery,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0125,Nurse Fatima Mahmoud,stf-0125,nurse,Surgery,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0128,Nurse Fatima Fouad,stf-0128,nurse,Surgery,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0105,Dr. Omar Samir,stf-0105,doctor,Surgery,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0106,Dr. Laila Mahmoud,stf-0106,doctor,Surgery,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0122,Nurse Omar Samir,stf-0122,nurse,Surgery,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0120,Nurse Ahmed Nasser,stf-0120,nurse,Surgery,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0124,Nurse Fatima Said,stf-0124,nurse,Surgery,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0117,Nurse Noor Mahmoud,stf-0117,nurse,Surgery,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0109,Dr. Karim Abdullah,stf-0109,doctor,Surgery,2025-12-27,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0132,Nurse Mona Yasin,stf-0132,nurse,Surgery,2025-12-27,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0117,Nurse Noor Mahmoud,stf-0117,nurse,Surgery,2025-12-27,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0138,Dr. Karim Nasser,stf-0138,doctor,Radiology,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0139,Nurse Mostafa Nasser,stf-0139,nurse,Radiology,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0140,Nurse Laila Fouad,stf-0140,nurse,Radiology,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0142,Nurse Youssef Ibrahim,stf-0142,nurse,Radiology,2025-12-27,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0134,Dr. Laila Fouad,stf-0134,doctor,Radiology,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0133,Dr. Fatima Ali,stf-0133,doctor,Radiology,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0148,Nurse Noor Nasser,stf-0148,nurse,Radiology,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0146,Nurse Hassan Ibrahim,stf-0146,nurse,Radiology,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0145,Nurse Fatima Yasin,stf-0145,nurse,Radiology,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0144,Nurse Laila Abdullah,stf-0144,nurse,Radiology,2025-12-27,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0134,Dr. Laila Fouad,stf-0134,doctor,Radiology,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0133,Dr. Fatima Ali,stf-0133,doctor,Radiology,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0144,Nurse Laila Abdullah,stf-0144,nurse,Radiology,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0146,Nurse Hassan Ibrahim,stf-0146,nurse,Radiology,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0148,Nurse Noor Nasser,stf-0148,nurse,Radiology,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0140,Nurse Laila Fouad,stf-0140,nurse,Radiology,2025-12-27,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0133,Dr. Fatima Ali,stf-0133,doctor,Radiology,2025-12-27,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0144,Nurse Laila Abdullah,stf-0144,nurse,Radiology,2025-12-27,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2025-12-27,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0010,Dr. Hassan Said,stf-0010,doctor,ER,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0003,Dr. Noor Mahmoud,stf-0003,doctor,ER,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0026,Nurse Omar Abdullah,stf-0026,nurse,ER,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0028,Nurse Sara Yasin,stf-0028,nurse,ER,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0019,Nurse Noor Mahmoud,stf-0019,nurse,ER,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0030,Nurse Mona Abdullah,stf-0030,nurse,ER,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0010,Dr. Hassan Said,stf-0010,doctor,ER,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0006,Dr. Hassan Abdullah,stf-0006,doctor,ER,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0023,Nurse Ahmed Ali,stf-0023,nurse,ER,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0031,Nurse Sara Mahmoud,stf-0031,nurse,ER,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0014,Nurse Noor Fouad,stf-0014,nurse,ER,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0025,Nurse Hassan Fouad,stf-0025,nurse,ER,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0007,Dr. Ahmed Mahmoud,stf-0007,doctor,ER,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0003,Dr. Noor Mahmoud,stf-0003,doctor,ER,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0032,Nurse Mona Samir,stf-0032,nurse,ER,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0023,Nurse Ahmed Ali,stf-0023,nurse,ER,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0028,Nurse Sara Yasin,stf-0028,nurse,ER,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0031,Nurse Sara Mahmoud,stf-0031,nurse,ER,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0003,Dr. Noor Mahmoud,stf-0003,doctor,ER,2025-12-28,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0012,Nurse Mostafa Fouad,stf-0012,nurse,ER,2025-12-28,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0027,Nurse Mona Said,stf-0027,nurse,ER,2025-12-28,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0039,Dr. Sara Nasser,stf-0039,doctor,General Ward,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0033,Dr. Hassan Ali,stf-0033,doctor,General Ward,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0055,Nurse Youssef Abdullah,stf-0055,nurse,General Ward,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0069,Nurse Mostafa Fouad,stf-0069,nurse,General Ward,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0050,Nurse Omar Ali,stf-0050,nurse,General Ward,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0070,Nurse Fatima Mahmoud,stf-0070,nurse,General Ward,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0038,Dr. Karim Abdullah,stf-0038,doctor,General Ward,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0043,Dr. Noor Samir,stf-0043,doctor,General Ward,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0074,Nurse Fatima Ali,stf-0074,nurse,General Ward,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0051,Nurse Hassan Ali,stf-0051,nurse,General Ward,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0072,Nurse Mostafa Ali,stf-0072,nurse,General Ward,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0064,Nurse Mona Fouad,stf-0064,nurse,General Ward,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0043,Dr. Noor Samir,stf-0043,doctor,General Ward,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0035,Dr. Hassan Ibrahim,stf-0035,doctor,General Ward,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0061,Nurse Karim Samir,stf-0061,nurse,General Ward,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0064,Nurse Mona Fouad,stf-0064,nurse,General Ward,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0056,Nurse Karim Nasser,stf-0056,nurse,General Ward,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0050,Nurse Omar Ali,stf-0050,nurse,General Ward,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0041,Dr. Ahmed Mahmoud,stf-0041,doctor,General Ward,2025-12-28,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0052,Nurse Karim Samir,stf-0052,nurse,General Ward,2025-12-28,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0072,Nurse Mostafa Ali,stf-0072,nurse,General Ward,2025-12-28,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0080,Dr. Youssef Abdullah,stf-0080,doctor,ICU,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0077,Dr. Fatima Samir,stf-0077,doctor,ICU,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0085,Nurse Hassan Ibrahim,stf-0085,nurse,ICU,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0101,Nurse Sara Yasin,stf-0101,nurse,ICU,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0097,Nurse Mona Hassan,stf-0097,nurse,ICU,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0091,Nurse Ahmed Ibrahim,stf-0091,nurse,ICU,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0081,Dr. Laila Abdullah,stf-0081,doctor,ICU,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0080,Dr. Youssef Abdullah,stf-0080,doctor,ICU,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0087,Nurse Ahmed Abdullah,stf-0087,nurse,ICU,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0098,Nurse Noor Said,stf-0098,nurse,ICU,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0104,Nurse Omar Fouad,stf-0104,nurse,ICU,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0099,Nurse Sara Hassan,stf-0099,nurse,ICU,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0080,Dr. Youssef Abdullah,stf-0080,doctor,ICU,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0079,Dr. Mostafa Nasser,stf-0079,doctor,ICU,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0085,Nurse Hassan Ibrahim,stf-0085,nurse,ICU,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0098,Nurse Noor Said,stf-0098,nurse,ICU,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0104,Nurse Omar Fouad,stf-0104,nurse,ICU,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0087,Nurse Ahmed Abdullah,stf-0087,nurse,ICU,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0082,Dr. Nadine Yasin,stf-0082,doctor,ICU,2025-12-28,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0097,Nurse Mona Hassan,stf-0097,nurse,ICU,2025-12-28,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0093,Nurse Omar Hassan,stf-0093,nurse,ICU,2025-12-28,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0106,Dr. Laila Mahmoud,stf-0106,doctor,Surgery,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0112,Dr. Fatima Samir,stf-0112,doctor,Surgery,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0120,Nurse Ahmed Nasser,stf-0120,nurse,Surgery,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0117,Nurse Noor Mahmoud,stf-0117,nurse,Surgery,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0131,Nurse Omar Mahmoud,stf-0131,nurse,Surgery,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0128,Nurse Fatima Fouad,stf-0128,nurse,Surgery,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0114,Dr. Fatima Abdullah,stf-0114,doctor,Surgery,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0106,Dr. Laila Mahmoud,stf-0106,doctor,Surgery,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0127,Nurse Laila Fouad,stf-0127,nurse,Surgery,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0115,Nurse Ahmed Ibrahim,stf-0115,nurse,Surgery,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0125,Nurse Fatima Mahmoud,stf-0125,nurse,Surgery,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0120,Nurse Ahmed Nasser,stf-0120,nurse,Surgery,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0107,Dr. Karim Mahmoud,stf-0107,doctor,Surgery,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0109,Dr. Karim Abdullah,stf-0109,doctor,Surgery,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0132,Nurse Mona Yasin,stf-0132,nurse,Surgery,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0131,Nurse Omar Mahmoud,stf-0131,nurse,Surgery,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0115,Nurse Ahmed Ibrahim,stf-0115,nurse,Surgery,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0120,Nurse Ahmed Nasser,stf-0120,nurse,Surgery,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0109,Dr. Karim Abdullah,stf-0109,doctor,Surgery,2025-12-28,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0119,Nurse Karim Hassan,stf-0119,nurse,Surgery,2025-12-28,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0126,Nurse Noor Fouad,stf-0126,nurse,Surgery,2025-12-28,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0136,Dr. Fatima Samir,stf-0136,doctor,Radiology,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0142,Nurse Youssef Ibrahim,stf-0142,nurse,Radiology,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0140,Nurse Laila Fouad,stf-0140,nurse,Radiology,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0147,Nurse Laila Nasser,stf-0147,nurse,Radiology,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0148,Nurse Noor Nasser,stf-0148,nurse,Radiology,2025-12-28,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0136,Dr. Fatima Samir,stf-0136,doctor,Radiology,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0140,Nurse Laila Fouad,stf-0140,nurse,Radiology,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0146,Nurse Hassan Ibrahim,stf-0146,nurse,Radiology,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0148,Nurse Noor Nasser,stf-0148,nurse,Radiology,2025-12-28,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0136,Dr. Fatima Samir,stf-0136,doctor,Radiology,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0142,Nurse Youssef Ibrahim,stf-0142,nurse,Radiology,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0141,Nurse Laila Ibrahim,stf-0141,nurse,Radiology,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0145,Nurse Fatima Yasin,stf-0145,nurse,Radiology,2025-12-28,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0133,Dr. Fatima Ali,stf-0133,doctor,Radiology,2025-12-28,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2025-12-28,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0146,Nurse Hassan Ibrahim,stf-0146,nurse,Radiology,2025-12-28,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0010,Dr. Hassan Said,stf-0010,doctor,ER,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0009,Dr. Ahmed Ibrahim,stf-0009,doctor,ER,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0031,Nurse Sara Mahmoud,stf-0031,nurse,ER,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0016,Nurse Mona Mahmoud,stf-0016,nurse,ER,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0019,Nurse Noor Mahmoud,stf-0019,nurse,ER,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0030,Nurse Mona Abdullah,stf-0030,nurse,ER,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0004,Dr. Mostafa Said,stf-0004,doctor,ER,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0007,Dr. Ahmed Mahmoud,stf-0007,doctor,ER,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0019,Nurse Noor Mahmoud,stf-0019,nurse,ER,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0017,Nurse Karim Nasser,stf-0017,nurse,ER,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0013,Nurse Omar Ali,stf-0013,nurse,ER,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0012,Nurse Mostafa Fouad,stf-0012,nurse,ER,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0009,Dr. Ahmed Ibrahim,stf-0009,doctor,ER,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0004,Dr. Mostafa Said,stf-0004,doctor,ER,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0013,Nurse Omar Ali,stf-0013,nurse,ER,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0019,Nurse Noor Mahmoud,stf-0019,nurse,ER,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0027,Nurse Mona Said,stf-0027,nurse,ER,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0026,Nurse Omar Abdullah,stf-0026,nurse,ER,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0002,Dr. Sara Hassan,stf-0002,doctor,ER,2025-12-29,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0031,Nurse Sara Mahmoud,stf-0031,nurse,ER,2025-12-29,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0025,Nurse Hassan Fouad,stf-0025,nurse,ER,2025-12-29,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0036,Dr. Nadine Abdullah,stf-0036,doctor,General Ward,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0042,Dr. Noor Abdullah,stf-0042,doctor,General Ward,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0068,Nurse Youssef Samir,stf-0068,nurse,General Ward,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0047,Nurse Nadine Fouad,stf-0047,nurse,General Ward,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0065,Nurse Karim Samir,stf-0065,nurse,General Ward,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0055,Nurse Youssef Abdullah,stf-0055,nurse,General Ward,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0044,Dr. Mona Ibrahim,stf-0044,doctor,General Ward,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0035,Dr. Hassan Ibrahim,stf-0035,doctor,General Ward,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0054,Nurse Omar Hassan,stf-0054,nurse,General Ward,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0071,Nurse Karim Abdullah,stf-0071,nurse,General Ward,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0070,Nurse Fatima Mahmoud,stf-0070,nurse,General Ward,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0047,Nurse Nadine Fouad,stf-0047,nurse,General Ward,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0041,Dr. Ahmed Mahmoud,stf-0041,doctor,General Ward,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0037,Dr. Ahmed Hassan,stf-0037,doctor,General Ward,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0068,Nurse Youssef Samir,stf-0068,nurse,General Ward,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0067,Nurse Ahmed Mahmoud,stf-0067,nurse,General Ward,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0052,Nurse Karim Samir,stf-0052,nurse,General Ward,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0072,Nurse Mostafa Ali,stf-0072,nurse,General Ward,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0040,Dr. Youssef Yasin,stf-0040,doctor,General Ward,2025-12-29,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0054,Nurse Omar Hassan,stf-0054,nurse,General Ward,2025-12-29,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0072,Nurse Mostafa Ali,stf-0072,nurse,General Ward,2025-12-29,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0080,Dr. Youssef Abdullah,stf-0080,doctor,ICU,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0082,Dr. Nadine Yasin,stf-0082,doctor,ICU,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0089,Nurse Youssef Hassan,stf-0089,nurse,ICU,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0083,Nurse Karim Nasser,stf-0083,nurse,ICU,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0102,Nurse Sara Said,stf-0102,nurse,ICU,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0095,Nurse Youssef Ali,stf-0095,nurse,ICU,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0076,Dr. Sara Yasin,stf-0076,doctor,ICU,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0081,Dr. Laila Abdullah,stf-0081,doctor,ICU,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0094,Nurse Fatima Ibrahim,stf-0094,nurse,ICU,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0089,Nurse Youssef Hassan,stf-0089,nurse,ICU,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0100,Nurse Laila Nasser,stf-0100,nurse,ICU,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0101,Nurse Sara Yasin,stf-0101,nurse,ICU,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0081,Dr. Laila Abdullah,stf-0081,doctor,ICU,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0075,Dr. Karim Said,stf-0075,doctor,ICU,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0096,Nurse Laila Ali,stf-0096,nurse,ICU,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0089,Nurse Youssef Hassan,stf-0089,nurse,ICU,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0083,Nurse Karim Nasser,stf-0083,nurse,ICU,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0094,Nurse Fatima Ibrahim,stf-0094,nurse,ICU,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0079,Dr. Mostafa Nasser,stf-0079,doctor,ICU,2025-12-29,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0087,Nurse Ahmed Abdullah,stf-0087,nurse,ICU,2025-12-29,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0099,Nurse Sara Hassan,stf-0099,nurse,ICU,2025-12-29,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0105,Dr. Omar Samir,stf-0105,doctor,Surgery,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0108,Dr. Fatima Abdullah,stf-0108,doctor,Surgery,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0124,Nurse Fatima Said,stf-0124,nurse,Surgery,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0120,Nurse Ahmed Nasser,stf-0120,nurse,Surgery,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0129,Nurse Omar Ali,stf-0129,nurse,Surgery,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0126,Nurse Noor Fouad,stf-0126,nurse,Surgery,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0112,Dr. Fatima Samir,stf-0112,doctor,Surgery,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0113,Dr. Youssef Abdullah,stf-0113,doctor,Surgery,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0131,Nurse Omar Mahmoud,stf-0131,nurse,Surgery,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0115,Nurse Ahmed Ibrahim,stf-0115,nurse,Surgery,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0121,Nurse Ahmed Hassan,stf-0121,nurse,Surgery,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0126,Nurse Noor Fouad,stf-0126,nurse,Surgery,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0105,Dr. Omar Samir,stf-0105,doctor,Surgery,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0108,Dr. Fatima Abdullah,stf-0108,doctor,Surgery,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0116,Nurse Youssef Ali,stf-0116,nurse,Surgery,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0123,Nurse Ahmed Nasser,stf-0123,nurse,Surgery,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0122,Nurse Omar Samir,stf-0122,nurse,Surgery,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0127,Nurse Laila Fouad,stf-0127,nurse,Surgery,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0105,Dr. Omar Samir,stf-0105,doctor,Surgery,2025-12-29,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0121,Nurse Ahmed Hassan,stf-0121,nurse,Surgery,2025-12-29,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0117,Nurse Noor Mahmoud,stf-0117,nurse,Surgery,2025-12-29,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0133,Dr. Fatima Ali,stf-0133,doctor,Radiology,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0138,Dr. Karim Nasser,stf-0138,doctor,Radiology,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0147,Nurse Laila Nasser,stf-0147,nurse,Radiology,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0146,Nurse Hassan Ibrahim,stf-0146,nurse,Radiology,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0141,Nurse Laila Ibrahim,stf-0141,nurse,Radiology,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0140,Nurse Laila Fouad,stf-0140,nurse,Radiology,2025-12-29,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0134,Dr. Laila Fouad,stf-0134,doctor,Radiology,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0146,Nurse Hassan Ibrahim,stf-0146,nurse,Radiology,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0140,Nurse Laila Fouad,stf-0140,nurse,Radiology,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0144,Nurse Laila Abdullah,stf-0144,nurse,Radiology,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0142,Nurse Youssef Ibrahim,stf-0142,nurse,Radiology,2025-12-29,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0134,Dr. Laila Fouad,stf-0134,doctor,Radiology,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0144,Nurse Laila Abdullah,stf-0144,nurse,Radiology,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0142,Nurse Youssef Ibrahim,stf-0142,nurse,Radiology,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0140,Nurse Laila Fouad,stf-0140,nurse,Radiology,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0148,Nurse Noor Nasser,stf-0148,nurse,Radiology,2025-12-29,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0133,Dr. Fatima Ali,stf-0133,doctor,Radiology,2025-12-29,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2025-12-29,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0141,Nurse Laila Ibrahim,stf-0141,nurse,Radiology,2025-12-29,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0008,Dr. Hassan Fouad,stf-0008,doctor,ER,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0007,Dr. Ahmed Mahmoud,stf-0007,doctor,ER,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0030,Nurse Mona Abdullah,stf-0030,nurse,ER,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0020,Nurse Fatima Ali,stf-0020,nurse,ER,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0018,Nurse Youssef Hassan,stf-0018,nurse,ER,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0032,Nurse Mona Samir,stf-0032,nurse,ER,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0006,Dr. Hassan Abdullah,stf-0006,doctor,ER,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0004,Dr. Mostafa Said,stf-0004,doctor,ER,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0018,Nurse Youssef Hassan,stf-0018,nurse,ER,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0021,Nurse Fatima Mahmoud,stf-0021,nurse,ER,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0027,Nurse Mona Said,stf-0027,nurse,ER,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0015,Nurse Karim Ibrahim,stf-0015,nurse,ER,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0003,Dr. Noor Mahmoud,stf-0003,doctor,ER,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0008,Dr. Hassan Fouad,stf-0008,doctor,ER,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0032,Nurse Mona Samir,stf-0032,nurse,ER,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0031,Nurse Sara Mahmoud,stf-0031,nurse,ER,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0014,Nurse Noor Fouad,stf-0014,nurse,ER,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0023,Nurse Ahmed Ali,stf-0023,nurse,ER,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0009,Dr. Ahmed Ibrahim,stf-0009,doctor,ER,2025-12-30,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0014,Nurse Noor Fouad,stf-0014,nurse,ER,2025-12-30,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0030,Nurse Mona Abdullah,stf-0030,nurse,ER,2025-12-30,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0035,Dr. Hassan Ibrahim,stf-0035,doctor,General Ward,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0042,Dr. Noor Abdullah,stf-0042,doctor,General Ward,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0045,Nurse Mona Ibrahim,stf-0045,nurse,General Ward,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0066,Nurse Youssef Said,stf-0066,nurse,General Ward,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0073,Nurse Mona Nasser,stf-0073,nurse,General Ward,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0055,Nurse Youssef Abdullah,stf-0055,nurse,General Ward,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0040,Dr. Youssef Yasin,stf-0040,doctor,General Ward,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0044,Dr. Mona Ibrahim,stf-0044,doctor,General Ward,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0054,Nurse Omar Hassan,stf-0054,nurse,General Ward,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0055,Nurse Youssef Abdullah,stf-0055,nurse,General Ward,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0046,Nurse Mona Fouad,stf-0046,nurse,General Ward,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0071,Nurse Karim Abdullah,stf-0071,nurse,General Ward,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0040,Dr. Youssef Yasin,stf-0040,doctor,General Ward,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0039,Dr. Sara Nasser,stf-0039,doctor,General Ward,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0058,Nurse Noor Nasser,stf-0058,nurse,General Ward,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0069,Nurse Mostafa Fouad,stf-0069,nurse,General Ward,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0046,Nurse Mona Fouad,stf-0046,nurse,General Ward,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0072,Nurse Mostafa Ali,stf-0072,nurse,General Ward,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0035,Dr. Hassan Ibrahim,stf-0035,doctor,General Ward,2025-12-30,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0053,Nurse Youssef Hassan,stf-0053,nurse,General Ward,2025-12-30,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0070,Nurse Fatima Mahmoud,stf-0070,nurse,General Ward,2025-12-30,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0079,Dr. Mostafa Nasser,stf-0079,doctor,ICU,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0080,Dr. Youssef Abdullah,stf-0080,doctor,ICU,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0087,Nurse Ahmed Abdullah,stf-0087,nurse,ICU,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0091,Nurse Ahmed Ibrahim,stf-0091,nurse,ICU,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0102,Nurse Sara Said,stf-0102,nurse,ICU,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0084,Nurse Mostafa Samir,stf-0084,nurse,ICU,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0075,Dr. Karim Said,stf-0075,doctor,ICU,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0082,Dr. Nadine Yasin,stf-0082,doctor,ICU,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0083,Nurse Karim Nasser,stf-0083,nurse,ICU,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0085,Nurse Hassan Ibrahim,stf-0085,nurse,ICU,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0084,Nurse Mostafa Samir,stf-0084,nurse,ICU,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0087,Nurse Ahmed Abdullah,stf-0087,nurse,ICU,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0079,Dr. Mostafa Nasser,stf-0079,doctor,ICU,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0075,Dr. Karim Said,stf-0075,doctor,ICU,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0103,Nurse Mona Samir,stf-0103,nurse,ICU,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0099,Nurse Sara Hassan,stf-0099,nurse,ICU,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0104,Nurse Omar Fouad,stf-0104,nurse,ICU,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0091,Nurse Ahmed Ibrahim,stf-0091,nurse,ICU,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0082,Dr. Nadine Yasin,stf-0082,doctor,ICU,2025-12-30,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0087,Nurse Ahmed Abdullah,stf-0087,nurse,ICU,2025-12-30,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0091,Nurse Ahmed Ibrahim,stf-0091,nurse,ICU,2025-12-30,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0109,Dr. Karim Abdullah,stf-0109,doctor,Surgery,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0113,Dr. Youssef Abdullah,stf-0113,doctor,Surgery,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0120,Nurse Ahmed Nasser,stf-0120,nurse,Surgery,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0127,Nurse Laila Fouad,stf-0127,nurse,Surgery,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0131,Nurse Omar Mahmoud,stf-0131,nurse,Surgery,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0116,Nurse Youssef Ali,stf-0116,nurse,Surgery,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0114,Dr. Fatima Abdullah,stf-0114,doctor,Surgery,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0106,Dr. Laila Mahmoud,stf-0106,doctor,Surgery,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0122,Nurse Omar Samir,stf-0122,nurse,Surgery,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0119,Nurse Karim Hassan,stf-0119,nurse,Surgery,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0121,Nurse Ahmed Hassan,stf-0121,nurse,Surgery,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0125,Nurse Fatima Mahmoud,stf-0125,nurse,Surgery,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0111,Dr. Mona Yasin,stf-0111,doctor,Surgery,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0105,Dr. Omar Samir,stf-0105,doctor,Surgery,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0127,Nurse Laila Fouad,stf-0127,nurse,Surgery,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0119,Nurse Karim Hassan,stf-0119,nurse,Surgery,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0130,Nurse Fatima Hassan,stf-0130,nurse,Surgery,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0122,Nurse Omar Samir,stf-0122,nurse,Surgery,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0107,Dr. Karim Mahmoud,stf-0107,doctor,Surgery,2025-12-30,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0118,Nurse Hassan Samir,stf-0118,nurse,Surgery,2025-12-30,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0130,Nurse Fatima Hassan,stf-0130,nurse,Surgery,2025-12-30,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0134,Dr. Laila Fouad,stf-0134,doctor,Radiology,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0145,Nurse Fatima Yasin,stf-0145,nurse,Radiology,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0148,Nurse Noor Nasser,stf-0148,nurse,Radiology,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0140,Nurse Laila Fouad,stf-0140,nurse,Radiology,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0141,Nurse Laila Ibrahim,stf-0141,nurse,Radiology,2025-12-30,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0138,Dr. Karim Nasser,stf-0138,doctor,Radiology,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0141,Nurse Laila Ibrahim,stf-0141,nurse,Radiology,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0145,Nurse Fatima Yasin,stf-0145,nurse,Radiology,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0144,Nurse Laila Abdullah,stf-0144,nurse,Radiology,2025-12-30,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0133,Dr. Fatima Ali,stf-0133,doctor,Radiology,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0137,Dr. Fatima Mahmoud,stf-0137,doctor,Radiology,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0145,Nurse Fatima Yasin,stf-0145,nurse,Radiology,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0147,Nurse Laila Nasser,stf-0147,nurse,Radiology,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0139,Nurse Mostafa Nasser,stf-0139,nurse,Radiology,2025-12-30,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0134,Dr. Laila Fouad,stf-0134,doctor,Radiology,2025-12-30,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0146,Nurse Hassan Ibrahim,stf-0146,nurse,Radiology,2025-12-30,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2025-12-30,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0010,Dr. Hassan Said,stf-0010,doctor,ER,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0005,Dr. Noor Samir,stf-0005,doctor,ER,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0022,Nurse Karim Samir,stf-0022,nurse,ER,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0017,Nurse Karim Nasser,stf-0017,nurse,ER,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0031,Nurse Sara Mahmoud,stf-0031,nurse,ER,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0030,Nurse Mona Abdullah,stf-0030,nurse,ER,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0009,Dr. Ahmed Ibrahim,stf-0009,doctor,ER,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0008,Dr. Hassan Fouad,stf-0008,doctor,ER,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0027,Nurse Mona Said,stf-0027,nurse,ER,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0022,Nurse Karim Samir,stf-0022,nurse,ER,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0016,Nurse Mona Mahmoud,stf-0016,nurse,ER,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0032,Nurse Mona Samir,stf-0032,nurse,ER,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0006,Dr. Hassan Abdullah,stf-0006,doctor,ER,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0002,Dr. Sara Hassan,stf-0002,doctor,ER,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0013,Nurse Omar Ali,stf-0013,nurse,ER,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0015,Nurse Karim Ibrahim,stf-0015,nurse,ER,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0020,Nurse Fatima Ali,stf-0020,nurse,ER,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0032,Nurse Mona Samir,stf-0032,nurse,ER,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0004,Dr. Mostafa Said,stf-0004,doctor,ER,2025-12-31,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0026,Nurse Omar Abdullah,stf-0026,nurse,ER,2025-12-31,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0019,Nurse Noor Mahmoud,stf-0019,nurse,ER,2025-12-31,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0035,Dr. Hassan Ibrahim,stf-0035,doctor,General Ward,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0041,Dr. Ahmed Mahmoud,stf-0041,doctor,General Ward,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0069,Nurse Mostafa Fouad,stf-0069,nurse,General Ward,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0045,Nurse Mona Ibrahim,stf-0045,nurse,General Ward,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0063,Nurse Laila Fouad,stf-0063,nurse,General Ward,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0046,Nurse Mona Fouad,stf-0046,nurse,General Ward,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0040,Dr. Youssef Yasin,stf-0040,doctor,General Ward,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0042,Dr. Noor Abdullah,stf-0042,doctor,General Ward,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0074,Nurse Fatima Ali,stf-0074,nurse,General Ward,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0065,Nurse Karim Samir,stf-0065,nurse,General Ward,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0062,Nurse Nadine Yasin,stf-0062,nurse,General Ward,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0057,Nurse Karim Fouad,stf-0057,nurse,General Ward,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0036,Dr. Nadine Abdullah,stf-0036,doctor,General Ward,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0038,Dr. Karim Abdullah,stf-0038,doctor,General Ward,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0069,Nurse Mostafa Fouad,stf-0069,nurse,General Ward,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0057,Nurse Karim Fouad,stf-0057,nurse,General Ward,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0071,Nurse Karim Abdullah,stf-0071,nurse,General Ward,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0064,Nurse Mona Fouad,stf-0064,nurse,General Ward,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0043,Dr. Noor Samir,stf-0043,doctor,General Ward,2025-12-31,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0070,Nurse Fatima Mahmoud,stf-0070,nurse,General Ward,2025-12-31,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0073,Nurse Mona Nasser,stf-0073,nurse,General Ward,2025-12-31,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0082,Dr. Nadine Yasin,stf-0082,doctor,ICU,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0081,Dr. Laila Abdullah,stf-0081,doctor,ICU,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0083,Nurse Karim Nasser,stf-0083,nurse,ICU,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0091,Nurse Ahmed Ibrahim,stf-0091,nurse,ICU,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0085,Nurse Hassan Ibrahim,stf-0085,nurse,ICU,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0086,Nurse Ahmed Samir,stf-0086,nurse,ICU,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0079,Dr. Mostafa Nasser,stf-0079,doctor,ICU,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0081,Dr. Laila Abdullah,stf-0081,doctor,ICU,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0084,Nurse Mostafa Samir,stf-0084,nurse,ICU,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0089,Nurse Youssef Hassan,stf-0089,nurse,ICU,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0086,Nurse Ahmed Samir,stf-0086,nurse,ICU,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0094,Nurse Fatima Ibrahim,stf-0094,nurse,ICU,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0076,Dr. Sara Yasin,stf-0076,doctor,ICU,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0078,Dr. Ahmed Nasser,stf-0078,doctor,ICU,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0095,Nurse Youssef Ali,stf-0095,nurse,ICU,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0101,Nurse Sara Yasin,stf-0101,nurse,ICU,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0088,Nurse Nadine Nasser,stf-0088,nurse,ICU,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0100,Nurse Laila Nasser,stf-0100,nurse,ICU,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0080,Dr. Youssef Abdullah,stf-0080,doctor,ICU,2025-12-31,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0090,Nurse Hassan Samir,stf-0090,nurse,ICU,2025-12-31,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0093,Nurse Omar Hassan,stf-0093,nurse,ICU,2025-12-31,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0107,Dr. Karim Mahmoud,stf-0107,doctor,Surgery,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0113,Dr. Youssef Abdullah,stf-0113,doctor,Surgery,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0117,Nurse Noor Mahmoud,stf-0117,nurse,Surgery,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0127,Nurse Laila Fouad,stf-0127,nurse,Surgery,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0122,Nurse Omar Samir,stf-0122,nurse,Surgery,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0124,Nurse Fatima Said,stf-0124,nurse,Surgery,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0109,Dr. Karim Abdullah,stf-0109,doctor,Surgery,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0105,Dr. Omar Samir,stf-0105,doctor,Surgery,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0117,Nurse Noor Mahmoud,stf-0117,nurse,Surgery,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0129,Nurse Omar Ali,stf-0129,nurse,Surgery,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0126,Nurse Noor Fouad,stf-0126,nurse,Surgery,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0115,Nurse Ahmed Ibrahim,stf-0115,nurse,Surgery,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0105,Dr. Omar Samir,stf-0105,doctor,Surgery,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0107,Dr. Karim Mahmoud,stf-0107,doctor,Surgery,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0131,Nurse Omar Mahmoud,stf-0131,nurse,Surgery,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0129,Nurse Omar Ali,stf-0129,nurse,Surgery,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0126,Nurse Noor Fouad,stf-0126,nurse,Surgery,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0124,Nurse Fatima Said,stf-0124,nurse,Surgery,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0109,Dr. Karim Abdullah,stf-0109,doctor,Surgery,2025-12-31,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0130,Nurse Fatima Hassan,stf-0130,nurse,Surgery,2025-12-31,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0131,Nurse Omar Mahmoud,stf-0131,nurse,Surgery,2025-12-31,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0136,Dr. Fatima Samir,stf-0136,doctor,Radiology,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0138,Dr. Karim Nasser,stf-0138,doctor,Radiology,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0139,Nurse Mostafa Nasser,stf-0139,nurse,Radiology,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0145,Nurse Fatima Yasin,stf-0145,nurse,Radiology,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0147,Nurse Laila Nasser,stf-0147,nurse,Radiology,2025-12-31,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0134,Dr. Laila Fouad,stf-0134,doctor,Radiology,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0148,Nurse Noor Nasser,stf-0148,nurse,Radiology,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0140,Nurse Laila Fouad,stf-0140,nurse,Radiology,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0139,Nurse Mostafa Nasser,stf-0139,nurse,Radiology,2025-12-31,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0136,Dr. Fatima Samir,stf-0136,doctor,Radiology,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0137,Dr. Fatima Mahmoud,stf-0137,doctor,Radiology,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0148,Nurse Noor Nasser,stf-0148,nurse,Radiology,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0140,Nurse Laila Fouad,stf-0140,nurse,Radiology,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0142,Nurse Youssef Ibrahim,stf-0142,nurse,Radiology,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2025-12-31,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0138,Dr. Karim Nasser,stf-0138,doctor,Radiology,2025-12-31,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0144,Nurse Laila Abdullah,stf-0144,nurse,Radiology,2025-12-31,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2025-12-31,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0006,Dr. Hassan Abdullah,stf-0006,doctor,ER,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0003,Dr. Noor Mahmoud,stf-0003,doctor,ER,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0018,Nurse Youssef Hassan,stf-0018,nurse,ER,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0013,Nurse Omar Ali,stf-0013,nurse,ER,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0016,Nurse Mona Mahmoud,stf-0016,nurse,ER,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0023,Nurse Ahmed Ali,stf-0023,nurse,ER,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0003,Dr. Noor Mahmoud,stf-0003,doctor,ER,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0005,Dr. Noor Samir,stf-0005,doctor,ER,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0027,Nurse Mona Said,stf-0027,nurse,ER,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0013,Nurse Omar Ali,stf-0013,nurse,ER,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0020,Nurse Fatima Ali,stf-0020,nurse,ER,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0022,Nurse Karim Samir,stf-0022,nurse,ER,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0007,Dr. Ahmed Mahmoud,stf-0007,doctor,ER,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0002,Dr. Sara Hassan,stf-0002,doctor,ER,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0017,Nurse Karim Nasser,stf-0017,nurse,ER,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0025,Nurse Hassan Fouad,stf-0025,nurse,ER,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0024,Nurse Fatima Said,stf-0024,nurse,ER,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0018,Nurse Youssef Hassan,stf-0018,nurse,ER,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0001,Dr. Karim Mahmoud,stf-0001,doctor,ER,2026-01-01,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0020,Nurse Fatima Ali,stf-0020,nurse,ER,2026-01-01,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0018,Nurse Youssef Hassan,stf-0018,nurse,ER,2026-01-01,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0036,Dr. Nadine Abdullah,stf-0036,doctor,General Ward,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0044,Dr. Mona Ibrahim,stf-0044,doctor,General Ward,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0046,Nurse Mona Fouad,stf-0046,nurse,General Ward,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0066,Nurse Youssef Said,stf-0066,nurse,General Ward,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0068,Nurse Youssef Samir,stf-0068,nurse,General Ward,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0049,Nurse Sara Fouad,stf-0049,nurse,General Ward,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0037,Dr. Ahmed Hassan,stf-0037,doctor,General Ward,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0035,Dr. Hassan Ibrahim,stf-0035,doctor,General Ward,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0049,Nurse Sara Fouad,stf-0049,nurse,General Ward,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0052,Nurse Karim Samir,stf-0052,nurse,General Ward,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0045,Nurse Mona Ibrahim,stf-0045,nurse,General Ward,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0046,Nurse Mona Fouad,stf-0046,nurse,General Ward,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0037,Dr. Ahmed Hassan,stf-0037,doctor,General Ward,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0033,Dr. Hassan Ali,stf-0033,doctor,General Ward,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0066,Nurse Youssef Said,stf-0066,nurse,General Ward,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0065,Nurse Karim Samir,stf-0065,nurse,General Ward,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0067,Nurse Ahmed Mahmoud,stf-0067,nurse,General Ward,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0071,Nurse Karim Abdullah,stf-0071,nurse,General Ward,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0036,Dr. Nadine Abdullah,stf-0036,doctor,General Ward,2026-01-01,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0055,Nurse Youssef Abdullah,stf-0055,nurse,General Ward,2026-01-01,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0066,Nurse Youssef Said,stf-0066,nurse,General Ward,2026-01-01,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0076,Dr. Sara Yasin,stf-0076,doctor,ICU,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0082,Dr. Nadine Yasin,stf-0082,doctor,ICU,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0096,Nurse Laila Ali,stf-0096,nurse,ICU,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0091,Nurse Ahmed Ibrahim,stf-0091,nurse,ICU,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0100,Nurse Laila Nasser,stf-0100,nurse,ICU,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0094,Nurse Fatima Ibrahim,stf-0094,nurse,ICU,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0076,Dr. Sara Yasin,stf-0076,doctor,ICU,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0078,Dr. Ahmed Nasser,stf-0078,doctor,ICU,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0092,Nurse Fatima Fouad,stf-0092,nurse,ICU,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0085,Nurse Hassan Ibrahim,stf-0085,nurse,ICU,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0093,Nurse Omar Hassan,stf-0093,nurse,ICU,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0103,Nurse Mona Samir,stf-0103,nurse,ICU,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0076,Dr. Sara Yasin,stf-0076,doctor,ICU,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0077,Dr. Fatima Samir,stf-0077,doctor,ICU,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0101,Nurse Sara Yasin,stf-0101,nurse,ICU,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0095,Nurse Youssef Ali,stf-0095,nurse,ICU,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0085,Nurse Hassan Ibrahim,stf-0085,nurse,ICU,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0088,Nurse Nadine Nasser,stf-0088,nurse,ICU,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0075,Dr. Karim Said,stf-0075,doctor,ICU,2026-01-01,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0084,Nurse Mostafa Samir,stf-0084,nurse,ICU,2026-01-01,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0090,Nurse Hassan Samir,stf-0090,nurse,ICU,2026-01-01,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0108,Dr. Fatima Abdullah,stf-0108,doctor,Surgery,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0107,Dr. Karim Mahmoud,stf-0107,doctor,Surgery,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0127,Nurse Laila Fouad,stf-0127,nurse,Surgery,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0115,Nurse Ahmed Ibrahim,stf-0115,nurse,Surgery,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0118,Nurse Hassan Samir,stf-0118,nurse,Surgery,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0132,Nurse Mona Yasin,stf-0132,nurse,Surgery,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0108,Dr. Fatima Abdullah,stf-0108,doctor,Surgery,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0114,Dr. Fatima Abdullah,stf-0114,doctor,Surgery,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0123,Nurse Ahmed Nasser,stf-0123,nurse,Surgery,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0131,Nurse Omar Mahmoud,stf-0131,nurse,Surgery,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0120,Nurse Ahmed Nasser,stf-0120,nurse,Surgery,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0116,Nurse Youssef Ali,stf-0116,nurse,Surgery,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0108,Dr. Fatima Abdullah,stf-0108,doctor,Surgery,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0111,Dr. Mona Yasin,stf-0111,doctor,Surgery,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0130,Nurse Fatima Hassan,stf-0130,nurse,Surgery,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0128,Nurse Fatima Fouad,stf-0128,nurse,Surgery,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0119,Nurse Karim Hassan,stf-0119,nurse,Surgery,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0115,Nurse Ahmed Ibrahim,stf-0115,nurse,Surgery,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0112,Dr. Fatima Samir,stf-0112,doctor,Surgery,2026-01-01,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0131,Nurse Omar Mahmoud,stf-0131,nurse,Surgery,2026-01-01,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0121,Nurse Ahmed Hassan,stf-0121,nurse,Surgery,2026-01-01,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0136,Dr. Fatima Samir,stf-0136,doctor,Radiology,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0138,Dr. Karim Nasser,stf-0138,doctor,Radiology,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0147,Nurse Laila Nasser,stf-0147,nurse,Radiology,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0145,Nurse Fatima Yasin,stf-0145,nurse,Radiology,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0142,Nurse Youssef Ibrahim,stf-0142,nurse,Radiology,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0144,Nurse Laila Abdullah,stf-0144,nurse,Radiology,2026-01-01,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0136,Dr. Fatima Samir,stf-0136,doctor,Radiology,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0148,Nurse Noor Nasser,stf-0148,nurse,Radiology,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0141,Nurse Laila Ibrahim,stf-0141,nurse,Radiology,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0146,Nurse Hassan Ibrahim,stf-0146,nurse,Radiology,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0145,Nurse Fatima Yasin,stf-0145,nurse,Radiology,2026-01-01,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0134,Dr. Laila Fouad,stf-0134,doctor,Radiology,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0148,Nurse Noor Nasser,stf-0148,nurse,Radiology,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0142,Nurse Youssef Ibrahim,stf-0142,nurse,Radiology,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0147,Nurse Laila Nasser,stf-0147,nurse,Radiology,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0139,Nurse Mostafa Nasser,stf-0139,nurse,Radiology,2026-01-01,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0137,Dr. Fatima Mahmoud,stf-0137,doctor,Radiology,2026-01-01,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0139,Nurse Mostafa Nasser,stf-0139,nurse,Radiology,2026-01-01,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0146,Nurse Hassan Ibrahim,stf-0146,nurse,Radiology,2026-01-01,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0006,Dr. Hassan Abdullah,stf-0006,doctor,ER,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0007,Dr. Ahmed Mahmoud,stf-0007,doctor,ER,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0025,Nurse Hassan Fouad,stf-0025,nurse,ER,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0022,Nurse Karim Samir,stf-0022,nurse,ER,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0011,Nurse Hassan Yasin,stf-0011,nurse,ER,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0020,Nurse Fatima Ali,stf-0020,nurse,ER,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0004,Dr. Mostafa Said,stf-0004,doctor,ER,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0008,Dr. Hassan Fouad,stf-0008,doctor,ER,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0020,Nurse Fatima Ali,stf-0020,nurse,ER,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0029,Nurse Noor Ali,stf-0029,nurse,ER,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0018,Nurse Youssef Hassan,stf-0018,nurse,ER,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0031,Nurse Sara Mahmoud,stf-0031,nurse,ER,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0005,Dr. Noor Samir,stf-0005,doctor,ER,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0009,Dr. Ahmed Ibrahim,stf-0009,doctor,ER,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0013,Nurse Omar Ali,stf-0013,nurse,ER,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0019,Nurse Noor Mahmoud,stf-0019,nurse,ER,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0032,Nurse Mona Samir,stf-0032,nurse,ER,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0018,Nurse Youssef Hassan,stf-0018,nurse,ER,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0004,Dr. Mostafa Said,stf-0004,doctor,ER,2026-01-02,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0032,Nurse Mona Samir,stf-0032,nurse,ER,2026-01-02,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0027,Nurse Mona Said,stf-0027,nurse,ER,2026-01-02,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0041,Dr. Ahmed Mahmoud,stf-0041,doctor,General Ward,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0043,Dr. Noor Samir,stf-0043,doctor,General Ward,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0063,Nurse Laila Fouad,stf-0063,nurse,General Ward,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0057,Nurse Karim Fouad,stf-0057,nurse,General Ward,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0052,Nurse Karim Samir,stf-0052,nurse,General Ward,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0054,Nurse Omar Hassan,stf-0054,nurse,General Ward,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0035,Dr. Hassan Ibrahim,stf-0035,doctor,General Ward,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0038,Dr. Karim Abdullah,stf-0038,doctor,General Ward,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0054,Nurse Omar Hassan,stf-0054,nurse,General Ward,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0059,Nurse Karim Fouad,stf-0059,nurse,General Ward,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0065,Nurse Karim Samir,stf-0065,nurse,General Ward,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0061,Nurse Karim Samir,stf-0061,nurse,General Ward,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0033,Dr. Hassan Ali,stf-0033,doctor,General Ward,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0040,Dr. Youssef Yasin,stf-0040,doctor,General Ward,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0048,Nurse Laila Samir,stf-0048,nurse,General Ward,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0058,Nurse Noor Nasser,stf-0058,nurse,General Ward,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0045,Nurse Mona Ibrahim,stf-0045,nurse,General Ward,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0062,Nurse Nadine Yasin,stf-0062,nurse,General Ward,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0035,Dr. Hassan Ibrahim,stf-0035,doctor,General Ward,2026-01-02,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0063,Nurse Laila Fouad,stf-0063,nurse,General Ward,2026-01-02,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0046,Nurse Mona Fouad,stf-0046,nurse,General Ward,2026-01-02,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0076,Dr. Sara Yasin,stf-0076,doctor,ICU,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0082,Dr. Nadine Yasin,stf-0082,doctor,ICU,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0084,Nurse Mostafa Samir,stf-0084,nurse,ICU,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0103,Nurse Mona Samir,stf-0103,nurse,ICU,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0092,Nurse Fatima Fouad,stf-0092,nurse,ICU,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0088,Nurse Nadine Nasser,stf-0088,nurse,ICU,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0080,Dr. Youssef Abdullah,stf-0080,doctor,ICU,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0079,Dr. Mostafa Nasser,stf-0079,doctor,ICU,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0097,Nurse Mona Hassan,stf-0097,nurse,ICU,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0084,Nurse Mostafa Samir,stf-0084,nurse,ICU,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0088,Nurse Nadine Nasser,stf-0088,nurse,ICU,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0103,Nurse Mona Samir,stf-0103,nurse,ICU,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0077,Dr. Fatima Samir,stf-0077,doctor,ICU,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0079,Dr. Mostafa Nasser,stf-0079,doctor,ICU,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0087,Nurse Ahmed Abdullah,stf-0087,nurse,ICU,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0089,Nurse Youssef Hassan,stf-0089,nurse,ICU,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0093,Nurse Omar Hassan,stf-0093,nurse,ICU,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0103,Nurse Mona Samir,stf-0103,nurse,ICU,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0079,Dr. Mostafa Nasser,stf-0079,doctor,ICU,2026-01-02,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0088,Nurse Nadine Nasser,stf-0088,nurse,ICU,2026-01-02,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0089,Nurse Youssef Hassan,stf-0089,nurse,ICU,2026-01-02,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0110,Dr. Noor Said,stf-0110,doctor,Surgery,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0108,Dr. Fatima Abdullah,stf-0108,doctor,Surgery,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0122,Nurse Omar Samir,stf-0122,nurse,Surgery,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0123,Nurse Ahmed Nasser,stf-0123,nurse,Surgery,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0129,Nurse Omar Ali,stf-0129,nurse,Surgery,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0116,Nurse Youssef Ali,stf-0116,nurse,Surgery,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0109,Dr. Karim Abdullah,stf-0109,doctor,Surgery,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0108,Dr. Fatima Abdullah,stf-0108,doctor,Surgery,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0115,Nurse Ahmed Ibrahim,stf-0115,nurse,Surgery,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0127,Nurse Laila Fouad,stf-0127,nurse,Surgery,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0124,Nurse Fatima Said,stf-0124,nurse,Surgery,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0125,Nurse Fatima Mahmoud,stf-0125,nurse,Surgery,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0112,Dr. Fatima Samir,stf-0112,doctor,Surgery,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0113,Dr. Youssef Abdullah,stf-0113,doctor,Surgery,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0122,Nurse Omar Samir,stf-0122,nurse,Surgery,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0115,Nurse Ahmed Ibrahim,stf-0115,nurse,Surgery,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0130,Nurse Fatima Hassan,stf-0130,nurse,Surgery,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0132,Nurse Mona Yasin,stf-0132,nurse,Surgery,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0109,Dr. Karim Abdullah,stf-0109,doctor,Surgery,2026-01-02,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0128,Nurse Fatima Fouad,stf-0128,nurse,Surgery,2026-01-02,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0123,Nurse Ahmed Nasser,stf-0123,nurse,Surgery,2026-01-02,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0136,Dr. Fatima Samir,stf-0136,doctor,Radiology,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0147,Nurse Laila Nasser,stf-0147,nurse,Radiology,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0139,Nurse Mostafa Nasser,stf-0139,nurse,Radiology,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0141,Nurse Laila Ibrahim,stf-0141,nurse,Radiology,2026-01-02,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0138,Dr. Karim Nasser,stf-0138,doctor,Radiology,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0133,Dr. Fatima Ali,stf-0133,doctor,Radiology,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0147,Nurse Laila Nasser,stf-0147,nurse,Radiology,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0145,Nurse Fatima Yasin,stf-0145,nurse,Radiology,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0142,Nurse Youssef Ibrahim,stf-0142,nurse,Radiology,2026-01-02,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0138,Dr. Karim Nasser,stf-0138,doctor,Radiology,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0142,Nurse Youssef Ibrahim,stf-0142,nurse,Radiology,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0148,Nurse Noor Nasser,stf-0148,nurse,Radiology,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0144,Nurse Laila Abdullah,stf-0144,nurse,Radiology,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0140,Nurse Laila Fouad,stf-0140,nurse,Radiology,2026-01-02,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2026-01-02,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0140,Nurse Laila Fouad,stf-0140,nurse,Radiology,2026-01-02,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0145,Nurse Fatima Yasin,stf-0145,nurse,Radiology,2026-01-02,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0008,Dr. Hassan Fouad,stf-0008,doctor,ER,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0010,Dr. Hassan Said,stf-0010,doctor,ER,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0025,Nurse Hassan Fouad,stf-0025,nurse,ER,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0028,Nurse Sara Yasin,stf-0028,nurse,ER,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0024,Nurse Fatima Said,stf-0024,nurse,ER,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0019,Nurse Noor Mahmoud,stf-0019,nurse,ER,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0005,Dr. Noor Samir,stf-0005,doctor,ER,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0007,Dr. Ahmed Mahmoud,stf-0007,doctor,ER,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0023,Nurse Ahmed Ali,stf-0023,nurse,ER,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0027,Nurse Mona Said,stf-0027,nurse,ER,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0014,Nurse Noor Fouad,stf-0014,nurse,ER,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0024,Nurse Fatima Said,stf-0024,nurse,ER,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0008,Dr. Hassan Fouad,stf-0008,doctor,ER,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0003,Dr. Noor Mahmoud,stf-0003,doctor,ER,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0017,Nurse Karim Nasser,stf-0017,nurse,ER,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0012,Nurse Mostafa Fouad,stf-0012,nurse,ER,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0023,Nurse Ahmed Ali,stf-0023,nurse,ER,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0022,Nurse Karim Samir,stf-0022,nurse,ER,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0009,Dr. Ahmed Ibrahim,stf-0009,doctor,ER,2026-01-03,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0023,Nurse Ahmed Ali,stf-0023,nurse,ER,2026-01-03,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0027,Nurse Mona Said,stf-0027,nurse,ER,2026-01-03,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0033,Dr. Hassan Ali,stf-0033,doctor,General Ward,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0041,Dr. Ahmed Mahmoud,stf-0041,doctor,General Ward,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0062,Nurse Nadine Yasin,stf-0062,nurse,General Ward,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0049,Nurse Sara Fouad,stf-0049,nurse,General Ward,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0055,Nurse Youssef Abdullah,stf-0055,nurse,General Ward,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0056,Nurse Karim Nasser,stf-0056,nurse,General Ward,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0036,Dr. Nadine Abdullah,stf-0036,doctor,General Ward,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0044,Dr. Mona Ibrahim,stf-0044,doctor,General Ward,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0060,Nurse Youssef Ali,stf-0060,nurse,General Ward,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0063,Nurse Laila Fouad,stf-0063,nurse,General Ward,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0055,Nurse Youssef Abdullah,stf-0055,nurse,General Ward,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0067,Nurse Ahmed Mahmoud,stf-0067,nurse,General Ward,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0036,Dr. Nadine Abdullah,stf-0036,doctor,General Ward,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0037,Dr. Ahmed Hassan,stf-0037,doctor,General Ward,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0073,Nurse Mona Nasser,stf-0073,nurse,General Ward,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0072,Nurse Mostafa Ali,stf-0072,nurse,General Ward,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0063,Nurse Laila Fouad,stf-0063,nurse,General Ward,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0053,Nurse Youssef Hassan,stf-0053,nurse,General Ward,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0035,Dr. Hassan Ibrahim,stf-0035,doctor,General Ward,2026-01-03,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0062,Nurse Nadine Yasin,stf-0062,nurse,General Ward,2026-01-03,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0068,Nurse Youssef Samir,stf-0068,nurse,General Ward,2026-01-03,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0081,Dr. Laila Abdullah,stf-0081,doctor,ICU,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0079,Dr. Mostafa Nasser,stf-0079,doctor,ICU,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0101,Nurse Sara Yasin,stf-0101,nurse,ICU,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0097,Nurse Mona Hassan,stf-0097,nurse,ICU,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0091,Nurse Ahmed Ibrahim,stf-0091,nurse,ICU,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0083,Nurse Karim Nasser,stf-0083,nurse,ICU,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0077,Dr. Fatima Samir,stf-0077,doctor,ICU,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0082,Dr. Nadine Yasin,stf-0082,doctor,ICU,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0100,Nurse Laila Nasser,stf-0100,nurse,ICU,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0097,Nurse Mona Hassan,stf-0097,nurse,ICU,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0085,Nurse Hassan Ibrahim,stf-0085,nurse,ICU,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0093,Nurse Omar Hassan,stf-0093,nurse,ICU,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0079,Dr. Mostafa Nasser,stf-0079,doctor,ICU,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0080,Dr. Youssef Abdullah,stf-0080,doctor,ICU,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0085,Nurse Hassan Ibrahim,stf-0085,nurse,ICU,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0104,Nurse Omar Fouad,stf-0104,nurse,ICU,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0102,Nurse Sara Said,stf-0102,nurse,ICU,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0090,Nurse Hassan Samir,stf-0090,nurse,ICU,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0077,Dr. Fatima Samir,stf-0077,doctor,ICU,2026-01-03,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0097,Nurse Mona Hassan,stf-0097,nurse,ICU,2026-01-03,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0102,Nurse Sara Said,stf-0102,nurse,ICU,2026-01-03,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0111,Dr. Mona Yasin,stf-0111,doctor,Surgery,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0113,Dr. Youssef Abdullah,stf-0113,doctor,Surgery,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0115,Nurse Ahmed Ibrahim,stf-0115,nurse,Surgery,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0116,Nurse Youssef Ali,stf-0116,nurse,Surgery,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0125,Nurse Fatima Mahmoud,stf-0125,nurse,Surgery,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0124,Nurse Fatima Said,stf-0124,nurse,Surgery,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0109,Dr. Karim Abdullah,stf-0109,doctor,Surgery,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0112,Dr. Fatima Samir,stf-0112,doctor,Surgery,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0129,Nurse Omar Ali,stf-0129,nurse,Surgery,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0117,Nurse Noor Mahmoud,stf-0117,nurse,Surgery,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0127,Nurse Laila Fouad,stf-0127,nurse,Surgery,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0119,Nurse Karim Hassan,stf-0119,nurse,Surgery,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0107,Dr. Karim Mahmoud,stf-0107,doctor,Surgery,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0105,Dr. Omar Samir,stf-0105,doctor,Surgery,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0120,Nurse Ahmed Nasser,stf-0120,nurse,Surgery,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0118,Nurse Hassan Samir,stf-0118,nurse,Surgery,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0115,Nurse Ahmed Ibrahim,stf-0115,nurse,Surgery,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0117,Nurse Noor Mahmoud,stf-0117,nurse,Surgery,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0106,Dr. Laila Mahmoud,stf-0106,doctor,Surgery,2026-01-03,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0117,Nurse Noor Mahmoud,stf-0117,nurse,Surgery,2026-01-03,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0130,Nurse Fatima Hassan,stf-0130,nurse,Surgery,2026-01-03,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0134,Dr. Laila Fouad,stf-0134,doctor,Radiology,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0138,Dr. Karim Nasser,stf-0138,doctor,Radiology,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0146,Nurse Hassan Ibrahim,stf-0146,nurse,Radiology,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0141,Nurse Laila Ibrahim,stf-0141,nurse,Radiology,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0139,Nurse Mostafa Nasser,stf-0139,nurse,Radiology,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0148,Nurse Noor Nasser,stf-0148,nurse,Radiology,2026-01-03,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0133,Dr. Fatima Ali,stf-0133,doctor,Radiology,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0134,Dr. Laila Fouad,stf-0134,doctor,Radiology,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0147,Nurse Laila Nasser,stf-0147,nurse,Radiology,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0146,Nurse Hassan Ibrahim,stf-0146,nurse,Radiology,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0139,Nurse Mostafa Nasser,stf-0139,nurse,Radiology,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0142,Nurse Youssef Ibrahim,stf-0142,nurse,Radiology,2026-01-03,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0133,Dr. Fatima Ali,stf-0133,doctor,Radiology,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0137,Dr. Fatima Mahmoud,stf-0137,doctor,Radiology,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0144,Nurse Laila Abdullah,stf-0144,nurse,Radiology,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0145,Nurse Fatima Yasin,stf-0145,nurse,Radiology,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0142,Nurse Youssef Ibrahim,stf-0142,nurse,Radiology,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0146,Nurse Hassan Ibrahim,stf-0146,nurse,Radiology,2026-01-03,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0138,Dr. Karim Nasser,stf-0138,doctor,Radiology,2026-01-03,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0146,Nurse Hassan Ibrahim,stf-0146,nurse,Radiology,2026-01-03,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0144,Nurse Laila Abdullah,stf-0144,nurse,Radiology,2026-01-03,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0004,Dr. Mostafa Said,stf-0004,doctor,ER,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0010,Dr. Hassan Said,stf-0010,doctor,ER,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0015,Nurse Karim Ibrahim,stf-0015,nurse,ER,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0022,Nurse Karim Samir,stf-0022,nurse,ER,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0016,Nurse Mona Mahmoud,stf-0016,nurse,ER,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0012,Nurse Mostafa Fouad,stf-0012,nurse,ER,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0009,Dr. Ahmed Ibrahim,stf-0009,doctor,ER,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0004,Dr. Mostafa Said,stf-0004,doctor,ER,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0017,Nurse Karim Nasser,stf-0017,nurse,ER,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0013,Nurse Omar Ali,stf-0013,nurse,ER,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0023,Nurse Ahmed Ali,stf-0023,nurse,ER,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0020,Nurse Fatima Ali,stf-0020,nurse,ER,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0009,Dr. Ahmed Ibrahim,stf-0009,doctor,ER,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0007,Dr. Ahmed Mahmoud,stf-0007,doctor,ER,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0015,Nurse Karim Ibrahim,stf-0015,nurse,ER,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0016,Nurse Mona Mahmoud,stf-0016,nurse,ER,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0013,Nurse Omar Ali,stf-0013,nurse,ER,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0020,Nurse Fatima Ali,stf-0020,nurse,ER,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0007,Dr. Ahmed Mahmoud,stf-0007,doctor,ER,2026-01-04,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0012,Nurse Mostafa Fouad,stf-0012,nurse,ER,2026-01-04,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0017,Nurse Karim Nasser,stf-0017,nurse,ER,2026-01-04,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0044,Dr. Mona Ibrahim,stf-0044,doctor,General Ward,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0036,Dr. Nadine Abdullah,stf-0036,doctor,General Ward,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0060,Nurse Youssef Ali,stf-0060,nurse,General Ward,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0058,Nurse Noor Nasser,stf-0058,nurse,General Ward,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0068,Nurse Youssef Samir,stf-0068,nurse,General Ward,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0067,Nurse Ahmed Mahmoud,stf-0067,nurse,General Ward,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0038,Dr. Karim Abdullah,stf-0038,doctor,General Ward,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0036,Dr. Nadine Abdullah,stf-0036,doctor,General Ward,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0055,Nurse Youssef Abdullah,stf-0055,nurse,General Ward,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0067,Nurse Ahmed Mahmoud,stf-0067,nurse,General Ward,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0059,Nurse Karim Fouad,stf-0059,nurse,General Ward,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0062,Nurse Nadine Yasin,stf-0062,nurse,General Ward,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0040,Dr. Youssef Yasin,stf-0040,doctor,General Ward,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0033,Dr. Hassan Ali,stf-0033,doctor,General Ward,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0071,Nurse Karim Abdullah,stf-0071,nurse,General Ward,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0045,Nurse Mona Ibrahim,stf-0045,nurse,General Ward,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0057,Nurse Karim Fouad,stf-0057,nurse,General Ward,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0050,Nurse Omar Ali,stf-0050,nurse,General Ward,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0035,Dr. Hassan Ibrahim,stf-0035,doctor,General Ward,2026-01-04,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0073,Nurse Mona Nasser,stf-0073,nurse,General Ward,2026-01-04,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0045,Nurse Mona Ibrahim,stf-0045,nurse,General Ward,2026-01-04,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0077,Dr. Fatima Samir,stf-0077,doctor,ICU,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0078,Dr. Ahmed Nasser,stf-0078,doctor,ICU,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0090,Nurse Hassan Samir,stf-0090,nurse,ICU,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0089,Nurse Youssef Hassan,stf-0089,nurse,ICU,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0104,Nurse Omar Fouad,stf-0104,nurse,ICU,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0085,Nurse Hassan Ibrahim,stf-0085,nurse,ICU,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0078,Dr. Ahmed Nasser,stf-0078,doctor,ICU,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0082,Dr. Nadine Yasin,stf-0082,doctor,ICU,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0104,Nurse Omar Fouad,stf-0104,nurse,ICU,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0102,Nurse Sara Said,stf-0102,nurse,ICU,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0083,Nurse Karim Nasser,stf-0083,nurse,ICU,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0089,Nurse Youssef Hassan,stf-0089,nurse,ICU,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0082,Dr. Nadine Yasin,stf-0082,doctor,ICU,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0077,Dr. Fatima Samir,stf-0077,doctor,ICU,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0101,Nurse Sara Yasin,stf-0101,nurse,ICU,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0090,Nurse Hassan Samir,stf-0090,nurse,ICU,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0102,Nurse Sara Said,stf-0102,nurse,ICU,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0088,Nurse Nadine Nasser,stf-0088,nurse,ICU,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0079,Dr. Mostafa Nasser,stf-0079,doctor,ICU,2026-01-04,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0103,Nurse Mona Samir,stf-0103,nurse,ICU,2026-01-04,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0093,Nurse Omar Hassan,stf-0093,nurse,ICU,2026-01-04,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0114,Dr. Fatima Abdullah,stf-0114,doctor,Surgery,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0110,Dr. Noor Said,stf-0110,doctor,Surgery,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0130,Nurse Fatima Hassan,stf-0130,nurse,Surgery,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0124,Nurse Fatima Said,stf-0124,nurse,Surgery,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0116,Nurse Youssef Ali,stf-0116,nurse,Surgery,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0117,Nurse Noor Mahmoud,stf-0117,nurse,Surgery,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0113,Dr. Youssef Abdullah,stf-0113,doctor,Surgery,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0107,Dr. Karim Mahmoud,stf-0107,doctor,Surgery,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0121,Nurse Ahmed Hassan,stf-0121,nurse,Surgery,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0127,Nurse Laila Fouad,stf-0127,nurse,Surgery,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0128,Nurse Fatima Fouad,stf-0128,nurse,Surgery,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0120,Nurse Ahmed Nasser,stf-0120,nurse,Surgery,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0113,Dr. Youssef Abdullah,stf-0113,doctor,Surgery,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0105,Dr. Omar Samir,stf-0105,doctor,Surgery,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0117,Nurse Noor Mahmoud,stf-0117,nurse,Surgery,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0125,Nurse Fatima Mahmoud,stf-0125,nurse,Surgery,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0115,Nurse Ahmed Ibrahim,stf-0115,nurse,Surgery,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0124,Nurse Fatima Said,stf-0124,nurse,Surgery,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0111,Dr. Mona Yasin,stf-0111,doctor,Surgery,2026-01-04,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0131,Nurse Omar Mahmoud,stf-0131,nurse,Surgery,2026-01-04,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0132,Nurse Mona Yasin,stf-0132,nurse,Surgery,2026-01-04,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0138,Dr. Karim Nasser,stf-0138,doctor,Radiology,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0136,Dr. Fatima Samir,stf-0136,doctor,Radiology,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0147,Nurse Laila Nasser,stf-0147,nurse,Radiology,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0146,Nurse Hassan Ibrahim,stf-0146,nurse,Radiology,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0141,Nurse Laila Ibrahim,stf-0141,nurse,Radiology,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0140,Nurse Laila Fouad,stf-0140,nurse,Radiology,2026-01-04,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0136,Dr. Fatima Samir,stf-0136,doctor,Radiology,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0146,Nurse Hassan Ibrahim,stf-0146,nurse,Radiology,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0145,Nurse Fatima Yasin,stf-0145,nurse,Radiology,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0148,Nurse Noor Nasser,stf-0148,nurse,Radiology,2026-01-04,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0133,Dr. Fatima Ali,stf-0133,doctor,Radiology,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0145,Nurse Fatima Yasin,stf-0145,nurse,Radiology,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0147,Nurse Laila Nasser,stf-0147,nurse,Radiology,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0142,Nurse Youssef Ibrahim,stf-0142,nurse,Radiology,2026-01-04,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2026-01-04,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0141,Nurse Laila Ibrahim,stf-0141,nurse,Radiology,2026-01-04,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0148,Nurse Noor Nasser,stf-0148,nurse,Radiology,2026-01-04,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0001,Dr. Karim Mahmoud,stf-0001,doctor,ER,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0010,Dr. Hassan Said,stf-0010,doctor,ER,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0020,Nurse Fatima Ali,stf-0020,nurse,ER,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0023,Nurse Ahmed Ali,stf-0023,nurse,ER,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0014,Nurse Noor Fouad,stf-0014,nurse,ER,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0030,Nurse Mona Abdullah,stf-0030,nurse,ER,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0003,Dr. Noor Mahmoud,stf-0003,doctor,ER,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0005,Dr. Noor Samir,stf-0005,doctor,ER,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0019,Nurse Noor Mahmoud,stf-0019,nurse,ER,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0020,Nurse Fatima Ali,stf-0020,nurse,ER,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0030,Nurse Mona Abdullah,stf-0030,nurse,ER,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0013,Nurse Omar Ali,stf-0013,nurse,ER,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0006,Dr. Hassan Abdullah,stf-0006,doctor,ER,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0002,Dr. Sara Hassan,stf-0002,doctor,ER,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0026,Nurse Omar Abdullah,stf-0026,nurse,ER,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0030,Nurse Mona Abdullah,stf-0030,nurse,ER,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0029,Nurse Noor Ali,stf-0029,nurse,ER,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0014,Nurse Noor Fouad,stf-0014,nurse,ER,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0010,Dr. Hassan Said,stf-0010,doctor,ER,2026-01-05,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0029,Nurse Noor Ali,stf-0029,nurse,ER,2026-01-05,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0030,Nurse Mona Abdullah,stf-0030,nurse,ER,2026-01-05,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0034,Dr. Mona Fouad,stf-0034,doctor,General Ward,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0035,Dr. Hassan Ibrahim,stf-0035,doctor,General Ward,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0053,Nurse Youssef Hassan,stf-0053,nurse,General Ward,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0072,Nurse Mostafa Ali,stf-0072,nurse,General Ward,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0058,Nurse Noor Nasser,stf-0058,nurse,General Ward,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0074,Nurse Fatima Ali,stf-0074,nurse,General Ward,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0036,Dr. Nadine Abdullah,stf-0036,doctor,General Ward,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0038,Dr. Karim Abdullah,stf-0038,doctor,General Ward,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0072,Nurse Mostafa Ali,stf-0072,nurse,General Ward,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0062,Nurse Nadine Yasin,stf-0062,nurse,General Ward,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0056,Nurse Karim Nasser,stf-0056,nurse,General Ward,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0066,Nurse Youssef Said,stf-0066,nurse,General Ward,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0038,Dr. Karim Abdullah,stf-0038,doctor,General Ward,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0039,Dr. Sara Nasser,stf-0039,doctor,General Ward,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0071,Nurse Karim Abdullah,stf-0071,nurse,General Ward,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0054,Nurse Omar Hassan,stf-0054,nurse,General Ward,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0069,Nurse Mostafa Fouad,stf-0069,nurse,General Ward,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0073,Nurse Mona Nasser,stf-0073,nurse,General Ward,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0034,Dr. Mona Fouad,stf-0034,doctor,General Ward,2026-01-05,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0071,Nurse Karim Abdullah,stf-0071,nurse,General Ward,2026-01-05,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0048,Nurse Laila Samir,stf-0048,nurse,General Ward,2026-01-05,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0082,Dr. Nadine Yasin,stf-0082,doctor,ICU,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0078,Dr. Ahmed Nasser,stf-0078,doctor,ICU,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0085,Nurse Hassan Ibrahim,stf-0085,nurse,ICU,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0100,Nurse Laila Nasser,stf-0100,nurse,ICU,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0094,Nurse Fatima Ibrahim,stf-0094,nurse,ICU,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0093,Nurse Omar Hassan,stf-0093,nurse,ICU,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0082,Dr. Nadine Yasin,stf-0082,doctor,ICU,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0080,Dr. Youssef Abdullah,stf-0080,doctor,ICU,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0086,Nurse Ahmed Samir,stf-0086,nurse,ICU,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0088,Nurse Nadine Nasser,stf-0088,nurse,ICU,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0084,Nurse Mostafa Samir,stf-0084,nurse,ICU,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0099,Nurse Sara Hassan,stf-0099,nurse,ICU,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0078,Dr. Ahmed Nasser,stf-0078,doctor,ICU,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0081,Dr. Laila Abdullah,stf-0081,doctor,ICU,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0104,Nurse Omar Fouad,stf-0104,nurse,ICU,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0094,Nurse Fatima Ibrahim,stf-0094,nurse,ICU,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0095,Nurse Youssef Ali,stf-0095,nurse,ICU,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0098,Nurse Noor Said,stf-0098,nurse,ICU,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0077,Dr. Fatima Samir,stf-0077,doctor,ICU,2026-01-05,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0104,Nurse Omar Fouad,stf-0104,nurse,ICU,2026-01-05,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0099,Nurse Sara Hassan,stf-0099,nurse,ICU,2026-01-05,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0112,Dr. Fatima Samir,stf-0112,doctor,Surgery,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0111,Dr. Mona Yasin,stf-0111,doctor,Surgery,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0121,Nurse Ahmed Hassan,stf-0121,nurse,Surgery,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0115,Nurse Ahmed Ibrahim,stf-0115,nurse,Surgery,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0124,Nurse Fatima Said,stf-0124,nurse,Surgery,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0129,Nurse Omar Ali,stf-0129,nurse,Surgery,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0108,Dr. Fatima Abdullah,stf-0108,doctor,Surgery,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0109,Dr. Karim Abdullah,stf-0109,doctor,Surgery,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0130,Nurse Fatima Hassan,stf-0130,nurse,Surgery,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0119,Nurse Karim Hassan,stf-0119,nurse,Surgery,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0125,Nurse Fatima Mahmoud,stf-0125,nurse,Surgery,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0123,Nurse Ahmed Nasser,stf-0123,nurse,Surgery,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0112,Dr. Fatima Samir,stf-0112,doctor,Surgery,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0108,Dr. Fatima Abdullah,stf-0108,doctor,Surgery,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0122,Nurse Omar Samir,stf-0122,nurse,Surgery,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0123,Nurse Ahmed Nasser,stf-0123,nurse,Surgery,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0115,Nurse Ahmed Ibrahim,stf-0115,nurse,Surgery,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0116,Nurse Youssef Ali,stf-0116,nurse,Surgery,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0105,Dr. Omar Samir,stf-0105,doctor,Surgery,2026-01-05,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0118,Nurse Hassan Samir,stf-0118,nurse,Surgery,2026-01-05,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0129,Nurse Omar Ali,stf-0129,nurse,Surgery,2026-01-05,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0134,Dr. Laila Fouad,stf-0134,doctor,Radiology,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0137,Dr. Fatima Mahmoud,stf-0137,doctor,Radiology,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0139,Nurse Mostafa Nasser,stf-0139,nurse,Radiology,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0148,Nurse Noor Nasser,stf-0148,nurse,Radiology,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0144,Nurse Laila Abdullah,stf-0144,nurse,Radiology,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0141,Nurse Laila Ibrahim,stf-0141,nurse,Radiology,2026-01-05,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0137,Dr. Fatima Mahmoud,stf-0137,doctor,Radiology,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0134,Dr. Laila Fouad,stf-0134,doctor,Radiology,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0142,Nurse Youssef Ibrahim,stf-0142,nurse,Radiology,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0141,Nurse Laila Ibrahim,stf-0141,nurse,Radiology,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0148,Nurse Noor Nasser,stf-0148,nurse,Radiology,2026-01-05,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0133,Dr. Fatima Ali,stf-0133,doctor,Radiology,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0140,Nurse Laila Fouad,stf-0140,nurse,Radiology,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0145,Nurse Fatima Yasin,stf-0145,nurse,Radiology,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0144,Nurse Laila Abdullah,stf-0144,nurse,Radiology,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2026-01-05,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2026-01-05,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0141,Nurse Laila Ibrahim,stf-0141,nurse,Radiology,2026-01-05,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0145,Nurse Fatima Yasin,stf-0145,nurse,Radiology,2026-01-05,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0007,Dr. Ahmed Mahmoud,stf-0007,doctor,ER,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0009,Dr. Ahmed Ibrahim,stf-0009,doctor,ER,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0024,Nurse Fatima Said,stf-0024,nurse,ER,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0028,Nurse Sara Yasin,stf-0028,nurse,ER,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0019,Nurse Noor Mahmoud,stf-0019,nurse,ER,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0018,Nurse Youssef Hassan,stf-0018,nurse,ER,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0006,Dr. Hassan Abdullah,stf-0006,doctor,ER,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0007,Dr. Ahmed Mahmoud,stf-0007,doctor,ER,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0017,Nurse Karim Nasser,stf-0017,nurse,ER,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0031,Nurse Sara Mahmoud,stf-0031,nurse,ER,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0019,Nurse Noor Mahmoud,stf-0019,nurse,ER,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0011,Nurse Hassan Yasin,stf-0011,nurse,ER,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0001,Dr. Karim Mahmoud,stf-0001,doctor,ER,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0009,Dr. Ahmed Ibrahim,stf-0009,doctor,ER,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0018,Nurse Youssef Hassan,stf-0018,nurse,ER,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0012,Nurse Mostafa Fouad,stf-0012,nurse,ER,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0029,Nurse Noor Ali,stf-0029,nurse,ER,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0013,Nurse Omar Ali,stf-0013,nurse,ER,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0005,Dr. Noor Samir,stf-0005,doctor,ER,2026-01-06,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0023,Nurse Ahmed Ali,stf-0023,nurse,ER,2026-01-06,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0018,Nurse Youssef Hassan,stf-0018,nurse,ER,2026-01-06,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0040,Dr. Youssef Yasin,stf-0040,doctor,General Ward,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0034,Dr. Mona Fouad,stf-0034,doctor,General Ward,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0071,Nurse Karim Abdullah,stf-0071,nurse,General Ward,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0046,Nurse Mona Fouad,stf-0046,nurse,General Ward,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0064,Nurse Mona Fouad,stf-0064,nurse,General Ward,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0072,Nurse Mostafa Ali,stf-0072,nurse,General Ward,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0037,Dr. Ahmed Hassan,stf-0037,doctor,General Ward,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0038,Dr. Karim Abdullah,stf-0038,doctor,General Ward,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0051,Nurse Hassan Ali,stf-0051,nurse,General Ward,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0053,Nurse Youssef Hassan,stf-0053,nurse,General Ward,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0054,Nurse Omar Hassan,stf-0054,nurse,General Ward,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0059,Nurse Karim Fouad,stf-0059,nurse,General Ward,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0034,Dr. Mona Fouad,stf-0034,doctor,General Ward,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0043,Dr. Noor Samir,stf-0043,doctor,General Ward,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0068,Nurse Youssef Samir,stf-0068,nurse,General Ward,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0061,Nurse Karim Samir,stf-0061,nurse,General Ward,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0053,Nurse Youssef Hassan,stf-0053,nurse,General Ward,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0059,Nurse Karim Fouad,stf-0059,nurse,General Ward,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0043,Dr. Noor Samir,stf-0043,doctor,General Ward,2026-01-06,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0072,Nurse Mostafa Ali,stf-0072,nurse,General Ward,2026-01-06,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0069,Nurse Mostafa Fouad,stf-0069,nurse,General Ward,2026-01-06,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0077,Dr. Fatima Samir,stf-0077,doctor,ICU,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0075,Dr. Karim Said,stf-0075,doctor,ICU,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0089,Nurse Youssef Hassan,stf-0089,nurse,ICU,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0091,Nurse Ahmed Ibrahim,stf-0091,nurse,ICU,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0097,Nurse Mona Hassan,stf-0097,nurse,ICU,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0083,Nurse Karim Nasser,stf-0083,nurse,ICU,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0079,Dr. Mostafa Nasser,stf-0079,doctor,ICU,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0076,Dr. Sara Yasin,stf-0076,doctor,ICU,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0096,Nurse Laila Ali,stf-0096,nurse,ICU,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0095,Nurse Youssef Ali,stf-0095,nurse,ICU,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0090,Nurse Hassan Samir,stf-0090,nurse,ICU,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0084,Nurse Mostafa Samir,stf-0084,nurse,ICU,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0079,Dr. Mostafa Nasser,stf-0079,doctor,ICU,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0077,Dr. Fatima Samir,stf-0077,doctor,ICU,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0100,Nurse Laila Nasser,stf-0100,nurse,ICU,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0096,Nurse Laila Ali,stf-0096,nurse,ICU,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0087,Nurse Ahmed Abdullah,stf-0087,nurse,ICU,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0083,Nurse Karim Nasser,stf-0083,nurse,ICU,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0078,Dr. Ahmed Nasser,stf-0078,doctor,ICU,2026-01-06,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0100,Nurse Laila Nasser,stf-0100,nurse,ICU,2026-01-06,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0083,Nurse Karim Nasser,stf-0083,nurse,ICU,2026-01-06,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0114,Dr. Fatima Abdullah,stf-0114,doctor,Surgery,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0107,Dr. Karim Mahmoud,stf-0107,doctor,Surgery,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0122,Nurse Omar Samir,stf-0122,nurse,Surgery,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0125,Nurse Fatima Mahmoud,stf-0125,nurse,Surgery,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0127,Nurse Laila Fouad,stf-0127,nurse,Surgery,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0130,Nurse Fatima Hassan,stf-0130,nurse,Surgery,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0109,Dr. Karim Abdullah,stf-0109,doctor,Surgery,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0113,Dr. Youssef Abdullah,stf-0113,doctor,Surgery,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0131,Nurse Omar Mahmoud,stf-0131,nurse,Surgery,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0123,Nurse Ahmed Nasser,stf-0123,nurse,Surgery,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0125,Nurse Fatima Mahmoud,stf-0125,nurse,Surgery,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0126,Nurse Noor Fouad,stf-0126,nurse,Surgery,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0110,Dr. Noor Said,stf-0110,doctor,Surgery,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0111,Dr. Mona Yasin,stf-0111,doctor,Surgery,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0122,Nurse Omar Samir,stf-0122,nurse,Surgery,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0131,Nurse Omar Mahmoud,stf-0131,nurse,Surgery,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0121,Nurse Ahmed Hassan,stf-0121,nurse,Surgery,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0118,Nurse Hassan Samir,stf-0118,nurse,Surgery,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0108,Dr. Fatima Abdullah,stf-0108,doctor,Surgery,2026-01-06,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0117,Nurse Noor Mahmoud,stf-0117,nurse,Surgery,2026-01-06,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0125,Nurse Fatima Mahmoud,stf-0125,nurse,Surgery,2026-01-06,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0133,Dr. Fatima Ali,stf-0133,doctor,Radiology,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0134,Dr. Laila Fouad,stf-0134,doctor,Radiology,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0148,Nurse Noor Nasser,stf-0148,nurse,Radiology,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0142,Nurse Youssef Ibrahim,stf-0142,nurse,Radiology,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0139,Nurse Mostafa Nasser,stf-0139,nurse,Radiology,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2026-01-06,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0134,Dr. Laila Fouad,stf-0134,doctor,Radiology,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0139,Nurse Mostafa Nasser,stf-0139,nurse,Radiology,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0141,Nurse Laila Ibrahim,stf-0141,nurse,Radiology,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0142,Nurse Youssef Ibrahim,stf-0142,nurse,Radiology,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2026-01-06,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0133,Dr. Fatima Ali,stf-0133,doctor,Radiology,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0134,Dr. Laila Fouad,stf-0134,doctor,Radiology,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0146,Nurse Hassan Ibrahim,stf-0146,nurse,Radiology,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0140,Nurse Laila Fouad,stf-0140,nurse,Radiology,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0142,Nurse Youssef Ibrahim,stf-0142,nurse,Radiology,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0139,Nurse Mostafa Nasser,stf-0139,nurse,Radiology,2026-01-06,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0136,Dr. Fatima Samir,stf-0136,doctor,Radiology,2026-01-06,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0142,Nurse Youssef Ibrahim,stf-0142,nurse,Radiology,2026-01-06,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0140,Nurse Laila Fouad,stf-0140,nurse,Radiology,2026-01-06,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0002,Dr. Sara Hassan,stf-0002,doctor,ER,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0007,Dr. Ahmed Mahmoud,stf-0007,doctor,ER,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0015,Nurse Karim Ibrahim,stf-0015,nurse,ER,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0017,Nurse Karim Nasser,stf-0017,nurse,ER,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0027,Nurse Mona Said,stf-0027,nurse,ER,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0023,Nurse Ahmed Ali,stf-0023,nurse,ER,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0009,Dr. Ahmed Ibrahim,stf-0009,doctor,ER,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0008,Dr. Hassan Fouad,stf-0008,doctor,ER,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0026,Nurse Omar Abdullah,stf-0026,nurse,ER,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0021,Nurse Fatima Mahmoud,stf-0021,nurse,ER,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0012,Nurse Mostafa Fouad,stf-0012,nurse,ER,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0025,Nurse Hassan Fouad,stf-0025,nurse,ER,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0010,Dr. Hassan Said,stf-0010,doctor,ER,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0008,Dr. Hassan Fouad,stf-0008,doctor,ER,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0027,Nurse Mona Said,stf-0027,nurse,ER,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0016,Nurse Mona Mahmoud,stf-0016,nurse,ER,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0015,Nurse Karim Ibrahim,stf-0015,nurse,ER,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0021,Nurse Fatima Mahmoud,stf-0021,nurse,ER,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0006,Dr. Hassan Abdullah,stf-0006,doctor,ER,2026-01-07,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0028,Nurse Sara Yasin,stf-0028,nurse,ER,2026-01-07,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0018,Nurse Youssef Hassan,stf-0018,nurse,ER,2026-01-07,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0043,Dr. Noor Samir,stf-0043,doctor,General Ward,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0034,Dr. Mona Fouad,stf-0034,doctor,General Ward,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0047,Nurse Nadine Fouad,stf-0047,nurse,General Ward,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0058,Nurse Noor Nasser,stf-0058,nurse,General Ward,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0068,Nurse Youssef Samir,stf-0068,nurse,General Ward,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0054,Nurse Omar Hassan,stf-0054,nurse,General Ward,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0037,Dr. Ahmed Hassan,stf-0037,doctor,General Ward,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0033,Dr. Hassan Ali,stf-0033,doctor,General Ward,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0063,Nurse Laila Fouad,stf-0063,nurse,General Ward,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0070,Nurse Fatima Mahmoud,stf-0070,nurse,General Ward,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0050,Nurse Omar Ali,stf-0050,nurse,General Ward,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0057,Nurse Karim Fouad,stf-0057,nurse,General Ward,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0042,Dr. Noor Abdullah,stf-0042,doctor,General Ward,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0044,Dr. Mona Ibrahim,stf-0044,doctor,General Ward,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0066,Nurse Youssef Said,stf-0066,nurse,General Ward,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0058,Nurse Noor Nasser,stf-0058,nurse,General Ward,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0051,Nurse Hassan Ali,stf-0051,nurse,General Ward,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0073,Nurse Mona Nasser,stf-0073,nurse,General Ward,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0038,Dr. Karim Abdullah,stf-0038,doctor,General Ward,2026-01-07,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0072,Nurse Mostafa Ali,stf-0072,nurse,General Ward,2026-01-07,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0049,Nurse Sara Fouad,stf-0049,nurse,General Ward,2026-01-07,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0080,Dr. Youssef Abdullah,stf-0080,doctor,ICU,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0079,Dr. Mostafa Nasser,stf-0079,doctor,ICU,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0091,Nurse Ahmed Ibrahim,stf-0091,nurse,ICU,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0097,Nurse Mona Hassan,stf-0097,nurse,ICU,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0102,Nurse Sara Said,stf-0102,nurse,ICU,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0095,Nurse Youssef Ali,stf-0095,nurse,ICU,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0080,Dr. Youssef Abdullah,stf-0080,doctor,ICU,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0075,Dr. Karim Said,stf-0075,doctor,ICU,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0086,Nurse Ahmed Samir,stf-0086,nurse,ICU,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0104,Nurse Omar Fouad,stf-0104,nurse,ICU,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0102,Nurse Sara Said,stf-0102,nurse,ICU,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0092,Nurse Fatima Fouad,stf-0092,nurse,ICU,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0079,Dr. Mostafa Nasser,stf-0079,doctor,ICU,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0082,Dr. Nadine Yasin,stf-0082,doctor,ICU,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0088,Nurse Nadine Nasser,stf-0088,nurse,ICU,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0086,Nurse Ahmed Samir,stf-0086,nurse,ICU,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0091,Nurse Ahmed Ibrahim,stf-0091,nurse,ICU,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0090,Nurse Hassan Samir,stf-0090,nurse,ICU,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0075,Dr. Karim Said,stf-0075,doctor,ICU,2026-01-07,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0089,Nurse Youssef Hassan,stf-0089,nurse,ICU,2026-01-07,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0095,Nurse Youssef Ali,stf-0095,nurse,ICU,2026-01-07,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0110,Dr. Noor Said,stf-0110,doctor,Surgery,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0111,Dr. Mona Yasin,stf-0111,doctor,Surgery,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0127,Nurse Laila Fouad,stf-0127,nurse,Surgery,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0132,Nurse Mona Yasin,stf-0132,nurse,Surgery,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0131,Nurse Omar Mahmoud,stf-0131,nurse,Surgery,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0119,Nurse Karim Hassan,stf-0119,nurse,Surgery,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0105,Dr. Omar Samir,stf-0105,doctor,Surgery,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0112,Dr. Fatima Samir,stf-0112,doctor,Surgery,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0132,Nurse Mona Yasin,stf-0132,nurse,Surgery,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0115,Nurse Ahmed Ibrahim,stf-0115,nurse,Surgery,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0128,Nurse Fatima Fouad,stf-0128,nurse,Surgery,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0130,Nurse Fatima Hassan,stf-0130,nurse,Surgery,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0105,Dr. Omar Samir,stf-0105,doctor,Surgery,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0112,Dr. Fatima Samir,stf-0112,doctor,Surgery,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0127,Nurse Laila Fouad,stf-0127,nurse,Surgery,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0119,Nurse Karim Hassan,stf-0119,nurse,Surgery,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0120,Nurse Ahmed Nasser,stf-0120,nurse,Surgery,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0122,Nurse Omar Samir,stf-0122,nurse,Surgery,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0108,Dr. Fatima Abdullah,stf-0108,doctor,Surgery,2026-01-07,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0126,Nurse Noor Fouad,stf-0126,nurse,Surgery,2026-01-07,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0122,Nurse Omar Samir,stf-0122,nurse,Surgery,2026-01-07,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0136,Dr. Fatima Samir,stf-0136,doctor,Radiology,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0138,Dr. Karim Nasser,stf-0138,doctor,Radiology,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0143,Nurse Mostafa Abdullah,stf-0143,nurse,Radiology,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0145,Nurse Fatima Yasin,stf-0145,nurse,Radiology,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0144,Nurse Laila Abdullah,stf-0144,nurse,Radiology,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0148,Nurse Noor Nasser,stf-0148,nurse,Radiology,2026-01-07,Morning,07:00,15:00,Assigned,Synthetic demo schedule
+STF-0135,Dr. Sara Hassan,stf-0135,doctor,Radiology,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0138,Dr. Karim Nasser,stf-0138,doctor,Radiology,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0139,Nurse Mostafa Nasser,stf-0139,nurse,Radiology,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0145,Nurse Fatima Yasin,stf-0145,nurse,Radiology,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0142,Nurse Youssef Ibrahim,stf-0142,nurse,Radiology,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0147,Nurse Laila Nasser,stf-0147,nurse,Radiology,2026-01-07,Evening,15:00,23:00,Assigned,Synthetic demo schedule
+STF-0133,Dr. Fatima Ali,stf-0133,doctor,Radiology,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0134,Dr. Laila Fouad,stf-0134,doctor,Radiology,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0140,Nurse Laila Fouad,stf-0140,nurse,Radiology,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0148,Nurse Noor Nasser,stf-0148,nurse,Radiology,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0147,Nurse Laila Nasser,stf-0147,nurse,Radiology,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0144,Nurse Laila Abdullah,stf-0144,nurse,Radiology,2026-01-07,Night,23:00,07:00,Assigned,Synthetic demo schedule
+STF-0137,Dr. Fatima Mahmoud,stf-0137,doctor,Radiology,2026-01-07,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0148,Nurse Noor Nasser,stf-0148,nurse,Radiology,2026-01-07,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule
+STF-0141,Nurse Laila Ibrahim,stf-0141,nurse,Radiology,2026-01-07,Emergency Backup,00:00,23:59,Assigned,Synthetic demo schedule

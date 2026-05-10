@@ -1,14 +1,15 @@
 {
   "model": "ARIMAX",
+  "training_source": "D:\\hro-ps-ai\\clean_data(AutoRecovered).csv",
   "val": {
-    "MAE": 66.20950004954838,
-    "RMSE": 78.54656193303826,
-    "MAPE": 6382.449895317654
+    "MAE": 13.463829369269234,
+    "RMSE": 16.81431630837056,
+    "MAPE": 15.257990672043842
   },
   "test": {
-    "MAE": 4.231811148680733,
-    "RMSE": 8.142294190908906,
-    "MAPE": 401.4761668596647
+    "MAE": 7.796136941882549,
+    "RMSE": 9.317053450879257,
+    "MAPE": 5.963157944454173
   },
   "exog_cols": [
     "hour",
@@ -17,7 +18,9 @@
     "week_number",
     "season",
     "is_weekend",
+    "is_holiday",
     "holiday",
+    "shift_period_code",
     "appointments_count",
     "or_bookings_count",
     "doctors_available",

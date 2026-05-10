@@ -16,6 +16,7 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
+from scipy.optimize import Bounds, LinearConstraint, milp
 
 from database import SessionLocal
 from models import Appointment, ORBooking, PatientTracking, StaffShift
@@ -230,6 +231,69 @@ def _build_recommendations(df: pd.DataFrame) -> List[str]:
         recommendations.append("All departments are operating within safe resource thresholds.")
 
     return recommendations
+
+
+def _solve_integer_resource_allocation(df: pd.DataFrame) -> dict:
+    """Run a small MIP to allocate scarce beds/doctors/nurses by priority.
+
+    Objective: maximize priority-weighted assigned resources, with integer
+    variables and total availability constraints for each resource class.
+    """
+
+    if df.empty:
+        return {"solver": "scipy.optimize.milp", "status": "empty", "allocations": []}
+
+    resource_specs = [
+        ("beds", "beds_required", "effective_beds_capacity", 3.0),
+        ("doctors", "doctors_required", "effective_doctors_capacity", 2.5),
+        ("nurses", "nurses_required", "effective_nurses_capacity", 2.0),
+    ]
+    rows = []
+    for resource, required_col, available_col, resource_weight in resource_specs:
+        required = df[required_col].astype(float).clip(lower=0).to_numpy()
+        available_total = float(df[available_col].astype(float).clip(lower=0).sum())
+        upper = required.copy()
+        if len(required) == 0 or available_total <= 0 or upper.sum() <= 0:
+            assigned = np.zeros(len(df), dtype=int)
+            status = "no_available_capacity"
+        else:
+            priority = df["priority_score"].astype(float).clip(lower=0).to_numpy()
+            c = -(priority + 1.0) * resource_weight
+            constraints = LinearConstraint(np.ones((1, len(required))), lb=0, ub=available_total)
+            result = milp(
+                c=c,
+                integrality=np.ones(len(required)),
+                bounds=Bounds(lb=np.zeros(len(required)), ub=upper),
+                constraints=constraints,
+                options={"time_limit": 5},
+            )
+            if result.success and result.x is not None:
+                assigned = np.floor(np.clip(result.x, 0, upper)).astype(int)
+                status = "optimal" if int(result.status) == 0 else "feasible"
+            else:
+                # Safe deterministic fallback for the allocation plan only; the UI still
+                # exposes the solver status so a failed MIP is not hidden.
+                assigned = np.zeros(len(df), dtype=int)
+                remaining = int(available_total)
+                for idx in np.argsort(-priority):
+                    take = min(int(upper[idx]), remaining)
+                    assigned[idx] = take
+                    remaining -= take
+                    if remaining <= 0:
+                        break
+                status = f"fallback_greedy:{getattr(result, 'message', 'solver_failed')}"
+        for i, department in enumerate(df["department"].tolist()):
+            rows.append(
+                {
+                    "department": department,
+                    "resource": resource,
+                    "required": int(required[i]),
+                    "mip_assigned": int(assigned[i]),
+                    "mip_gap": int(max(0, int(required[i]) - int(assigned[i]))),
+                    "solver_status": status,
+                }
+            )
+    return {"solver": "scipy.optimize.milp", "status": "ran", "allocations": rows}
 
 
 def _load_entities(*, tenant_id: int | None = None):
@@ -521,6 +585,7 @@ def optimize_resources(predicted_patients: float, *, tenant_id: int | None = Non
     objective = float(overcrowding_score * 3.0 + wait_time_proxy * 2.0 + utilization_proxy)
 
     recommendations = _build_recommendations(df)
+    mip_result = _solve_integer_resource_allocation(df)
 
     actions = []
     actions.extend(staff_actions)
@@ -538,8 +603,11 @@ def optimize_resources(predicted_patients: float, *, tenant_id: int | None = Non
             "wait_time_proxy": round(wait_time_proxy, 3),
             "overcrowding_score": round(overcrowding_score, 3),
             "utilization_proxy": round(utilization_proxy, 3),
+            "optimization_method": "Mixed Integer Programming (scipy.optimize.milp) with deterministic fallback if solver fails",
+            "mip_status": mip_result.get("status"),
         },
         "department_allocations": df.to_dict(orient="records"),
         "recommendations": recommendations,
         "actions": actions,
+        "mip_allocation": mip_result.get("allocations", []),
     }

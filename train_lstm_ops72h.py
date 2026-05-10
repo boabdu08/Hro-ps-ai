@@ -62,6 +62,7 @@ def main():
     save_ops_hourly_dataset(frame)
 
     df = frame.overall.copy()
+    training_source = str(frame.overall.attrs.get("source_path", "unknown"))
     df = df.sort_values("datetime").reset_index(drop=True)
 
     target = "patients"
@@ -74,7 +75,9 @@ def main():
         "week_number",
         "season",
         "is_weekend",
+        "is_holiday",
         "holiday",
+        "shift_period_code",
         "appointments_count",
         "or_bookings_count",
         "doctors_available",
@@ -191,6 +194,7 @@ def main():
 
     outputs = {
         "model": "LSTM",
+        "training_source": training_source,
         "val": val_metrics,
         "test": test_metrics,
         "feature_cols": feature_cols,

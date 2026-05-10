@@ -877,12 +877,23 @@ def scoped_key(*parts: object) -> str:
 
 
 def modern_table(df, *, key: str | None = None):
-    """Dataframe wrapper with optional Streamlit key for safe reuse."""
+    """Dataframe wrapper with optional Streamlit key, scrollable view, and CSV export."""
 
     if key:
         st.dataframe(df, use_container_width=True, hide_index=True, key=key)
     else:
         st.dataframe(df, use_container_width=True, hide_index=True)
+    try:
+        csv = df.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            "Export CSV",
+            data=csv,
+            file_name=f"{key or 'hro_table'}.csv",
+            mime="text/csv",
+            key=scoped_key("export", key or "table"),
+        )
+    except Exception:
+        pass
 
 
 def empty_state(message="No data available"):

@@ -41,7 +41,8 @@ def _load_npz(path: Path):
 
 def find_best_weight(y_true, lstm_pred, arimax_pred):
     best = {"w": 0.5, "rmse": float("inf"), "pred": None}
-    for w in np.arange(0.0, 1.0001, 0.05):
+    # Keep both models genuinely represented in the Hybrid model.
+    for w in np.arange(0.2, 0.8001, 0.05):
         pred = w * lstm_pred + (1.0 - w) * arimax_pred
         rmse = float(mean_squared_error(y_true, pred) ** 0.5)
         if rmse < best["rmse"]:

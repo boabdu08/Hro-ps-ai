@@ -1,14 +1,15 @@
 {
   "model": "LSTM",
+  "training_source": "D:\\hro-ps-ai\\clean_data(AutoRecovered).csv",
   "val": {
-    "MAE": 7.951527118682861,
-    "RMSE": 11.853486500262868,
-    "MAPE": 8.863359908002773
+    "MAE": 5.781099796295166,
+    "RMSE": 7.390427826717074,
+    "MAPE": 5.7931514759873695
   },
   "test": {
-    "MAE": 3.5641119480133057,
-    "RMSE": 9.436512876510829,
-    "MAPE": 43.52231433940783
+    "MAE": 7.158200263977051,
+    "RMSE": 9.005370762810578,
+    "MAPE": 5.329422152181537
   },
   "feature_cols": [
     "patients",
@@ -18,7 +19,9 @@
     "week_number",
     "season",
     "is_weekend",
+    "is_holiday",
     "holiday",
+    "shift_period_code",
     "appointments_count",
     "or_bookings_count",
     "doctors_available",

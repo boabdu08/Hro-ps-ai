@@ -81,6 +81,16 @@ def _display_number(value, decimals: int = 2, signed: bool = False) -> str:
         return str(value)
 
 
+def _format_artifact_timestamp(value) -> str:
+    try:
+        ts = pd.to_datetime(value, errors="coerce")
+        if pd.isna(ts):
+            return str(value or "-")
+        return ts.strftime("%b %d, %Y at %I:%M %p")
+    except Exception:
+        return str(value or "-")
+
+
 def _round_display_dataframe(df: pd.DataFrame, *, metric_decimals: int = 2) -> pd.DataFrame:
     """Return a display-only rounded copy; never mutate raw artifacts/API data."""
 
@@ -519,8 +529,10 @@ def show_overview():
     with f2:
         kpi_card("72h average", fmt_patients(source_values["avg_72h"]), status="normal")
     with f3:
-        artifact_time = source_values["artifact_timestamp"] or "-"
-        kpi_card("Artifact timestamp", artifact_time, status="info")
+        artifact_time = _format_artifact_timestamp(source_values["artifact_timestamp"])
+        st.caption("Forecast artifact")
+        st.markdown(f"**Last updated:** {artifact_time}")
+        st.caption("Metadata only, not a patient-pressure KPI.")
     st.caption("Command Center KPIs are sourced from the canonical ForecastState used by Forecast, Digital Twin, Optimization, Evaluation, and API runtime.")
 
     # Decision banner
@@ -817,9 +829,9 @@ def show_forecast():
                 dept_flat_notes.append(note)
         if dept_flat_notes:
             st.info(" ".join(dept_flat_notes[:3]))
-        modern_table(_round_display_dataframe(department_df.head(200)), key=scoped_key("forecast", "ops72h_department_table"))
+        modern_table(_round_display_dataframe(plot_dept_df.head(200)), key=scoped_key("forecast", "ops72h_department_table"))
 
-    section_header("Model comparison", "Metrics from artifacts/metrics/ops72h_model_metrics.csv")
+    section_header("Model comparison", "Metrics from artifacts/metrics_72h/ops72h_model_metrics.csv")
     if metrics_df.empty:
         empty_state("Model metrics output is empty.")
     else:
@@ -828,8 +840,9 @@ def show_forecast():
         metric_cols = [c for c in ["MAE", "RMSE", "MAPE"] if c in metrics_df.columns]
         if "Model" in metrics_df.columns and metric_cols:
             primary_cols = [c for c in ["MAE", "RMSE"] if c in metrics_df.columns]
-            fig_metrics = px.bar(metrics_df, x="Model", y=primary_cols, barmode="group", title="Primary model comparison: MAE/RMSE")
+            fig_metrics = px.bar(metrics_df, x="Model", y=primary_cols, barmode="group", title="Primary model comparison: MAE/RMSE", text_auto=".2f")
             fig_metrics.update_layout(height=360, yaxis_title="Error in patient-count units")
+            fig_metrics.update_traces(textposition="outside")
             st.plotly_chart(fig_metrics, use_container_width=True, key=scoped_key("forecast", "ops72h_metrics_chart"))
             if "MAPE" in metrics_df.columns:
                 st.caption("MAPE is retained in the table as a secondary caution metric because it can look very high when actual patient counts are low or near zero.")
@@ -856,6 +869,7 @@ def show_optimization():
     allocations = optimization.get("department_allocations", [])
     recommendations = optimization.get("recommendations", [])
     actions = optimization.get("actions", [])
+    mip_allocation = optimization.get("mip_allocation", [])
 
     objective = summary.get("objective")
     top_dept = str(summary.get("top_priority_department", "-") or "-")
@@ -872,6 +886,10 @@ def show_optimization():
 
     st.caption(
         f"Optimization input is ForecastState.predicted_patients_next_hour = {fmt_patients(canonical_input)}; recommendations and allocations are generated from that same value."
+    )
+    st.info(
+        f"Optimizer method: {summary.get('optimization_method', 'constraint-aware optimization')}. "
+        "Objective prioritizes departments with higher shortage, appointment pressure, OR pressure, and forecast load."
     )
 
     left, right = st.columns([1.35, 1])
@@ -912,7 +930,7 @@ def show_optimization():
                         color="status" if "status" in alloc_df.columns else None,
                         title="",
                     )
-                    fig_priority.update_layout(height=360, yaxis_title="Priority score", xaxis_title="")
+                    fig_priority.update_layout(height=360, yaxis_title="Priority score", xaxis_title="Department")
                     st.plotly_chart(fig_priority, use_container_width=True, key=scoped_key("optimization", "pressure_ranking"))
 
             shortage_cols = ["department", "bed_shortage", "doctor_shortage", "nurse_shortage"]
@@ -926,9 +944,15 @@ def show_optimization():
                         y=["bed_shortage", "doctor_shortage", "nurse_shortage"],
                         barmode="group",
                         title="",
+                        labels={"value": "Shortage count", "department": "Department", "variable": "Shortage type"},
                     )
-                    fig_shortage.update_layout(height=380, xaxis_title="")
+                    fig_shortage.update_layout(height=380, xaxis_title="Department", legend_title_text="Shortage type")
                     st.plotly_chart(fig_shortage, use_container_width=True, key=scoped_key("optimization", "shortages"))
+
+            if mip_allocation:
+                with st.container(border=True):
+                    section_header("MIP allocation check", "Integer allocation plan from scipy.optimize.milp")
+                    modern_table(_round_display_dataframe(pd.DataFrame(mip_allocation)), key=scoped_key("optimization", "mip_allocation"))
 
     with right:
         with st.container(border=True):
@@ -1944,7 +1968,13 @@ def render_digital_twin(*, key_prefix: str = "twin"):
         line=dict(color="rgba(99,102,241,0.95)", width=3),
         fillcolor="rgba(99,102,241,0.16)",
     )
-    fig.update_layout(height=320, xaxis_title="Forecast time", yaxis_title="Predicted patients", margin=dict(l=10, r=10, t=10, b=10))
+    fig.update_layout(
+        height=320,
+        xaxis_title="Forecast time",
+        yaxis_title="Predicted patients",
+        yaxis=dict(rangemode="tozero"),
+        margin=dict(l=10, r=10, t=10, b=10),
+    )
     fig.update_traces(hovertemplate="%{x}<br>%{y:.0f} patients<extra></extra>")
     st.plotly_chart(fig, use_container_width=True, key=scoped_key(key_prefix, "forecast_curve"))
 
@@ -2085,8 +2115,15 @@ def render_department_status(*, key_prefix: str = "dept"):
     shortage_cols = ["bed_shortage", "doctor_shortage", "nurse_shortage"]
     if all(c in alloc_df.columns for c in shortage_cols):
         chart_df = alloc_df[["department"] + shortage_cols].copy()
-        fig = px.bar(chart_df, x="department", y=shortage_cols, barmode="group", title="")
-        fig.update_layout(height=380, xaxis_title="")
+        fig = px.bar(
+            chart_df,
+            x="department",
+            y=shortage_cols,
+            barmode="group",
+            title="",
+            labels={"department": "Department", "value": "Shortage count", "variable": "Shortage type"},
+        )
+        fig.update_layout(height=380, xaxis_title="Department", legend_title_text="Shortage type")
         st.plotly_chart(fig, use_container_width=True, key=scoped_key(key_prefix, "shortages_chart"))
 
 
@@ -2153,14 +2190,30 @@ def show_evaluation_panel():
         y=primary_cols,
         barmode="group",
         title="Primary forecast error metrics: MAE/RMSE",
+        text_auto=".2f",
     )
     fig_metrics.update_layout(height=420, yaxis_title="Error in patient-count units")
+    fig_metrics.update_traces(textposition="outside")
     st.plotly_chart(fig_metrics, use_container_width=True, key=scoped_key("evaluation", "metrics"))
 
     if "MAPE" in eval_df.columns:
-        fig_mape = px.bar(eval_df, x="Model", y="MAPE", title="Secondary caution metric: MAPE")
+        fig_mape = px.bar(eval_df, x="Model", y="MAPE", title="Secondary caution metric: MAPE", text_auto=".1f")
         fig_mape.update_layout(height=300, yaxis_title="MAPE (%)")
+        fig_mape.update_traces(textposition="outside")
         st.plotly_chart(fig_mape, use_container_width=True, key=scoped_key("evaluation", "mape_secondary"))
+        st.info(
+            "MAPE is a secondary caution metric only. It can appear high when actual patient counts are small. MAE and RMSE are the primary accuracy metrics for this demo."
+        )
+
+    with st.expander("Known limitations", expanded=False):
+        st.markdown(
+            """
+            - Metrics are calculated on realistic demo data, not real hospital operations.
+            - MAPE is sensitive to low actual patient counts; MAE and RMSE are primary.
+            - ARIMAX may emit convergence warnings during training and is validated before use.
+            - Hybrid weights are validation-set optimized and may change with new data.
+            """
+        )
 
     required_cols = ["time_index", "actual", "lstm_pred", "arimax_pred", "hybrid_pred"]
     if not detailed_df.empty and all(col in detailed_df.columns for col in required_cols):

@@ -34,7 +34,8 @@ from ops_live import is_time_in_shift
 # ---------------------------
 
 
-ARTIFACT_DIR = Path("artifacts").resolve()
+ROOT = Path(".").resolve()
+ARTIFACT_DIR = ROOT / "artifacts"
 DATA_DIR = ARTIFACT_DIR / "datasets"
 MODEL_DIR = ARTIFACT_DIR / "models_72h"
 METRICS_DIR = ARTIFACT_DIR / "metrics_72h"
@@ -88,7 +89,17 @@ def _add_standard_time_features(df: pd.DataFrame) -> pd.DataFrame:
     out["week_number"] = out["datetime"].dt.isocalendar().week.astype(int)
     out["is_weekend"] = (out["day_of_week"] >= 5).astype(int)
     out["season"] = ((out["month"] % 12) // 3).astype(int)
-    out["holiday"] = pd.to_numeric(out.get("holiday", 0), errors="coerce").fillna(0).astype(int)
+    out["is_holiday"] = pd.to_numeric(out.get("is_holiday", out.get("holiday", 0)), errors="coerce").fillna(0).astype(int)
+    out["holiday"] = out["is_holiday"]
+    if "shift_period" in out.columns:
+        shift_text = out["shift_period"].astype(str).str.lower()
+        out["shift_period_code"] = shift_text.map({"night": 0, "morning": 1, "evening": 2, "emergency backup": 3}).fillna(0).astype(int)
+    else:
+        out["shift_period_code"] = np.select(
+            [out["hour"].between(7, 14), out["hour"].between(15, 22)],
+            [1, 2],
+            default=0,
+        ).astype(int)
 
     for col in ["appointments_count", "or_bookings_count", "doctors_available", "nurses_available", "occupied_beds", "waiting_patients"]:
         if col not in out.columns:
@@ -110,10 +121,15 @@ def _build_ops_hourly_frame_from_exports() -> OpsHourlyFrame | None:
     existing DB-first runtime remains available as fallback.
     """
 
-    overall_path = UPDATED_EXPORT_DIR / "ops_hourly_overall.csv"
-    if not overall_path.exists():
-        overall_path = UPDATED_EXPORT_DIR / "patient_flow_hourly_updated.csv"
-    if not overall_path.exists():
+    main_candidates = [
+        ROOT / "clean_data(AutoRecovered).csv",
+        ROOT / "clean_data(AutoRecovered)(1).csv",
+        ROOT / "clean_data.csv",
+        UPDATED_EXPORT_DIR / "ops_hourly_overall.csv",
+        UPDATED_EXPORT_DIR / "patient_flow_hourly_updated.csv",
+    ]
+    overall_path = next((p for p in main_candidates if p.exists()), None)
+    if overall_path is None or not overall_path.exists():
         return None
 
     try:
@@ -124,6 +140,7 @@ def _build_ops_hourly_frame_from_exports() -> OpsHourlyFrame | None:
         return None
 
     overall = _add_standard_time_features(overall)
+    overall.attrs["source_path"] = str(overall_path)
     if len(overall) < 24 * 14:
         return None
 

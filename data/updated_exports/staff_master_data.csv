@@ -1,113 +1,149 @@
-staff_id,staff_name,role,department,specialty,qualification_level,available_for_shift,max_hours_per_week,notes
-DOC-008,Dr. Hassan Othman,doctor,ER,Emergency Medicine,Senior,True,48,derived from current staff schedule
-DOC-020,Dr. Huda Othman,doctor,ER,Emergency Medicine,Senior,True,48,derived from current staff schedule
-NUR-005,Nurse Ahmed Al-Sayed,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
-DOC-002,Dr. Sara Abdullah,doctor,ER,Emergency Medicine,Senior,True,48,derived from current staff schedule
-DOC-010,Dr. Rami Abdullah,doctor,ER,Emergency Medicine,Senior,True,48,derived from current staff schedule
-DOC-028,Dr. Omar Othman,doctor,ER,Emergency Medicine,Senior,True,48,derived from current staff schedule
-DOC-013,Dr. Amal Al-Sayed,doctor,ER,Emergency Medicine,Senior,True,48,derived from current staff schedule
-NUR-049,Nurse Ahmed Al-Sayed,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
-NUR-055,Nurse Layla Yasin,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
-NUR-050,Nurse Sara Abdullah,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
-NUR-051,Nurse Mona Yasin,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
-NUR-002,Nurse Huda Abdullah,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
-NUR-061,Nurse Amal Al-Sayed,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
-NUR-085,Nurse Zahra Al-Sayed,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
-NUR-087,Nurse Mariam Yasin,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
-NUR-007,Nurse Mona Yasin,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
-NUR-028,Nurse Sara Othman,nurse,ER,Emergency Medicine,Registered,True,48,derived from current staff schedule
-DOC-024,Dr. Sara Othman,doctor,ICU,Critical Care,Senior,True,48,derived from current staff schedule
-DOC-014,Dr. Karim Abdullah,doctor,ICU,Critical Care,Senior,True,48,derived from current staff schedule
-NUR-074,Nurse Youssef Abdullah,nurse,ICU,Critical Care,Registered,True,48,derived from current staff schedule
-NUR-017,Nurse Amal Al-Sayed,nurse,ICU,Critical Care,Registered,True,48,derived from current staff schedule
-NUR-080,Nurse Rami Othman,nurse,ICU,Critical Care,Registered,True,48,derived from current staff schedule
-NUR-067,Nurse Noor Yasin,nurse,ICU,Critical Care,Registered,True,48,derived from current staff schedule
-NUR-019,Nurse Zahra Yasin,nurse,ICU,Critical Care,Registered,True,48,derived from current staff schedule
-DOC-011,Dr. Leila Yasin,doctor,General Ward,General Ward,Senior,True,48,derived from current staff schedule
-NUR-010,Nurse Omar Abdullah,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-NUR-030,Nurse Youssef Abdullah,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-DOC-004,Dr. Youssef Othman,doctor,General Ward,General Ward,Senior,True,48,derived from current staff schedule
-NUR-056,Nurse Hassan Othman,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-NUR-004,Nurse Rana Othman,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-NUR-086,Nurse Samir Abdullah,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-NUR-036,Nurse Rami Othman,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-NUR-046,Nurse Huda Abdullah,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-NUR-040,Nurse Karim Othman,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-NUR-008,Nurse Youssef Othman,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-NUR-003,Nurse Tarek Yasin,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-DOC-003,Dr. Mona Yasin,doctor,General Ward,General Ward,Senior,True,48,derived from current staff schedule
-DOC-023,Dr. Ahmed Yasin,doctor,General Ward,General Ward,Senior,True,48,derived from current staff schedule
-NUR-077,Nurse Layla Al-Sayed,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-NUR-039,Nurse Amal Yasin,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-NUR-054,Nurse Omar Abdullah,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-NUR-069,Nurse Tarek Al-Sayed,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-NUR-072,Nurse Sara Othman,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-NUR-068,Nurse Huda Othman,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-NUR-013,Nurse Noura Al-Sayed,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-NUR-020,Nurse Samir Othman,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-NUR-065,Nurse Mariam Al-Sayed,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-NUR-031,Nurse Fatima Yasin,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-NUR-011,Nurse Layla Yasin,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-NUR-042,Nurse Samir Abdullah,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-NUR-029,Nurse Mona Al-Sayed,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-NUR-038,Nurse Ibrahim Abdullah,nurse,General Ward,General Ward,Registered,True,48,derived from current staff schedule
-DOC-009,Dr. Noura Al-Sayed,doctor,Cardiology,Cardiology,Senior,True,48,derived from current staff schedule
-DOC-012,Dr. Ibrahim Othman,doctor,Cardiology,Cardiology,Senior,True,48,derived from current staff schedule
-NUR-073,Nurse Mona Al-Sayed,nurse,Cardiology,Cardiology,Registered,True,48,derived from current staff schedule
-NUR-084,Nurse Karim Othman,nurse,Cardiology,Cardiology,Registered,True,48,derived from current staff schedule
-NUR-082,Nurse Ibrahim Abdullah,nurse,Cardiology,Cardiology,Registered,True,48,derived from current staff schedule
-NUR-058,Nurse Rami Abdullah,nurse,Cardiology,Cardiology,Registered,True,48,derived from current staff schedule
-NUR-048,Nurse Rana Othman,nurse,Cardiology,Cardiology,Registered,True,48,derived from current staff schedule
-NUR-064,Nurse Samir Othman,nurse,Cardiology,Cardiology,Registered,True,48,derived from current staff schedule
-DOC-040,Dr. Fadi Othman,doctor,Orthopedics,Orthopedics,Senior,True,48,derived from current staff schedule
-DOC-030,Dr. Hassan Abdullah,doctor,Orthopedics,Orthopedics,Senior,True,48,derived from current staff schedule
-DOC-018,Dr. Fadi Abdullah,doctor,Orthopedics,Orthopedics,Senior,True,48,derived from current staff schedule
-DOC-036,Dr. Karim Othman,doctor,Orthopedics,Orthopedics,Senior,True,48,derived from current staff schedule
-DOC-033,Dr. Leila Al-Sayed,doctor,Orthopedics,Orthopedics,Senior,True,48,derived from current staff schedule
-NUR-079,Nurse Noura Yasin,nurse,Orthopedics,Orthopedics,Registered,True,48,derived from current staff schedule
-NUR-041,Nurse Zahra Al-Sayed,nurse,Orthopedics,Orthopedics,Registered,True,48,derived from current staff schedule
-NUR-016,Nurse Ibrahim Othman,nurse,Orthopedics,Orthopedics,Registered,True,48,derived from current staff schedule
-NUR-052,Nurse Youssef Othman,nurse,Orthopedics,Orthopedics,Registered,True,48,derived from current staff schedule
-NUR-023,Nurse Noor Yasin,nurse,Orthopedics,Orthopedics,Registered,True,48,derived from current staff schedule
-NUR-043,Nurse Mariam Yasin,nurse,Orthopedics,Orthopedics,Registered,True,48,derived from current staff schedule
-DOC-038,Dr. Samir Abdullah,doctor,Pediatrics,Pediatrics,Senior,True,48,derived from current staff schedule
-NUR-018,Nurse Karim Abdullah,nurse,Pediatrics,Pediatrics,Registered,True,48,derived from current staff schedule
-DOC-022,Dr. Rana Abdullah,doctor,Pediatrics,Pediatrics,Senior,True,48,derived from current staff schedule
-NUR-024,Nurse Huda Othman,nurse,Pediatrics,Pediatrics,Registered,True,48,derived from current staff schedule
-NUR-035,Nurse Noura Yasin,nurse,Pediatrics,Pediatrics,Registered,True,48,derived from current staff schedule
-NUR-015,Nurse Leila Yasin,nurse,Pediatrics,Pediatrics,Registered,True,48,derived from current staff schedule
-DOC-001,Dr. Ahmed Al-Sayed,doctor,Pediatrics,Pediatrics,Senior,True,48,derived from current staff schedule
-DOC-006,Dr. Omar Abdullah,doctor,Pediatrics,Pediatrics,Senior,True,48,derived from current staff schedule
-NUR-009,Nurse Fatima Al-Sayed,nurse,Pediatrics,Pediatrics,Registered,True,48,derived from current staff schedule
-NUR-022,Nurse Fadi Abdullah,nurse,Pediatrics,Pediatrics,Registered,True,48,derived from current staff schedule
-NUR-001,Nurse Noor Al-Sayed,nurse,Pediatrics,Pediatrics,Registered,True,48,derived from current staff schedule
-NUR-062,Nurse Karim Abdullah,nurse,Pediatrics,Pediatrics,Registered,True,48,derived from current staff schedule
-NUR-063,Nurse Zahra Yasin,nurse,Pediatrics,Pediatrics,Registered,True,48,derived from current staff schedule
-NUR-078,Nurse Hassan Abdullah,nurse,Pediatrics,Pediatrics,Registered,True,48,derived from current staff schedule
-DOC-039,Dr. Mariam Yasin,doctor,Surgery,Surgery,Senior,True,48,derived from current staff schedule
-DOC-037,Dr. Zahra Al-Sayed,doctor,Surgery,Surgery,Senior,True,48,derived from current staff schedule
-DOC-007,Dr. Layla Yasin,doctor,Surgery,Surgery,Senior,True,48,derived from current staff schedule
-DOC-031,Dr. Noura Yasin,doctor,Surgery,Surgery,Senior,True,48,derived from current staff schedule
-DOC-032,Dr. Rami Othman,doctor,Surgery,Surgery,Senior,True,48,derived from current staff schedule
-DOC-005,Dr. Fatima Al-Sayed,doctor,Surgery,Surgery,Senior,True,48,derived from current staff schedule
-NUR-081,Nurse Leila Al-Sayed,nurse,Surgery,Surgery,Registered,True,48,derived from current staff schedule
-NUR-053,Nurse Fatima Al-Sayed,nurse,Surgery,Surgery,Registered,True,48,derived from current staff schedule
-NUR-083,Nurse Amal Yasin,nurse,Surgery,Surgery,Registered,True,48,derived from current staff schedule
-NUR-026,Nurse Rana Abdullah,nurse,Surgery,Surgery,Registered,True,48,derived from current staff schedule
-NUR-090,Nurse Huda Abdullah,nurse,Radiology,Radiology,Registered,True,48,derived from current staff schedule
-NUR-076,Nurse Omar Othman,nurse,Laboratory,Laboratory,Registered,True,48,derived from current staff schedule
-NUR-089,Nurse Noor Al-Sayed,nurse,Laboratory,Laboratory,Registered,True,48,derived from current staff schedule
-NUR-033,Nurse Layla Al-Sayed,nurse,Laboratory,Laboratory,Registered,True,48,derived from current staff schedule
-NUR-060,Nurse Ibrahim Othman,nurse,Laboratory,Laboratory,Registered,True,48,derived from current staff schedule
-NUR-025,Nurse Tarek Al-Sayed,nurse,Laboratory,Laboratory,Registered,True,48,derived from current staff schedule
-NUR-044,Nurse Fadi Othman,nurse,Pharmacy,Pharmacy,Registered,True,48,derived from current staff schedule
-NUR-075,Nurse Fatima Yasin,nurse,Pharmacy,Pharmacy,Registered,True,48,derived from current staff schedule
-NUR-037,Nurse Leila Al-Sayed,nurse,Pharmacy,Pharmacy,Registered,True,48,derived from current staff schedule
-NUR-047,Nurse Tarek Yasin,nurse,Outpatient Clinics,Outpatient Clinics,Registered,True,48,derived from current staff schedule
-NUR-021,Nurse Mariam Al-Sayed,nurse,Outpatient Clinics,Outpatient Clinics,Registered,True,48,derived from current staff schedule
-DOC-034,Dr. Ibrahim Abdullah,doctor,Outpatient Clinics,Outpatient Clinics,Senior,True,48,derived from current staff schedule
-DOC-025,Dr. Mona Al-Sayed,doctor,Outpatient Clinics,Outpatient Clinics,Senior,True,48,derived from current staff schedule
-NUR-070,Nurse Rana Abdullah,nurse,Outpatient Clinics,Outpatient Clinics,Registered,True,48,derived from current staff schedule
-NUR-014,Nurse Rami Abdullah,nurse,Outpatient Clinics,Outpatient Clinics,Registered,True,48,derived from current staff schedule
-NUR-088,Nurse Fadi Othman,nurse,Outpatient Clinics,Outpatient Clinics,Registered,True,48,derived from current staff schedule
-NUR-032,Nurse Omar Othman,nurse,Outpatient Clinics,Outpatient Clinics,Registered,True,48,derived from current staff schedule
+staff_id,staff_name,role,department,specialty,qualification_level,years_experience,overtime_hours,available_for_shift,max_hours_per_week,notes
+STF-0001,Dr. Karim Mahmoud,doctor,ER,ER,Consultant,11,6,Yes,48,Synthetic demo staff
+STF-0002,Dr. Sara Hassan,doctor,ER,ER,Senior,7,1,Yes,48,Synthetic demo staff
+STF-0003,Dr. Noor Mahmoud,doctor,ER,ER,Consultant,9,11,Yes,48,Synthetic demo staff
+STF-0004,Dr. Mostafa Said,doctor,ER,ER,Junior,2,15,Yes,48,Synthetic demo staff
+STF-0005,Dr. Noor Samir,doctor,ER,ER,Junior,19,11,Yes,48,Synthetic demo staff
+STF-0006,Dr. Hassan Abdullah,doctor,ER,ER,Junior,4,11,Yes,48,Synthetic demo staff
+STF-0007,Dr. Ahmed Mahmoud,doctor,ER,ER,Consultant,16,16,Yes,48,Synthetic demo staff
+STF-0008,Dr. Hassan Fouad,doctor,ER,ER,Junior,9,15,Yes,48,Synthetic demo staff
+STF-0009,Dr. Ahmed Ibrahim,doctor,ER,ER,Senior,3,3,Yes,48,Synthetic demo staff
+STF-0010,Dr. Hassan Said,doctor,ER,ER,Junior,22,12,Yes,48,Synthetic demo staff
+STF-0011,Nurse Hassan Yasin,nurse,ER,Clinical Nursing,RN,16,7,Yes,48,Synthetic demo staff
+STF-0012,Nurse Mostafa Fouad,nurse,ER,Clinical Nursing,Charge Nurse,6,17,Yes,48,Synthetic demo staff
+STF-0013,Nurse Omar Ali,nurse,ER,Clinical Nursing,Charge Nurse,2,2,Yes,48,Synthetic demo staff
+STF-0014,Nurse Noor Fouad,nurse,ER,Clinical Nursing,Senior RN,19,10,Yes,48,Synthetic demo staff
+STF-0015,Nurse Karim Ibrahim,nurse,ER,Clinical Nursing,Senior RN,2,1,Yes,48,Synthetic demo staff
+STF-0016,Nurse Mona Mahmoud,nurse,ER,Clinical Nursing,Senior RN,21,0,Yes,48,Synthetic demo staff
+STF-0017,Nurse Karim Nasser,nurse,ER,Clinical Nursing,RN,19,7,Yes,48,Synthetic demo staff
+STF-0018,Nurse Youssef Hassan,nurse,ER,Clinical Nursing,Charge Nurse,2,4,Yes,48,Synthetic demo staff
+STF-0019,Nurse Noor Mahmoud,nurse,ER,Clinical Nursing,RN,7,13,Yes,48,Synthetic demo staff
+STF-0020,Nurse Fatima Ali,nurse,ER,Clinical Nursing,Charge Nurse,12,10,Yes,48,Synthetic demo staff
+STF-0021,Nurse Fatima Mahmoud,nurse,ER,Clinical Nursing,Senior RN,15,14,Yes,48,Synthetic demo staff
+STF-0022,Nurse Karim Samir,nurse,ER,Clinical Nursing,Charge Nurse,18,8,Yes,48,Synthetic demo staff
+STF-0023,Nurse Ahmed Ali,nurse,ER,Clinical Nursing,Senior RN,17,7,Yes,48,Synthetic demo staff
+STF-0024,Nurse Fatima Said,nurse,ER,Clinical Nursing,Charge Nurse,5,10,Yes,48,Synthetic demo staff
+STF-0025,Nurse Hassan Fouad,nurse,ER,Clinical Nursing,Senior RN,7,4,Yes,48,Synthetic demo staff
+STF-0026,Nurse Omar Abdullah,nurse,ER,Clinical Nursing,RN,18,12,Yes,48,Synthetic demo staff
+STF-0027,Nurse Mona Said,nurse,ER,Clinical Nursing,RN,18,3,Yes,48,Synthetic demo staff
+STF-0028,Nurse Sara Yasin,nurse,ER,Clinical Nursing,RN,13,11,Yes,48,Synthetic demo staff
+STF-0029,Nurse Noor Ali,nurse,ER,Clinical Nursing,Charge Nurse,13,3,Yes,48,Synthetic demo staff
+STF-0030,Nurse Mona Abdullah,nurse,ER,Clinical Nursing,Charge Nurse,6,16,Yes,48,Synthetic demo staff
+STF-0031,Nurse Sara Mahmoud,nurse,ER,Clinical Nursing,Senior RN,7,12,Yes,48,Synthetic demo staff
+STF-0032,Nurse Mona Samir,nurse,ER,Clinical Nursing,RN,16,0,Yes,48,Synthetic demo staff
+STF-0033,Dr. Hassan Ali,doctor,General Ward,General Ward,Consultant,19,14,Yes,48,Synthetic demo staff
+STF-0034,Dr. Mona Fouad,doctor,General Ward,General Ward,Consultant,2,14,Yes,48,Synthetic demo staff
+STF-0035,Dr. Hassan Ibrahim,doctor,General Ward,General Ward,Junior,2,3,Yes,48,Synthetic demo staff
+STF-0036,Dr. Nadine Abdullah,doctor,General Ward,General Ward,Junior,15,1,Yes,48,Synthetic demo staff
+STF-0037,Dr. Ahmed Hassan,doctor,General Ward,General Ward,Junior,15,14,Yes,48,Synthetic demo staff
+STF-0038,Dr. Karim Abdullah,doctor,General Ward,General Ward,Junior,23,1,Yes,48,Synthetic demo staff
+STF-0039,Dr. Sara Nasser,doctor,General Ward,General Ward,Senior,21,10,Yes,48,Synthetic demo staff
+STF-0040,Dr. Youssef Yasin,doctor,General Ward,General Ward,Junior,19,9,Yes,48,Synthetic demo staff
+STF-0041,Dr. Ahmed Mahmoud,doctor,General Ward,General Ward,Senior,14,4,Yes,48,Synthetic demo staff
+STF-0042,Dr. Noor Abdullah,doctor,General Ward,General Ward,Consultant,3,12,Yes,48,Synthetic demo staff
+STF-0043,Dr. Noor Samir,doctor,General Ward,General Ward,Junior,23,9,Yes,48,Synthetic demo staff
+STF-0044,Dr. Mona Ibrahim,doctor,General Ward,General Ward,Senior,13,15,Yes,48,Synthetic demo staff
+STF-0045,Nurse Mona Ibrahim,nurse,General Ward,Clinical Nursing,Senior RN,11,12,Yes,48,Synthetic demo staff
+STF-0046,Nurse Mona Fouad,nurse,General Ward,Clinical Nursing,RN,20,12,Yes,48,Synthetic demo staff
+STF-0047,Nurse Nadine Fouad,nurse,General Ward,Clinical Nursing,RN,13,12,Yes,48,Synthetic demo staff
+STF-0048,Nurse Laila Samir,nurse,General Ward,Clinical Nursing,Charge Nurse,7,5,Yes,48,Synthetic demo staff
+STF-0049,Nurse Sara Fouad,nurse,General Ward,Clinical Nursing,Senior RN,4,9,Yes,48,Synthetic demo staff
+STF-0050,Nurse Omar Ali,nurse,General Ward,Clinical Nursing,Charge Nurse,11,4,Yes,48,Synthetic demo staff
+STF-0051,Nurse Hassan Ali,nurse,General Ward,Clinical Nursing,Senior RN,16,7,Yes,48,Synthetic demo staff
+STF-0052,Nurse Karim Samir,nurse,General Ward,Clinical Nursing,Senior RN,22,1,Yes,48,Synthetic demo staff
+STF-0053,Nurse Youssef Hassan,nurse,General Ward,Clinical Nursing,Charge Nurse,8,13,Yes,48,Synthetic demo staff
+STF-0054,Nurse Omar Hassan,nurse,General Ward,Clinical Nursing,RN,20,13,Yes,48,Synthetic demo staff
+STF-0055,Nurse Youssef Abdullah,nurse,General Ward,Clinical Nursing,Charge Nurse,9,13,Yes,48,Synthetic demo staff
+STF-0056,Nurse Karim Nasser,nurse,General Ward,Clinical Nursing,RN,8,1,Yes,48,Synthetic demo staff
+STF-0057,Nurse Karim Fouad,nurse,General Ward,Clinical Nursing,Senior RN,20,17,Yes,48,Synthetic demo staff
+STF-0058,Nurse Noor Nasser,nurse,General Ward,Clinical Nursing,RN,15,15,Yes,48,Synthetic demo staff
+STF-0059,Nurse Karim Fouad,nurse,General Ward,Clinical Nursing,RN,22,9,Yes,48,Synthetic demo staff
+STF-0060,Nurse Youssef Ali,nurse,General Ward,Clinical Nursing,Senior RN,17,9,Yes,48,Synthetic demo staff
+STF-0061,Nurse Karim Samir,nurse,General Ward,Clinical Nursing,RN,2,5,Yes,48,Synthetic demo staff
+STF-0062,Nurse Nadine Yasin,nurse,General Ward,Clinical Nursing,Charge Nurse,4,13,Yes,48,Synthetic demo staff
+STF-0063,Nurse Laila Fouad,nurse,General Ward,Clinical Nursing,RN,2,10,Yes,48,Synthetic demo staff
+STF-0064,Nurse Mona Fouad,nurse,General Ward,Clinical Nursing,Senior RN,22,4,Yes,48,Synthetic demo staff
+STF-0065,Nurse Karim Samir,nurse,General Ward,Clinical Nursing,Senior RN,5,8,Yes,48,Synthetic demo staff
+STF-0066,Nurse Youssef Said,nurse,General Ward,Clinical Nursing,Senior RN,15,11,Yes,48,Synthetic demo staff
+STF-0067,Nurse Ahmed Mahmoud,nurse,General Ward,Clinical Nursing,RN,15,8,Yes,48,Synthetic demo staff
+STF-0068,Nurse Youssef Samir,nurse,General Ward,Clinical Nursing,RN,4,17,Yes,48,Synthetic demo staff
+STF-0069,Nurse Mostafa Fouad,nurse,General Ward,Clinical Nursing,Senior RN,9,11,Yes,48,Synthetic demo staff
+STF-0070,Nurse Fatima Mahmoud,nurse,General Ward,Clinical Nursing,Senior RN,8,8,Yes,48,Synthetic demo staff
+STF-0071,Nurse Karim Abdullah,nurse,General Ward,Clinical Nursing,Charge Nurse,19,17,Yes,48,Synthetic demo staff
+STF-0072,Nurse Mostafa Ali,nurse,General Ward,Clinical Nursing,Charge Nurse,14,5,Yes,48,Synthetic demo staff
+STF-0073,Nurse Mona Nasser,nurse,General Ward,Clinical Nursing,Charge Nurse,14,16,Yes,48,Synthetic demo staff
+STF-0074,Nurse Fatima Ali,nurse,General Ward,Clinical Nursing,RN,4,14,Yes,48,Synthetic demo staff
+STF-0075,Dr. Karim Said,doctor,ICU,ICU,Junior,3,3,Yes,48,Synthetic demo staff
+STF-0076,Dr. Sara Yasin,doctor,ICU,ICU,Junior,2,4,Yes,48,Synthetic demo staff
+STF-0077,Dr. Fatima Samir,doctor,ICU,ICU,Consultant,13,12,Yes,48,Synthetic demo staff
+STF-0078,Dr. Ahmed Nasser,doctor,ICU,ICU,Senior,6,7,Yes,48,Synthetic demo staff
+STF-0079,Dr. Mostafa Nasser,doctor,ICU,ICU,Senior,20,10,Yes,48,Synthetic demo staff
+STF-0080,Dr. Youssef Abdullah,doctor,ICU,ICU,Junior,18,13,Yes,48,Synthetic demo staff
+STF-0081,Dr. Laila Abdullah,doctor,ICU,ICU,Junior,9,16,Yes,48,Synthetic demo staff
+STF-0082,Dr. Nadine Yasin,doctor,ICU,ICU,Senior,7,15,Yes,48,Synthetic demo staff
+STF-0083,Nurse Karim Nasser,nurse,ICU,Clinical Nursing,RN,13,8,Yes,48,Synthetic demo staff
+STF-0084,Nurse Mostafa Samir,nurse,ICU,Clinical Nursing,Charge Nurse,19,14,Yes,48,Synthetic demo staff
+STF-0085,Nurse Hassan Ibrahim,nurse,ICU,Clinical Nursing,Charge Nurse,2,9,Yes,48,Synthetic demo staff
+STF-0086,Nurse Ahmed Samir,nurse,ICU,Clinical Nursing,Charge Nurse,4,0,Yes,48,Synthetic demo staff
+STF-0087,Nurse Ahmed Abdullah,nurse,ICU,Clinical Nursing,RN,16,13,Yes,48,Synthetic demo staff
+STF-0088,Nurse Nadine Nasser,nurse,ICU,Clinical Nursing,Senior RN,12,10,Yes,48,Synthetic demo staff
+STF-0089,Nurse Youssef Hassan,nurse,ICU,Clinical Nursing,RN,7,3,Yes,48,Synthetic demo staff
+STF-0090,Nurse Hassan Samir,nurse,ICU,Clinical Nursing,Senior RN,23,0,Yes,48,Synthetic demo staff
+STF-0091,Nurse Ahmed Ibrahim,nurse,ICU,Clinical Nursing,RN,16,17,Yes,48,Synthetic demo staff
+STF-0092,Nurse Fatima Fouad,nurse,ICU,Clinical Nursing,Charge Nurse,2,2,Yes,48,Synthetic demo staff
+STF-0093,Nurse Omar Hassan,nurse,ICU,Clinical Nursing,RN,21,12,Yes,48,Synthetic demo staff
+STF-0094,Nurse Fatima Ibrahim,nurse,ICU,Clinical Nursing,RN,17,12,Yes,48,Synthetic demo staff
+STF-0095,Nurse Youssef Ali,nurse,ICU,Clinical Nursing,Senior RN,7,15,Yes,48,Synthetic demo staff
+STF-0096,Nurse Laila Ali,nurse,ICU,Clinical Nursing,RN,12,4,Yes,48,Synthetic demo staff
+STF-0097,Nurse Mona Hassan,nurse,ICU,Clinical Nursing,Senior RN,13,4,Yes,48,Synthetic demo staff
+STF-0098,Nurse Noor Said,nurse,ICU,Clinical Nursing,Senior RN,22,8,Yes,48,Synthetic demo staff
+STF-0099,Nurse Sara Hassan,nurse,ICU,Clinical Nursing,Senior RN,17,11,Yes,48,Synthetic demo staff
+STF-0100,Nurse Laila Nasser,nurse,ICU,Clinical Nursing,Senior RN,9,15,Yes,48,Synthetic demo staff
+STF-0101,Nurse Sara Yasin,nurse,ICU,Clinical Nursing,Charge Nurse,4,7,Yes,48,Synthetic demo staff
+STF-0102,Nurse Sara Said,nurse,ICU,Clinical Nursing,RN,10,9,Yes,48,Synthetic demo staff
+STF-0103,Nurse Mona Samir,nurse,ICU,Clinical Nursing,RN,20,11,Yes,48,Synthetic demo staff
+STF-0104,Nurse Omar Fouad,nurse,ICU,Clinical Nursing,Senior RN,9,1,Yes,48,Synthetic demo staff
+STF-0105,Dr. Omar Samir,doctor,Surgery,Surgery,Junior,18,9,Yes,48,Synthetic demo staff
+STF-0106,Dr. Laila Mahmoud,doctor,Surgery,Surgery,Consultant,16,16,Yes,48,Synthetic demo staff
+STF-0107,Dr. Karim Mahmoud,doctor,Surgery,Surgery,Consultant,2,3,Yes,48,Synthetic demo staff
+STF-0108,Dr. Fatima Abdullah,doctor,Surgery,Surgery,Junior,6,10,Yes,48,Synthetic demo staff
+STF-0109,Dr. Karim Abdullah,doctor,Surgery,Surgery,Senior,22,3,Yes,48,Synthetic demo staff
+STF-0110,Dr. Noor Said,doctor,Surgery,Surgery,Consultant,19,12,Yes,48,Synthetic demo staff
+STF-0111,Dr. Mona Yasin,doctor,Surgery,Surgery,Consultant,12,1,Yes,48,Synthetic demo staff
+STF-0112,Dr. Fatima Samir,doctor,Surgery,Surgery,Consultant,20,8,Yes,48,Synthetic demo staff
+STF-0113,Dr. Youssef Abdullah,doctor,Surgery,Surgery,Junior,8,9,Yes,48,Synthetic demo staff
+STF-0114,Dr. Fatima Abdullah,doctor,Surgery,Surgery,Senior,2,9,Yes,48,Synthetic demo staff
+STF-0115,Nurse Ahmed Ibrahim,nurse,Surgery,Clinical Nursing,Charge Nurse,8,13,Yes,48,Synthetic demo staff
+STF-0116,Nurse Youssef Ali,nurse,Surgery,Clinical Nursing,RN,15,2,Yes,48,Synthetic demo staff
+STF-0117,Nurse Noor Mahmoud,nurse,Surgery,Clinical Nursing,Charge Nurse,20,6,Yes,48,Synthetic demo staff
+STF-0118,Nurse Hassan Samir,nurse,Surgery,Clinical Nursing,Charge Nurse,21,8,Yes,48,Synthetic demo staff
+STF-0119,Nurse Karim Hassan,nurse,Surgery,Clinical Nursing,Charge Nurse,14,12,Yes,48,Synthetic demo staff
+STF-0120,Nurse Ahmed Nasser,nurse,Surgery,Clinical Nursing,Senior RN,7,12,Yes,48,Synthetic demo staff
+STF-0121,Nurse Ahmed Hassan,nurse,Surgery,Clinical Nursing,Charge Nurse,20,15,Yes,48,Synthetic demo staff
+STF-0122,Nurse Omar Samir,nurse,Surgery,Clinical Nursing,Senior RN,16,3,Yes,48,Synthetic demo staff
+STF-0123,Nurse Ahmed Nasser,nurse,Surgery,Clinical Nursing,RN,15,14,Yes,48,Synthetic demo staff
+STF-0124,Nurse Fatima Said,nurse,Surgery,Clinical Nursing,Charge Nurse,23,15,Yes,48,Synthetic demo staff
+STF-0125,Nurse Fatima Mahmoud,nurse,Surgery,Clinical Nursing,Senior RN,19,0,Yes,48,Synthetic demo staff
+STF-0126,Nurse Noor Fouad,nurse,Surgery,Clinical Nursing,RN,3,14,Yes,48,Synthetic demo staff
+STF-0127,Nurse Laila Fouad,nurse,Surgery,Clinical Nursing,Senior RN,6,15,Yes,48,Synthetic demo staff
+STF-0128,Nurse Fatima Fouad,nurse,Surgery,Clinical Nursing,Charge Nurse,12,8,Yes,48,Synthetic demo staff
+STF-0129,Nurse Omar Ali,nurse,Surgery,Clinical Nursing,Charge Nurse,23,12,Yes,48,Synthetic demo staff
+STF-0130,Nurse Fatima Hassan,nurse,Surgery,Clinical Nursing,Senior RN,20,17,Yes,48,Synthetic demo staff
+STF-0131,Nurse Omar Mahmoud,nurse,Surgery,Clinical Nursing,Senior RN,2,8,Yes,48,Synthetic demo staff
+STF-0132,Nurse Mona Yasin,nurse,Surgery,Clinical Nursing,RN,13,0,Yes,48,Synthetic demo staff
+STF-0133,Dr. Fatima Ali,doctor,Radiology,Radiology,Junior,15,17,Yes,48,Synthetic demo staff
+STF-0134,Dr. Laila Fouad,doctor,Radiology,Radiology,Junior,16,12,Yes,48,Synthetic demo staff
+STF-0135,Dr. Sara Hassan,doctor,Radiology,Radiology,Junior,6,14,Yes,48,Synthetic demo staff
+STF-0136,Dr. Fatima Samir,doctor,Radiology,Radiology,Consultant,14,17,Yes,48,Synthetic demo staff
+STF-0137,Dr. Fatima Mahmoud,doctor,Radiology,Radiology,Senior,5,6,Yes,48,Synthetic demo staff
+STF-0138,Dr. Karim Nasser,doctor,Radiology,Radiology,Senior,10,12,Yes,48,Synthetic demo staff
+STF-0139,Nurse Mostafa Nasser,nurse,Radiology,Clinical Nursing,Charge Nurse,4,6,Yes,48,Synthetic demo staff
+STF-0140,Nurse Laila Fouad,nurse,Radiology,Clinical Nursing,RN,10,15,Yes,48,Synthetic demo staff
+STF-0141,Nurse Laila Ibrahim,nurse,Radiology,Clinical Nursing,Senior RN,23,9,Yes,48,Synthetic demo staff
+STF-0142,Nurse Youssef Ibrahim,nurse,Radiology,Clinical Nursing,Charge Nurse,21,11,Yes,48,Synthetic demo staff
+STF-0143,Nurse Mostafa Abdullah,nurse,Radiology,Clinical Nursing,RN,21,1,Yes,48,Synthetic demo staff
+STF-0144,Nurse Laila Abdullah,nurse,Radiology,Clinical Nursing,RN,7,0,Yes,48,Synthetic demo staff
+STF-0145,Nurse Fatima Yasin,nurse,Radiology,Clinical Nursing,RN,23,1,Yes,48,Synthetic demo staff
+STF-0146,Nurse Hassan Ibrahim,nurse,Radiology,Clinical Nursing,Senior RN,23,0,Yes,48,Synthetic demo staff
+STF-0147,Nurse Laila Nasser,nurse,Radiology,Clinical Nursing,Charge Nurse,14,1,Yes,48,Synthetic demo staff
+STF-0148,Nurse Noor Nasser,nurse,Radiology,Clinical Nursing,Charge Nurse,22,3,Yes,48,Synthetic demo staff

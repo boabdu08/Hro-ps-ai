@@ -1,21 +1,16 @@
 {
   "forecast_horizon_hours": 72,
-  "generated_at": "2026-05-09T23:30:00.064450",
+  "generated_at": "2026-05-10T10:11:05.448950",
   "overall_forecast_path": "artifacts\\forecast_outputs\\ops72h_overall_forecast.csv",
   "department_forecast_path": "artifacts\\forecast_outputs\\ops72h_department_forecast.csv",
   "metrics_csv_path": "artifacts\\metrics_72h\\ops72h_model_metrics.csv",
-  "best_model": "ARIMAX",
+  "best_model": "Hybrid",
   "weights": {
-    "lstm": 1.0,
-    "arimax": 0.0,
-    "lstm_valid": false,
-    "arimax_valid": false,
-    "fallback_reasons": [
-      "LSTM output contains negative values",
-      "LSTM replaced by seasonal-naive fallback",
-      "ARIMAX output is nearly flat",
-      "ARIMAX replaced by seasonal-naive fallback"
-    ]
+    "lstm": 0.8,
+    "arimax": 0.2,
+    "lstm_valid": true,
+    "arimax_valid": true,
+    "fallback_reasons": []
   },
   "hybrid_config": {
     "lstm_weight": 0.8,
@@ -23,36 +18,36 @@
     "selection_metric": "validation_rmse",
     "validation": {
       "LSTM": {
-        "MAE": 8.55676080862681,
-        "RMSE": 12.111689059917092,
-        "MAPE": 10.789556448841676
+        "MAE": 5.781099848300448,
+        "RMSE": 7.390427933121553,
+        "MAPE": 5.7931514759873695
       },
       "ARIMAX": {
-        "MAE": 20.409525153922072,
-        "RMSE": 25.114722022714663,
-        "MAPE": 30.243876600066667
+        "MAE": 13.512726204434465,
+        "RMSE": 16.868783460653702,
+        "MAPE": 15.335099632511225
       },
       "Hybrid": {
-        "MAE": 7.6893145852598535,
-        "RMSE": 11.092105353794233,
-        "MAPE": 9.76281528935731
+        "MAE": 5.833722724286615,
+        "RMSE": 7.463762215678625,
+        "MAPE": 6.205741481244075
       }
     },
     "test": {
       "LSTM": {
-        "MAE": 3.0435741244587633,
-        "RMSE": 12.895986384449415,
-        "MAPE": 286.9736624984058
+        "MAE": 7.158200502761864,
+        "RMSE": 9.005370982947124,
+        "MAPE": 5.329422152181537
       },
       "ARIMAX": {
-        "MAE": 4.2318111413904225,
-        "RMSE": 8.142294086890937,
-        "MAPE": 401.4761668530459
+        "MAE": 7.762343778045224,
+        "RMSE": 9.271652946334816,
+        "MAPE": 5.900264396489816
       },
       "Hybrid": {
-        "MAE": 2.3033413490778365,
-        "RMSE": 10.597534044325847,
-        "MAPE": 212.80666296409723
+        "MAE": 6.622505287735874,
+        "RMSE": 8.148526851556577,
+        "MAPE": 4.912072184718581
       }
     },
     "alignment_note": "Aligned on shortest tail overlap between model outputs."

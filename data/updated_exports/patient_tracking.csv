@@ -1,5 +1,121 @@
 patient_id,patient_name_or_anonymized_id,national_id_or_card_id_optional,entry_datetime,entry_method,department,assigned_bed_id,admission_status,length_of_stay_hours,discharge_datetime,payment_status,current_status,notes
-P-ER-001,ER-001,,2026-05-05 21:37:58,emergency,ER,ER-B01,admitted,2.0,,pending,inside_hospital,
-P-ER-002,ER-002,,2026-05-05 21:37:58,walk-in,ER,,waiting,0.5,,pending,inside_hospital,
-P-ICU-001,ICU-001,,2026-05-05 21:37:58,referral,ICU,ICU-B03,admitted,12.0,,unpaid,inside_hospital,
-P-GW-001,GW-001,,2026-05-05 21:37:58,appointment,General Ward,GW-B12,admitted,24.0,,pending,inside_hospital,
+PT-0001,ANON-0001,,2025-12-31 08:00:00,Scheduled,ICU,IC-022,admitted,58,2026-01-02 18:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0002,ANON-0002,,2025-12-31 14:00:00,ER,General Ward,GE-021,admitted,69,,self-pay,inside_hospital,Synthetic demo patient tracking
+PT-0003,ANON-0003,,2025-12-31 17:00:00,Referral,ER,ER-025,observation,52,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0004,ANON-0004,,2025-12-31 22:00:00,Referral,ER,ER-040,admitted,24,2026-01-01 22:00:00,pending,discharged,Synthetic demo patient tracking
+PT-0005,ANON-0005,,2025-12-31 22:00:00,Transfer,ER,ER-046,observation,82,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0006,ANON-0006,,2025-12-31 11:00:00,ER,ICU,IC-027,waiting,33,2026-01-01 20:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0007,ANON-0007,,2025-12-31 17:00:00,ER,ER,ER-021,admitted,84,2026-01-04 05:00:00,pending,discharged,Synthetic demo patient tracking
+PT-0008,ANON-0008,,2025-12-31 11:00:00,Referral,ER,ER-019,observation,40,2026-01-02 03:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0009,ANON-0009,,2025-12-31 15:00:00,Referral,ER,ER-018,admitted,4,2025-12-31 19:00:00,self-pay,discharged,Synthetic demo patient tracking
+PT-0010,ANON-0010,,2025-12-31 09:00:00,Scheduled,ICU,IC-007,admitted,58,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0011,ANON-0011,,2025-12-31 16:00:00,ER,ER,,waiting,23,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0012,ANON-0012,,2025-12-31 09:00:00,Referral,General Ward,GE-084,observation,58,2026-01-02 19:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0013,ANON-0013,,2025-12-31 17:00:00,Scheduled,General Ward,GE-059,waiting,81,2026-01-04 02:00:00,pending,discharged,Synthetic demo patient tracking
+PT-0014,ANON-0014,,2025-12-31 15:00:00,ER,ICU,,admitted,46,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0015,ANON-0015,,2025-12-31 14:00:00,Scheduled,ICU,IC-021,admitted,4,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0016,ANON-0016,,2025-12-31 10:00:00,ER,ICU,IC-004,admitted,69,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0017,ANON-0017,,2025-12-31 14:00:00,ER,ER,ER-025,observation,32,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0018,ANON-0018,,2025-12-31 15:00:00,ER,ICU,IC-014,waiting,20,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0019,ANON-0019,,2025-12-31 12:00:00,Referral,General Ward,GE-083,admitted,39,2026-01-02 03:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0020,ANON-0020,,2025-12-31 18:00:00,Scheduled,ICU,IC-024,waiting,39,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0021,ANON-0021,,2025-12-31 11:00:00,ER,ICU,IC-014,admitted,54,,pending,inside_hospital,Synthetic demo patient tracking
+PT-0022,ANON-0022,,2025-12-31 08:00:00,Referral,ICU,IC-001,admitted,4,2025-12-31 12:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0023,ANON-0023,,2025-12-31 11:00:00,Referral,General Ward,GE-075,admitted,23,2026-01-01 10:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0024,ANON-0024,,2025-12-31 10:00:00,Scheduled,ER,ER-017,waiting,90,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0025,ANON-0025,,2025-12-31 17:00:00,ER,General Ward,GE-067,admitted,79,2026-01-04 00:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0026,ANON-0026,,2025-12-31 19:00:00,ER,Surgery,SU-027,admitted,33,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0027,ANON-0027,,2025-12-31 13:00:00,ER,Surgery,SU-012,admitted,67,2026-01-03 08:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0028,ANON-0028,,2025-12-31 23:00:00,Referral,ER,ER-017,admitted,81,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0029,ANON-0029,,2025-12-31 16:00:00,ER,Surgery,SU-030,observation,95,,pending,inside_hospital,Synthetic demo patient tracking
+PT-0030,ANON-0030,,2025-12-31 16:00:00,ER,Surgery,SU-014,admitted,41,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0031,ANON-0031,,2025-12-31 14:00:00,ER,General Ward,GE-010,admitted,7,2025-12-31 21:00:00,pending,discharged,Synthetic demo patient tracking
+PT-0032,ANON-0032,,2025-12-31 11:00:00,ER,ER,,observation,64,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0033,ANON-0033,,2025-12-31 14:00:00,Scheduled,ER,ER-032,admitted,45,2026-01-02 11:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0034,ANON-0034,,2025-12-31 10:00:00,Scheduled,General Ward,GE-015,observation,32,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0035,ANON-0035,,2025-12-31 21:00:00,Scheduled,ICU,IC-025,admitted,78,2026-01-04 03:00:00,self-pay,discharged,Synthetic demo patient tracking
+PT-0036,ANON-0036,,2025-12-31 08:00:00,ER,ER,ER-023,waiting,40,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0037,ANON-0037,,2025-12-31 23:00:00,Referral,ER,ER-029,observation,55,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0038,ANON-0038,,2025-12-31 19:00:00,Referral,General Ward,GE-078,admitted,62,2026-01-03 09:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0039,ANON-0039,,2025-12-31 18:00:00,Referral,Surgery,SU-015,observation,13,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0040,ANON-0040,,2025-12-31 22:00:00,ER,General Ward,GE-040,waiting,55,,pending,inside_hospital,Synthetic demo patient tracking
+PT-0041,ANON-0041,,2025-12-31 23:00:00,Referral,ER,ER-017,admitted,44,2026-01-02 19:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0042,ANON-0042,,2025-12-31 08:00:00,Scheduled,ER,ER-004,admitted,30,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0043,ANON-0043,,2025-12-31 10:00:00,ER,General Ward,GE-062,admitted,12,,self-pay,inside_hospital,Synthetic demo patient tracking
+PT-0044,ANON-0044,,2025-12-31 11:00:00,Transfer,Radiology,RA-003,observation,26,,pending,inside_hospital,Synthetic demo patient tracking
+PT-0045,ANON-0045,,2025-12-31 13:00:00,ER,Radiology,RA-017,admitted,29,2026-01-01 18:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0046,ANON-0046,,2025-12-31 14:00:00,Scheduled,Surgery,SU-012,waiting,33,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0047,ANON-0047,,2025-12-31 19:00:00,Referral,ER,ER-037,admitted,64,2026-01-03 11:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0048,ANON-0048,,2025-12-31 09:00:00,ER,General Ward,GE-011,observation,21,2026-01-01 06:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0049,ANON-0049,,2025-12-31 12:00:00,Scheduled,General Ward,GE-003,admitted,94,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0050,ANON-0050,,2025-12-31 13:00:00,Scheduled,Radiology,RA-007,admitted,77,2026-01-03 18:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0051,ANON-0051,,2025-12-31 22:00:00,Transfer,ER,ER-023,waiting,17,2026-01-01 15:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0052,ANON-0052,,2025-12-31 15:00:00,ER,ER,ER-043,observation,94,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0053,ANON-0053,,2025-12-31 09:00:00,ER,ER,,admitted,6,2025-12-31 15:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0054,ANON-0054,,2025-12-31 20:00:00,Scheduled,General Ward,GE-045,admitted,36,2026-01-02 08:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0055,ANON-0055,,2025-12-31 16:00:00,Transfer,General Ward,GE-078,observation,93,2026-01-04 13:00:00,pending,discharged,Synthetic demo patient tracking
+PT-0056,ANON-0056,,2025-12-31 19:00:00,Scheduled,General Ward,GE-059,admitted,26,,pending,inside_hospital,Synthetic demo patient tracking
+PT-0057,ANON-0057,,2025-12-31 11:00:00,Referral,ER,,observation,81,2026-01-03 20:00:00,pending,discharged,Synthetic demo patient tracking
+PT-0058,ANON-0058,,2025-12-31 14:00:00,ER,ER,,admitted,93,2026-01-04 11:00:00,pending,discharged,Synthetic demo patient tracking
+PT-0059,ANON-0059,,2025-12-31 21:00:00,Transfer,ER,ER-019,admitted,66,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0060,ANON-0060,,2025-12-31 13:00:00,ER,Radiology,,admitted,6,2025-12-31 19:00:00,self-pay,discharged,Synthetic demo patient tracking
+PT-0061,ANON-0061,,2025-12-31 08:00:00,ER,General Ward,GE-001,waiting,5,,self-pay,inside_hospital,Synthetic demo patient tracking
+PT-0062,ANON-0062,,2025-12-31 19:00:00,Transfer,ER,ER-023,admitted,73,,pending,inside_hospital,Synthetic demo patient tracking
+PT-0063,ANON-0063,,2025-12-31 19:00:00,ER,ICU,,admitted,12,2026-01-01 07:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0064,ANON-0064,,2025-12-31 13:00:00,ER,General Ward,,waiting,27,,self-pay,inside_hospital,Synthetic demo patient tracking
+PT-0065,ANON-0065,,2025-12-31 18:00:00,ER,General Ward,GE-062,admitted,49,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0066,ANON-0066,,2025-12-31 12:00:00,Referral,ER,ER-006,admitted,54,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0067,ANON-0067,,2025-12-31 17:00:00,Scheduled,ER,ER-036,admitted,69,2026-01-03 14:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0068,ANON-0068,,2025-12-31 20:00:00,Scheduled,Surgery,SU-013,observation,71,,pending,inside_hospital,Synthetic demo patient tracking
+PT-0069,ANON-0069,,2025-12-31 09:00:00,ER,ER,ER-033,admitted,42,2026-01-02 03:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0070,ANON-0070,,2025-12-31 21:00:00,ER,Surgery,,observation,29,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0071,ANON-0071,,2025-12-31 17:00:00,ER,ICU,IC-018,observation,9,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0072,ANON-0072,,2025-12-31 21:00:00,ER,ICU,IC-017,admitted,23,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0073,ANON-0073,,2025-12-31 14:00:00,ER,General Ward,GE-042,admitted,38,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0074,ANON-0074,,2025-12-31 22:00:00,ER,Surgery,,waiting,17,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0075,ANON-0075,,2025-12-31 21:00:00,Scheduled,Surgery,SU-011,admitted,8,2026-01-01 05:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0076,ANON-0076,,2025-12-31 23:00:00,Transfer,ER,ER-023,waiting,55,2026-01-03 06:00:00,self-pay,discharged,Synthetic demo patient tracking
+PT-0077,ANON-0077,,2025-12-31 11:00:00,ER,General Ward,,waiting,32,2026-01-01 19:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0078,ANON-0078,,2025-12-31 20:00:00,Transfer,ER,ER-007,admitted,27,2026-01-01 23:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0079,ANON-0079,,2025-12-31 23:00:00,ER,General Ward,GE-049,admitted,41,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0080,ANON-0080,,2025-12-31 13:00:00,ER,General Ward,GE-051,admitted,90,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0081,ANON-0081,,2025-12-31 11:00:00,ER,Surgery,SU-013,admitted,67,2026-01-03 06:00:00,pending,discharged,Synthetic demo patient tracking
+PT-0082,ANON-0082,,2025-12-31 23:00:00,ER,General Ward,GE-024,waiting,28,2026-01-02 03:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0083,ANON-0083,,2025-12-31 13:00:00,Referral,ER,,observation,90,,pending,inside_hospital,Synthetic demo patient tracking
+PT-0084,ANON-0084,,2025-12-31 15:00:00,ER,ICU,,waiting,48,2026-01-02 15:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0085,ANON-0085,,2025-12-31 12:00:00,Scheduled,General Ward,GE-019,observation,88,2026-01-04 04:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0086,ANON-0086,,2025-12-31 18:00:00,Referral,General Ward,GE-062,admitted,36,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0087,ANON-0087,,2025-12-31 21:00:00,Referral,ER,,observation,7,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0088,ANON-0088,,2025-12-31 11:00:00,ER,General Ward,GE-024,waiting,45,2026-01-02 08:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0089,ANON-0089,,2025-12-31 08:00:00,Scheduled,General Ward,GE-074,admitted,30,2026-01-01 14:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0090,ANON-0090,,2025-12-31 13:00:00,ER,Radiology,,admitted,17,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0091,ANON-0091,,2025-12-31 17:00:00,ER,ER,ER-025,observation,7,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0092,ANON-0092,,2025-12-31 10:00:00,Referral,ER,ER-004,admitted,69,,self-pay,inside_hospital,Synthetic demo patient tracking
+PT-0093,ANON-0093,,2025-12-31 13:00:00,Scheduled,General Ward,GE-020,admitted,48,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0094,ANON-0094,,2025-12-31 08:00:00,Referral,Surgery,SU-034,admitted,63,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0095,ANON-0095,,2025-12-31 11:00:00,ER,Surgery,,admitted,56,,pending,inside_hospital,Synthetic demo patient tracking
+PT-0096,ANON-0096,,2025-12-31 10:00:00,Scheduled,General Ward,GE-050,admitted,10,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0097,ANON-0097,,2025-12-31 14:00:00,Referral,ER,,admitted,88,,pending,inside_hospital,Synthetic demo patient tracking
+PT-0098,ANON-0098,,2025-12-31 13:00:00,Referral,Surgery,SU-027,waiting,5,,pending,inside_hospital,Synthetic demo patient tracking
+PT-0099,ANON-0099,,2025-12-31 23:00:00,Referral,Radiology,RA-012,observation,76,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0100,ANON-0100,,2025-12-31 19:00:00,Referral,Radiology,RA-008,admitted,63,2026-01-03 10:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0101,ANON-0101,,2025-12-31 20:00:00,ER,General Ward,GE-062,admitted,33,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0102,ANON-0102,,2025-12-31 12:00:00,Scheduled,General Ward,GE-001,admitted,80,2026-01-03 20:00:00,pending,discharged,Synthetic demo patient tracking
+PT-0103,ANON-0103,,2025-12-31 16:00:00,ER,General Ward,GE-041,admitted,25,2026-01-01 17:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0104,ANON-0104,,2025-12-31 10:00:00,ER,ICU,,admitted,84,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0105,ANON-0105,,2025-12-31 08:00:00,Scheduled,ER,,admitted,15,2025-12-31 23:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0106,ANON-0106,,2025-12-31 08:00:00,Referral,General Ward,GE-027,admitted,24,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0107,ANON-0107,,2025-12-31 16:00:00,Scheduled,General Ward,GE-002,admitted,4,2025-12-31 20:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0108,ANON-0108,,2025-12-31 19:00:00,ER,General Ward,GE-031,admitted,72,2026-01-03 19:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0109,ANON-0109,,2025-12-31 13:00:00,Referral,General Ward,,admitted,66,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0110,ANON-0110,,2025-12-31 13:00:00,Referral,ICU,IC-020,observation,35,2026-01-02 00:00:00,pending,discharged,Synthetic demo patient tracking
+PT-0111,ANON-0111,,2025-12-31 09:00:00,Scheduled,ICU,IC-009,admitted,76,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0112,ANON-0112,,2025-12-31 15:00:00,Transfer,ICU,IC-018,admitted,23,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0113,ANON-0113,,2025-12-31 10:00:00,Scheduled,General Ward,GE-060,observation,94,2026-01-04 08:00:00,self-pay,discharged,Synthetic demo patient tracking
+PT-0114,ANON-0114,,2025-12-31 10:00:00,ER,ER,ER-023,admitted,55,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0115,ANON-0115,,2025-12-31 10:00:00,ER,Surgery,SU-007,admitted,63,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0116,ANON-0116,,2025-12-31 20:00:00,Scheduled,General Ward,GE-086,admitted,26,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0117,ANON-0117,,2025-12-31 23:00:00,ER,ICU,IC-017,waiting,49,2026-01-03 00:00:00,covered,discharged,Synthetic demo patient tracking
+PT-0118,ANON-0118,,2025-12-31 14:00:00,ER,General Ward,GE-056,waiting,91,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0119,ANON-0119,,2025-12-31 16:00:00,ER,Surgery,,admitted,76,,covered,inside_hospital,Synthetic demo patient tracking
+PT-0120,ANON-0120,,2025-12-31 09:00:00,Referral,General Ward,,admitted,89,,covered,inside_hospital,Synthetic demo patient tracking

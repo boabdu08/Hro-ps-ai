@@ -211,6 +211,9 @@ def _predict_lstm_next_hours(df_hist: pd.DataFrame, horizon: int) -> np.ndarray:
             "day_of_week": float(future_dt.dayofweek),
             "month": float(future_dt.month),
             "is_weekend": float(future_dt.dayofweek >= 5),
+            "is_holiday": 0.0,
+            "holiday": 0.0,
+            "shift_period_code": 1.0 if 7 <= future_dt.hour <= 14 else 2.0 if 15 <= future_dt.hour <= 22 else 0.0,
             "hour_sin": float(np.sin(2 * np.pi * future_dt.hour / 24.0)),
             "hour_cos": float(np.cos(2 * np.pi * future_dt.hour / 24.0)),
         }
@@ -257,6 +260,9 @@ def _predict_arimax_next_hours(df_hist: pd.DataFrame, horizon: int) -> np.ndarra
                 "day_of_week": float(future_dt.dayofweek),
                 "month": float(future_dt.month),
                 "is_weekend": float(future_dt.dayofweek >= 5),
+                "is_holiday": 0.0,
+                "holiday": 0.0,
+                "shift_period_code": 1.0 if 7 <= future_dt.hour <= 14 else 2.0 if 15 <= future_dt.hour <= 22 else 0.0,
                 "hour_sin": float(np.sin(2 * np.pi * future_dt.hour / 24.0)),
                 "hour_cos": float(np.cos(2 * np.pi * future_dt.hour / 24.0)),
             }
@@ -314,7 +320,7 @@ def forecast_ops72h(*, tenant_id: int | None = None, horizon_hours: int = 72) ->
     )
     overall["lstm_valid"] = bool(lstm_ok)
     overall["arimax_valid"] = bool(arimax_ok)
-    overall["validation_note"] = "; ".join(lstm_reasons + arimax_reasons)
+    overall["validation_note"] = "; ".join(lstm_reasons + arimax_reasons) or "OK"
 
     # Department-level forecast: distribute overall hybrid forecast by latest dept shares
     by_department = pd.DataFrame()

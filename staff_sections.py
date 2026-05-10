@@ -198,8 +198,13 @@ def show_all_shifts():
 
     role_series = df["role"].astype(str).str.lower() if "role" in df.columns else pd.Series(dtype=str)
     total_staff = int(df["staff_username"].nunique()) if "staff_username" in df.columns else int(len(df))
-    doctors = int(role_series.str.contains("doctor|physician", case=False, na=False).sum()) if not role_series.empty else 0
-    nurses = int(role_series.str.contains("nurse", case=False, na=False).sum()) if not role_series.empty else 0
+    if "staff_username" in df.columns and not role_series.empty:
+        doctors = int(df.loc[role_series.str.contains("doctor|physician", case=False, na=False), "staff_username"].nunique())
+        nurses = int(df.loc[role_series.str.contains("nurse", case=False, na=False), "staff_username"].nunique())
+        total_staff = int(doctors + nurses)
+    else:
+        doctors = 0
+        nurses = 0
     total_shifts = int(len(df))
     departments = int(df["department"].nunique()) if "department" in df.columns else 0
 
@@ -221,23 +226,25 @@ def show_all_shifts():
     with left:
         section_header("Shift distribution", "Morning / Evening / Night / Emergency Backup where present")
         if "shift_type" in df.columns:
-            shift_count = df.groupby("shift_type").size().reset_index(name="scheduled_shifts")
+            shift_order = ["Morning", "Evening", "Night", "Emergency Backup"]
+            shift_count = df.groupby("shift_type").size().reindex(shift_order, fill_value=0).reset_index(name="scheduled_shifts")
             fig_shift = px.bar(shift_count, x="shift_type", y="scheduled_shifts", title="Scheduled shifts by shift type")
-            fig_shift.update_layout(height=350, xaxis_title="Shift type", yaxis_title="Scheduled shifts")
+            fig_shift.update_layout(height=350, xaxis_title="Shift type", yaxis_title="Scheduled shifts", xaxis_tickangle=-15)
             fig_shift.update_traces(hovertemplate="%{x}: %{y:.0f} shifts<extra></extra>")
             st.plotly_chart(fig_shift, use_container_width=True, key=scoped_key("shifts", "all", "shift_distribution"))
     with right:
         section_header("Department coverage", "Shifts by department")
         if "department" in df.columns:
-            dept_summary = df.groupby("department").size().reset_index(name="scheduled_shifts")
+            dept_order = ["ER", "General Ward", "ICU", "Surgery", "Radiology"]
+            dept_summary = df.groupby("department").size().reindex(dept_order, fill_value=0).reset_index(name="scheduled_shifts")
             fig_dept = px.bar(dept_summary, x="department", y="scheduled_shifts", title="Scheduled shifts by department")
-            fig_dept.update_layout(height=350, xaxis_title="Department", yaxis_title="Scheduled shifts")
+            fig_dept.update_layout(height=350, xaxis_title="Department", yaxis_title="Scheduled shifts", xaxis_tickangle=-15)
             fig_dept.update_traces(hovertemplate="%{x}: %{y:.0f} shifts<extra></extra>")
             st.plotly_chart(fig_dept, use_container_width=True, key=scoped_key("shifts", "all", "department_coverage"))
 
     summary = df.groupby(["department", "shift_type"]).size().reset_index(name="assigned_staff")
     fig = px.bar(summary, x="department", y="assigned_staff", color="shift_type", barmode="group", title="Shift allocation by department and type")
-    fig.update_layout(height=400, yaxis_title="Assigned staff", xaxis_title="Department")
+    fig.update_layout(height=420, yaxis_title="Assigned staff", xaxis_title="Department", xaxis_tickangle=-15, legend_title_text="Shift type")
     fig.update_traces(hovertemplate="%{x}<br>%{fullData.name}: %{y:.0f} staff<extra></extra>")
     st.plotly_chart(fig, use_container_width=True, key=scoped_key("shifts", "all", "chart"))
 
@@ -261,9 +268,29 @@ def show_or_bookings(role, doctor_name=None):
         scheduled = int(df["status"].astype(str).str.contains("scheduled|booked|confirmed", case=False, na=False).sum()) if "status" in df.columns else 0
         kpi_card("Scheduled/confirmed", fmt_int(scheduled), status="success")
     modern_table(df, key=scoped_key("or_bookings", role, doctor_name or "all", "table"))
-    booking_summary = df.groupby(["room", "status"]).size().reset_index(name="count")
-    fig = px.bar(booking_summary, x="room", y="count", color="status", barmode="group", title="OR Booking Status by Room")
-    fig.update_layout(height=350)
+    if "procedure_duration_minutes" in df.columns:
+        room_df = df.copy()
+        room_df["procedure_duration_minutes"] = pd.to_numeric(room_df["procedure_duration_minutes"], errors="coerce").fillna(0)
+        room_capacity = 12 * 60
+        booking_summary = room_df.groupby("room").agg(
+            bookings=("room", "size"),
+            booked_minutes=("procedure_duration_minutes", "sum"),
+        ).reset_index()
+        booking_summary["utilization_percent"] = (booking_summary["booked_minutes"] / room_capacity * 100).clip(upper=100).round(1)
+        fig = px.bar(
+            booking_summary,
+            x="room",
+            y="utilization_percent",
+            text="bookings",
+            title="OR utilization by room",
+            labels={"utilization_percent": "Booked utilization (%)", "room": "Operating room"},
+        )
+        fig.update_traces(texttemplate="%{text} bookings", textposition="outside")
+        fig.update_layout(height=380, yaxis_range=[0, 100], xaxis_tickangle=-15)
+    else:
+        booking_summary = df.groupby(["room", "status"]).size().reset_index(name="count")
+        fig = px.bar(booking_summary, x="room", y="count", color="status", barmode="group", title="OR Booking Status by Room")
+        fig.update_layout(height=350, xaxis_tickangle=-15)
     st.plotly_chart(fig, use_container_width=True, key=scoped_key("or_bookings", role, doctor_name or "all", "chart"))
 
 
@@ -312,6 +339,7 @@ def show_admin_appointments_overview():
     modern_table(df, key=scoped_key("appointments", "admin_overview", "table"))
     summary = df.groupby("department")["patient_count"].sum().reset_index()
     fig = px.pie(summary, names="department", values="patient_count", title="Appointments Load by Department")
+    fig.update_traces(textposition="inside", textinfo="percent+label")
     fig.update_layout(height=400)
     st.plotly_chart(fig, use_container_width=True, key=scoped_key("appointments", "admin_overview", "chart"))
 

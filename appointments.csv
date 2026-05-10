@@ -1,5 +1,154 @@
 appointment_id,department,doctor,date,time_slot,patient_count,status
-AP001,ER,Dr. Ahmed,2026-03-14,08:00-10:00,12,Open
-AP002,ER,Dr. Ahmed,2026-03-14,10:00-12:00,15,Busy
-AP003,ICU,Dr. Sara,2026-03-14,09:00-11:00,8,Open
-AP004,General Ward,Dr. Ward Team,2026-03-14,12:00-14:00,20,Review Required
+APT-0001,ER,Dr. Ahmed Mahmoud,2026-01-03,14:00-16:00,4,Busy
+APT-0002,ER,Dr. Noor Samir,2025-12-29,16:00-18:00,13,Scheduled
+APT-0003,ER,Dr. Karim Mahmoud,2026-01-01,16:00-18:00,13,Scheduled
+APT-0004,ER,Dr. Ahmed Ibrahim,2025-12-26,10:00-12:00,12,Scheduled
+APT-0005,ER,Dr. Hassan Said,2026-01-07,14:00-16:00,5,Open
+APT-0006,ER,Dr. Noor Mahmoud,2026-01-02,12:00-14:00,12,Scheduled
+APT-0007,ER,Dr. Hassan Said,2025-12-27,16:00-18:00,5,Scheduled
+APT-0008,ER,Dr. Ahmed Mahmoud,2025-12-28,16:00-18:00,6,Busy
+APT-0009,ER,Dr. Hassan Abdullah,2025-12-27,12:00-14:00,9,Review Required
+APT-0010,ER,Dr. Hassan Said,2026-01-04,16:00-18:00,8,Scheduled
+APT-0011,ER,Dr. Noor Samir,2026-01-06,10:00-12:00,7,Scheduled
+APT-0012,ER,Dr. Noor Samir,2026-01-05,16:00-18:00,6,Open
+APT-0013,ER,Dr. Hassan Fouad,2026-01-03,08:00-10:00,9,Scheduled
+APT-0014,ER,Dr. Noor Samir,2026-01-05,16:00-18:00,12,Open
+APT-0015,ER,Dr. Noor Mahmoud,2025-12-27,14:00-16:00,6,Scheduled
+APT-0016,ER,Dr. Karim Mahmoud,2025-12-31,12:00-14:00,12,Busy
+APT-0017,ER,Dr. Sara Hassan,2026-01-06,14:00-16:00,11,Busy
+APT-0018,ER,Dr. Karim Mahmoud,2025-12-29,10:00-12:00,8,Review Required
+APT-0019,ER,Dr. Ahmed Mahmoud,2026-01-02,10:00-12:00,9,Busy
+APT-0020,ER,Dr. Hassan Fouad,2025-12-29,10:00-12:00,11,Busy
+APT-0021,ER,Dr. Karim Mahmoud,2026-01-04,08:00-10:00,12,Scheduled
+APT-0022,ER,Dr. Mostafa Said,2025-12-28,14:00-16:00,8,Scheduled
+APT-0023,ER,Dr. Ahmed Ibrahim,2026-01-03,08:00-10:00,12,Review Required
+APT-0024,ER,Dr. Ahmed Mahmoud,2026-01-07,10:00-12:00,5,Scheduled
+APT-0025,ER,Dr. Ahmed Ibrahim,2026-01-06,12:00-14:00,7,Scheduled
+APT-0026,ER,Dr. Noor Mahmoud,2026-01-05,16:00-18:00,4,Review Required
+APT-0027,ER,Dr. Hassan Said,2025-12-29,14:00-16:00,8,Scheduled
+APT-0028,ER,Dr. Hassan Said,2026-01-07,14:00-16:00,11,Open
+APT-0029,ER,Dr. Karim Mahmoud,2026-01-01,12:00-14:00,8,Review Required
+APT-0030,ER,Dr. Ahmed Ibrahim,2026-01-01,10:00-12:00,13,Review Required
+APT-0031,ER,Dr. Hassan Said,2026-01-03,16:00-18:00,11,Open
+APT-0032,ER,Dr. Mostafa Said,2025-12-28,12:00-14:00,9,Review Required
+APT-0033,ER,Dr. Sara Hassan,2026-01-05,16:00-18:00,3,Scheduled
+APT-0034,ER,Dr. Sara Hassan,2025-12-27,12:00-14:00,10,Scheduled
+APT-0035,ER,Dr. Hassan Said,2026-01-06,12:00-14:00,9,Scheduled
+APT-0036,ER,Dr. Noor Samir,2026-01-05,08:00-10:00,6,Scheduled
+APT-0037,ER,Dr. Karim Mahmoud,2025-12-29,12:00-14:00,4,Open
+APT-0038,ER,Dr. Noor Samir,2025-12-26,08:00-10:00,13,Scheduled
+APT-0039,ER,Dr. Ahmed Ibrahim,2026-01-03,14:00-16:00,3,Scheduled
+APT-0040,ER,Dr. Mostafa Said,2025-12-27,16:00-18:00,5,Scheduled
+APT-0041,ER,Dr. Sara Hassan,2026-01-05,08:00-10:00,7,Scheduled
+APT-0042,ER,Dr. Ahmed Mahmoud,2025-12-26,08:00-10:00,4,Busy
+APT-0043,ER,Dr. Hassan Said,2026-01-03,10:00-12:00,3,Scheduled
+APT-0044,ER,Dr. Noor Mahmoud,2026-01-01,14:00-16:00,6,Review Required
+APT-0045,ER,Dr. Mostafa Said,2025-12-26,08:00-10:00,13,Scheduled
+APT-0046,General Ward,Dr. Mona Fouad,2025-12-31,08:00-10:00,12,Busy
+APT-0047,General Ward,Dr. Mona Fouad,2025-12-29,08:00-10:00,9,Busy
+APT-0048,General Ward,Dr. Ahmed Hassan,2025-12-31,16:00-18:00,3,Scheduled
+APT-0049,General Ward,Dr. Karim Abdullah,2026-01-03,14:00-16:00,8,Scheduled
+APT-0050,General Ward,Dr. Noor Samir,2025-12-26,16:00-18:00,4,Open
+APT-0051,General Ward,Dr. Youssef Yasin,2025-12-27,10:00-12:00,5,Open
+APT-0052,General Ward,Dr. Ahmed Mahmoud,2025-12-30,08:00-10:00,8,Open
+APT-0053,General Ward,Dr. Noor Samir,2025-12-29,12:00-14:00,5,Review Required
+APT-0054,General Ward,Dr. Hassan Ali,2025-12-29,10:00-12:00,11,Review Required
+APT-0055,General Ward,Dr. Mona Fouad,2025-12-28,10:00-12:00,11,Scheduled
+APT-0056,General Ward,Dr. Nadine Abdullah,2026-01-05,08:00-10:00,7,Scheduled
+APT-0057,General Ward,Dr. Mona Fouad,2025-12-29,16:00-18:00,4,Scheduled
+APT-0058,General Ward,Dr. Ahmed Hassan,2025-12-30,08:00-10:00,10,Scheduled
+APT-0059,General Ward,Dr. Karim Abdullah,2026-01-06,12:00-14:00,12,Open
+APT-0060,General Ward,Dr. Mona Fouad,2026-01-06,14:00-16:00,11,Open
+APT-0061,General Ward,Dr. Ahmed Hassan,2026-01-05,12:00-14:00,3,Scheduled
+APT-0062,General Ward,Dr. Ahmed Hassan,2025-12-31,14:00-16:00,9,Busy
+APT-0063,General Ward,Dr. Noor Samir,2026-01-05,12:00-14:00,10,Busy
+APT-0064,General Ward,Dr. Ahmed Hassan,2026-01-05,12:00-14:00,13,Scheduled
+APT-0065,General Ward,Dr. Hassan Ali,2025-12-27,16:00-18:00,12,Scheduled
+APT-0066,General Ward,Dr. Sara Nasser,2026-01-01,10:00-12:00,3,Busy
+APT-0067,General Ward,Dr. Sara Nasser,2025-12-30,14:00-16:00,8,Scheduled
+APT-0068,General Ward,Dr. Ahmed Mahmoud,2026-01-04,08:00-10:00,7,Review Required
+APT-0069,General Ward,Dr. Mona Fouad,2025-12-26,10:00-12:00,13,Scheduled
+APT-0070,General Ward,Dr. Hassan Ibrahim,2025-12-31,10:00-12:00,10,Busy
+APT-0071,General Ward,Dr. Mona Ibrahim,2026-01-07,10:00-12:00,3,Scheduled
+APT-0072,General Ward,Dr. Noor Abdullah,2026-01-06,08:00-10:00,10,Scheduled
+APT-0073,General Ward,Dr. Noor Samir,2026-01-04,12:00-14:00,13,Scheduled
+APT-0074,General Ward,Dr. Youssef Yasin,2025-12-26,16:00-18:00,9,Review Required
+APT-0075,General Ward,Dr. Sara Nasser,2025-12-25,14:00-16:00,7,Scheduled
+APT-0076,General Ward,Dr. Ahmed Mahmoud,2025-12-27,10:00-12:00,8,Open
+APT-0077,General Ward,Dr. Mona Ibrahim,2025-12-30,14:00-16:00,9,Open
+APT-0078,General Ward,Dr. Mona Fouad,2025-12-25,14:00-16:00,13,Busy
+APT-0079,General Ward,Dr. Hassan Ibrahim,2026-01-05,16:00-18:00,4,Busy
+APT-0080,General Ward,Dr. Mona Ibrahim,2026-01-01,14:00-16:00,7,Scheduled
+APT-0081,General Ward,Dr. Noor Abdullah,2025-12-25,16:00-18:00,8,Busy
+APT-0082,ICU,Dr. Mostafa Nasser,2025-12-25,16:00-18:00,8,Scheduled
+APT-0083,ICU,Dr. Ahmed Nasser,2026-01-03,08:00-10:00,4,Open
+APT-0084,ICU,Dr. Mostafa Nasser,2025-12-30,08:00-10:00,9,Busy
+APT-0085,ICU,Dr. Sara Yasin,2025-12-27,14:00-16:00,3,Open
+APT-0086,ICU,Dr. Laila Abdullah,2026-01-06,16:00-18:00,4,Scheduled
+APT-0087,ICU,Dr. Ahmed Nasser,2026-01-04,12:00-14:00,4,Scheduled
+APT-0088,ICU,Dr. Mostafa Nasser,2025-12-31,10:00-12:00,7,Review Required
+APT-0089,ICU,Dr. Ahmed Nasser,2026-01-06,12:00-14:00,4,Busy
+APT-0090,ICU,Dr. Ahmed Nasser,2025-12-30,10:00-12:00,9,Scheduled
+APT-0091,ICU,Dr. Sara Yasin,2025-12-31,14:00-16:00,13,Busy
+APT-0092,ICU,Dr. Nadine Yasin,2025-12-26,12:00-14:00,4,Scheduled
+APT-0093,ICU,Dr. Fatima Samir,2026-01-06,12:00-14:00,4,Scheduled
+APT-0094,ICU,Dr. Karim Said,2026-01-03,08:00-10:00,11,Open
+APT-0095,ICU,Dr. Sara Yasin,2026-01-01,14:00-16:00,11,Review Required
+APT-0096,ICU,Dr. Fatima Samir,2025-12-30,08:00-10:00,12,Open
+APT-0097,ICU,Dr. Ahmed Nasser,2025-12-26,14:00-16:00,12,Scheduled
+APT-0098,ICU,Dr. Fatima Samir,2026-01-04,12:00-14:00,13,Busy
+APT-0099,ICU,Dr. Fatima Samir,2025-12-27,12:00-14:00,13,Open
+APT-0100,ICU,Dr. Nadine Yasin,2025-12-29,16:00-18:00,12,Open
+APT-0101,ICU,Dr. Fatima Samir,2025-12-28,10:00-12:00,3,Review Required
+APT-0102,ICU,Dr. Karim Said,2026-01-01,12:00-14:00,11,Scheduled
+APT-0103,ICU,Dr. Ahmed Nasser,2026-01-02,10:00-12:00,3,Scheduled
+APT-0104,ICU,Dr. Laila Abdullah,2025-12-27,10:00-12:00,13,Scheduled
+APT-0105,ICU,Dr. Youssef Abdullah,2025-12-29,14:00-16:00,10,Scheduled
+APT-0106,ICU,Dr. Youssef Abdullah,2026-01-06,14:00-16:00,11,Busy
+APT-0107,ICU,Dr. Youssef Abdullah,2026-01-02,08:00-10:00,12,Scheduled
+APT-0108,ICU,Dr. Laila Abdullah,2026-01-01,14:00-16:00,7,Scheduled
+APT-0109,Surgery,Dr. Laila Mahmoud,2026-01-01,14:00-16:00,8,Review Required
+APT-0110,Surgery,Dr. Fatima Abdullah,2026-01-01,16:00-18:00,8,Scheduled
+APT-0111,Surgery,Dr. Karim Mahmoud,2025-12-25,08:00-10:00,3,Review Required
+APT-0112,Surgery,Dr. Laila Mahmoud,2025-12-25,08:00-10:00,6,Open
+APT-0113,Surgery,Dr. Fatima Abdullah,2025-12-26,12:00-14:00,9,Scheduled
+APT-0114,Surgery,Dr. Laila Mahmoud,2025-12-26,10:00-12:00,8,Scheduled
+APT-0115,Surgery,Dr. Omar Samir,2025-12-28,12:00-14:00,9,Busy
+APT-0116,Surgery,Dr. Fatima Samir,2026-01-03,12:00-14:00,4,Scheduled
+APT-0117,Surgery,Dr. Omar Samir,2025-12-29,14:00-16:00,13,Busy
+APT-0118,Surgery,Dr. Fatima Abdullah,2026-01-01,12:00-14:00,5,Open
+APT-0119,Surgery,Dr. Fatima Abdullah,2025-12-31,10:00-12:00,9,Review Required
+APT-0120,Surgery,Dr. Karim Mahmoud,2025-12-29,12:00-14:00,3,Open
+APT-0121,Surgery,Dr. Omar Samir,2026-01-02,16:00-18:00,4,Busy
+APT-0122,Surgery,Dr. Noor Said,2026-01-07,08:00-10:00,11,Busy
+APT-0123,Surgery,Dr. Laila Mahmoud,2026-01-02,14:00-16:00,8,Busy
+APT-0124,Surgery,Dr. Omar Samir,2025-12-31,14:00-16:00,8,Scheduled
+APT-0125,Surgery,Dr. Mona Yasin,2026-01-03,14:00-16:00,8,Scheduled
+APT-0126,Surgery,Dr. Karim Abdullah,2026-01-06,14:00-16:00,4,Busy
+APT-0127,Surgery,Dr. Fatima Abdullah,2026-01-02,10:00-12:00,13,Scheduled
+APT-0128,Surgery,Dr. Karim Abdullah,2026-01-04,10:00-12:00,5,Busy
+APT-0129,Surgery,Dr. Omar Samir,2026-01-06,14:00-16:00,12,Scheduled
+APT-0130,Surgery,Dr. Karim Abdullah,2025-12-31,10:00-12:00,11,Scheduled
+APT-0131,Surgery,Dr. Karim Abdullah,2026-01-05,12:00-14:00,4,Scheduled
+APT-0132,Surgery,Dr. Laila Mahmoud,2026-01-01,12:00-14:00,8,Busy
+APT-0133,Surgery,Dr. Laila Mahmoud,2026-01-01,12:00-14:00,13,Scheduled
+APT-0134,Surgery,Dr. Fatima Abdullah,2026-01-05,12:00-14:00,8,Review Required
+APT-0135,Surgery,Dr. Karim Mahmoud,2026-01-03,16:00-18:00,6,Open
+APT-0136,Radiology,Dr. Fatima Ali,2026-01-05,16:00-18:00,10,Scheduled
+APT-0137,Radiology,Dr. Fatima Samir,2025-12-30,16:00-18:00,9,Scheduled
+APT-0138,Radiology,Dr. Fatima Mahmoud,2026-01-02,08:00-10:00,12,Scheduled
+APT-0139,Radiology,Dr. Fatima Ali,2026-01-07,12:00-14:00,3,Scheduled
+APT-0140,Radiology,Dr. Fatima Mahmoud,2026-01-04,08:00-10:00,13,Scheduled
+APT-0141,Radiology,Dr. Sara Hassan,2025-12-30,12:00-14:00,9,Scheduled
+APT-0142,Radiology,Dr. Fatima Ali,2026-01-01,14:00-16:00,12,Scheduled
+APT-0143,Radiology,Dr. Fatima Mahmoud,2025-12-30,08:00-10:00,9,Scheduled
+APT-0144,Radiology,Dr. Fatima Ali,2026-01-06,14:00-16:00,3,Scheduled
+APT-0145,Radiology,Dr. Fatima Mahmoud,2025-12-28,12:00-14:00,4,Scheduled
+APT-0146,Radiology,Dr. Fatima Ali,2025-12-31,08:00-10:00,12,Scheduled
+APT-0147,Radiology,Dr. Sara Hassan,2025-12-28,10:00-12:00,12,Scheduled
+APT-0148,Radiology,Dr. Laila Fouad,2025-12-31,12:00-14:00,11,Open
+APT-0149,Radiology,Dr. Sara Hassan,2025-12-30,14:00-16:00,9,Scheduled
+APT-0150,Radiology,Dr. Sara Hassan,2025-12-27,14:00-16:00,6,Scheduled
+APT-0151,Radiology,Dr. Sara Hassan,2026-01-04,10:00-12:00,8,Scheduled
+APT-0152,Radiology,Dr. Sara Hassan,2025-12-31,10:00-12:00,4,Open
+APT-0153,Radiology,Dr. Laila Fouad,2025-12-31,14:00-16:00,12,Open
