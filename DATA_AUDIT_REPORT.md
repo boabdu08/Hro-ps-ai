@@ -264,3 +264,24 @@ Additional model features retained: `patients`, `week_number`, `holiday`, `occup
 - The dataset is realistic synthetic/demo data, not real hospital data.
 - The two-year row count requirement conflicts with the literal leap-year-inclusive 2024-2025 range; the generator excludes February 29, 2024 to satisfy the exact 17,520-row requirement.
 - ARIMAX may still warn during fitting, but output validation prevents invalid or flat forecasts from being promoted silently.
+
+---
+
+## Data Fix Update — 2026-05-16
+
+### what_if_scenarios.csv
+
+- **Previous state**: 30 rows with incorrect schema (capital-case column names; extra non-required columns). Failed dashboard `_validate_what_if_scenarios()` check (requires ≥ 40 rows and exact 21-column lowercase schema).
+- **Current state**: 42 rows, 21 required columns, all lowercase, unique scenario IDs (WI-001 to WI-042). Passes validator.
+- **Scenarios added (WI-031 to WI-042)**: HAZMAT Chemical Exposure, Blood Supply Critical O-Neg, Dialysis Equipment Failure, Regional Hospital Diversion, Night Physician No-Show, Opioid Overdose Cluster, Extreme Cold Hypothermia Surge, Norovirus Ward Closure, Sports Mass Gathering Trauma, Weekend Discharge Delay, Orthopaedic OR Backlog, Radiology Contrast Agent Shortage.
+
+### Current File Status (2026-05-16)
+
+| File | Rows | Status |
+|---|---:|---|
+| `what_if_scenarios.csv` | 42 | PASS (schema + 40-row check) |
+| `patient_tracking.csv` | varies | PASS (33 integrity issues fixed) |
+| `department_status_updated.csv` | 5 | PASS (total_beds + occupancy_rate added) |
+| `staff_schedule.csv` | 1,470 | PASS (dates anchored to 2026-05-16) |
+| `appointments_updated.csv` | 153 | PASS (dates anchored to 2026-05-16) |
+| `or_bookings.csv` | 150 | PASS (dates anchored to 2026-05-16) |

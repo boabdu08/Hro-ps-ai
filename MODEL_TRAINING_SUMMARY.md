@@ -132,3 +132,20 @@ The ARIMAX output still produced varying validation/test predictions and was ret
 - Metrics are meaningful for the demo distribution but are not clinically validated.
 - ARIMAX convergence warnings indicate the statistical fit is imperfect.
 - Production deployment would require real hospital data ingestion, model monitoring, drift detection, and formal validation.
+
+---
+
+## Status as of 2026-05-16 Overhaul
+
+No retraining was performed in this pass — existing metrics and artifacts remain valid:
+
+| Model | MAE | RMSE | MAPE | Status |
+|---|---:|---:|---:|---|
+| LSTM | 7.158 | 9.005 | 5.33% | Valid |
+| ARIMAX | 7.796 | 9.317 | 5.96% | Valid (convergence warning documented) |
+| **Hybrid** | **6.623** | **8.149** | **4.91%** | **Best — Valid** |
+
+- Hybrid weights confirmed: LSTM=0.80, ARIMAX=0.20
+- 72h forecast peak: 252.6, average: 222.9 (non-flat, non-negative)
+- ForecastState smoke: PASSED
+- Artifact timestamp: 2026-05-10T10:11:05.448950

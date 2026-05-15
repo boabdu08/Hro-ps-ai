@@ -11,7 +11,7 @@ import streamlit as st
 
 
 UI_THEME_KEY = "ui_theme_mode"
-UI_BUILD_ID = "2026-03-26-ui-refresh"
+UI_BUILD_ID = "2026-05-16-overhaul"
 
 
 # ------------------------------

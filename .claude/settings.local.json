@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($env:PYTHONPATH = \"D:\\\\hro-ps-ai\"; & \"C:\\\\Program Files\\\\Python313\\\\python.exe\" \"D:\\\\hro-ps-ai\\\\scripts\\\\smoke_forecast_state.py\" 2>&1 | Select-Object -Last 5)"
+    ]
+  }
+}

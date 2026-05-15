@@ -27,43 +27,53 @@ from ops_live import build_live_state, is_time_in_shift
 DEPARTMENT_CONFIG = {
     "ER": {
         "share": 0.30,
-        "beds_capacity": 30,
-        "doctors_capacity": 6,
-        "nurses_capacity": 12,
+        "beds_capacity": 80,       # includes hallway/overflow bays; ER throughput ~66 of 220 census
+        "doctors_capacity": 10,
+        "nurses_capacity": 20,
+        "doctor_ratio": 6,         # 1 doctor per N patients
+        "nurse_ratio": 3,          # 1 nurse per N patients
         "warning_occupancy": 0.80,
-        "critical_occupancy": 0.95,
+        "critical_occupancy": 0.92,
     },
     "ICU": {
         "share": 0.10,
-        "beds_capacity": 20,
-        "doctors_capacity": 5,
-        "nurses_capacity": 10,
-        "warning_occupancy": 0.80,
-        "critical_occupancy": 0.95,
+        "beds_capacity": 28,       # ICU is low-volume, high-acuity; ~22 of 220 census
+        "doctors_capacity": 8,
+        "nurses_capacity": 20,
+        "doctor_ratio": 3,         # intensivists per patient
+        "nurse_ratio": 2,          # 1:2 ICU standard
+        "warning_occupancy": 0.75, # ICU warns earlier than general wards
+        "critical_occupancy": 0.88,
     },
     "General Ward": {
         "share": 0.45,
-        "beds_capacity": 80,
-        "doctors_capacity": 8,
-        "nurses_capacity": 18,
-        "warning_occupancy": 0.80,
-        "critical_occupancy": 0.95,
+        "beds_capacity": 130,      # largest volume; ~99 of 220 census
+        "doctors_capacity": 12,
+        "nurses_capacity": 30,
+        "doctor_ratio": 10,        # ward physicians cover larger panels
+        "nurse_ratio": 6,          # standard ward ratio
+        "warning_occupancy": 0.82,
+        "critical_occupancy": 0.93,
     },
     "Surgery": {
         "share": 0.10,
-        "beds_capacity": 10,
-        "doctors_capacity": 4,
-        "nurses_capacity": 8,
+        "beds_capacity": 35,       # pre-op + post-op + theatre bays; ~22 of 220 census
+        "doctors_capacity": 8,
+        "nurses_capacity": 15,
+        "doctor_ratio": 4,         # surgeons + anaesthesia per active case
+        "nurse_ratio": 3,          # scrub + circulating nurses
         "warning_occupancy": 0.80,
-        "critical_occupancy": 0.95,
+        "critical_occupancy": 0.93,
     },
     "Radiology": {
         "share": 0.05,
-        "beds_capacity": 15,
-        "doctors_capacity": 3,
-        "nurses_capacity": 5,
+        "beds_capacity": 20,       # imaging slots/procedure bays; ~11 of 220 census
+        "doctors_capacity": 4,
+        "nurses_capacity": 6,
+        "doctor_ratio": 8,         # radiologists cover batches of studies
+        "nurse_ratio": 8,          # contrast/procedure support
         "warning_occupancy": 0.80,
-        "critical_occupancy": 0.95,
+        "critical_occupancy": 0.92,
     },
 }
 
@@ -475,10 +485,10 @@ def optimize_resources(predicted_patients: float, *, tenant_id: int | None = Non
         department_patients_base = predicted_patients * cfg["share"]
         department_patients = department_patients_base * pressure_modifier
 
-        # Demand model (to be calibrated later):
+        # Demand model: beds include 10% buffer; staff use department-specific ratios.
         beds_required = _safe_ceil(department_patients * 1.10)
-        doctors_required = max(1, _safe_ceil(department_patients / 8))
-        nurses_required = max(1, _safe_ceil(department_patients / 4))
+        doctors_required = max(1, _safe_ceil(department_patients / cfg.get("doctor_ratio", 8)))
+        nurses_required = max(1, _safe_ceil(department_patients / cfg.get("nurse_ratio", 4)))
 
         # Live bed capacity: occupied beds reduce available beds.
         # Note: cfg["beds_capacity"] is the physical capacity; PatientTracking determines occupancy.

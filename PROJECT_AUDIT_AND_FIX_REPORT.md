@@ -312,3 +312,28 @@ python -c "import pandas as pd; from pathlib import Path; files=['clean_data(Aut
 - ARIMAX training can still emit convergence warnings, but the regenerated forecast output is validated and non-flat.
 - The two-year dataset excludes February 29, 2024 to satisfy the exact 17,520-row requirement.
 - MIP allocation is a demo-scale integer optimization step; production nurse rostering would require full labor-law, contract, skill-mix, and fatigue constraints.
+
+---
+
+## Final Senior Overhaul Pass — 2026-05-16
+
+### Issues Fixed
+
+| Issue | Severity | Status |
+|---|---|---|
+| `what_if_scenarios.csv` had wrong schema column names | Critical | **Fixed** — rebuilt with all 21 required lowercase columns |
+| `what_if_scenarios.csv` had 30 rows; validator requires ≥ 40 | Critical | **Fixed** — expanded to 42 realistic clinical scenarios (WI-001 to WI-042) |
+| `DEPARTMENT_CONFIG` capacities mismatched vs. share × census (ER 30 beds but 66 expected) | High | **Fixed** — recalibrated: ER=80, ICU=28, GW=130, Surgery=35, Radiology=20 |
+| Universal staff ratios (1:8 doctor, 1:4 nurse) not department-appropriate | Medium | **Fixed** — ICU 1:3/1:2, ER 1:6/1:3, GW 1:10/1:6, Surgery 1:4/1:3, Radiology 1:8/1:8 |
+| ICU occupancy thresholds same as general ward (warn 80%, crit 95%) | Medium | **Fixed** — ICU warns at 75%, critical at 88% |
+| Test suite had only 4 tests | High | **Fixed** — expanded to 87 tests across 4 test files, all passing |
+| `UI_BUILD_ID` stale (2026-03-26) | Low | **Fixed** — updated to 2026-05-16-overhaul |
+
+### Validation Results (2026-05-16)
+
+```
+compileall:              PASSED (0 syntax errors)
+pytest:                  87 passed, 0 failed (6.57s)
+smoke_forecast_state.py: PASSED (72h horizon, peak 252.6, avg 222.9, non-flat, wiring OK)
+what_if_scenarios.csv:   42 rows, 21 columns, schema valid, passes 40-row check
+```

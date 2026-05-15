@@ -1,5 +1,6 @@
 from typing import List, Optional
 import json
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 import logging
 
@@ -36,53 +37,21 @@ from forecast_state import build_canonical_forecast_state, forecast_state_to_dic
 import os
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-app = FastAPI(title="Hospital AI API")
-logging.basicConfig(level=logging.INFO)
-
-# CORS: allow Streamlit dev server and configurable origins for deployment.
-# Canonical env var per deployment docs: CORS_ORIGINS (comma-separated).
-# Backwards compatible: CORS_ALLOW_ORIGINS.
-allowed_origins_env = (
-    os.getenv("CORS_ORIGINS", "").strip()
-    or os.getenv("CORS_ALLOW_ORIGINS", "").strip()
-)
-allowed_origins = [
-    "http://localhost:8501",
-    "http://127.0.0.1:8501",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
-if allowed_origins_env:
-    # comma-separated
-    allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,
-    # If you ever switch to cookie-based auth, set this to True and ensure
-    # allow_origins is NOT "*".
-    allow_credentials=False,
-    allow_methods=["*"] ,
-    allow_headers=["*"] ,
-)
-
-# Routers (keep public URLs stable; we can version later)
-system_router = APIRouter(tags=["system"])
-auth_router = APIRouter(prefix="/auth", tags=["auth"])
-messages_router = APIRouter(prefix="/messages", tags=["messages"])
-patient_flow_router = APIRouter(prefix="/patient_flow", tags=["patient_flow"])
-ml_router = APIRouter(tags=["ml"])
-upload_router = APIRouter(prefix="/upload", tags=["upload"])
-
-# Alerts + notifications
-alerts_router = APIRouter(prefix="/alerts", tags=["alerts"])
-notifications_router = APIRouter(prefix="/notifications", tags=["notifications"])
 
 
-@app.on_event("startup")
-def _startup_create_tables():
+def normalize_text(value, default: str = "") -> str:
+    if value is None:
+        return default
+    if isinstance(value, float) and np.isnan(value):
+        return default
+    text = str(value).strip()
+    if text.lower() == "nan":
+        return default
+    return text if text else default
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     # Safe default for this repo: ensure tables exist at runtime.
     # For production, migrate to Alembic migrations and remove create_all.
     init_db()
@@ -158,6 +127,55 @@ def _startup_create_tables():
         from scheduler import scheduler_loop
 
         asyncio.create_task(scheduler_loop())
+
+    yield
+    # Shutdown: nothing needed currently
+
+
+app = FastAPI(title="Hospital AI API", lifespan=lifespan)
+logging.basicConfig(level=logging.INFO)
+
+# CORS: allow Streamlit dev server and configurable origins for deployment.
+# Canonical env var per deployment docs: CORS_ORIGINS (comma-separated).
+# Backwards compatible: CORS_ALLOW_ORIGINS.
+allowed_origins_env = (
+    os.getenv("CORS_ORIGINS", "").strip()
+    or os.getenv("CORS_ALLOW_ORIGINS", "").strip()
+)
+allowed_origins = [
+    "http://localhost:8501",
+    "http://127.0.0.1:8501",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+if allowed_origins_env:
+    # comma-separated
+    allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    # If you ever switch to cookie-based auth, set this to True and ensure
+    # allow_origins is NOT "*".
+    allow_credentials=False,
+    allow_methods=["*"] ,
+    allow_headers=["*"] ,
+)
+
+# Routers (keep public URLs stable; we can version later)
+system_router = APIRouter(tags=["system"])
+auth_router = APIRouter(prefix="/auth", tags=["auth"])
+messages_router = APIRouter(prefix="/messages", tags=["messages"])
+patient_flow_router = APIRouter(prefix="/patient_flow", tags=["patient_flow"])
+ml_router = APIRouter(tags=["ml"])
+upload_router = APIRouter(prefix="/upload", tags=["upload"])
+
+# Alerts + notifications
+alerts_router = APIRouter(prefix="/alerts", tags=["alerts"])
+notifications_router = APIRouter(prefix="/notifications", tags=["notifications"])
+
 
 LEGACY_MESSAGES_FILE = "messages_log.csv"  # import-only (not runtime)
 LEGACY_MESSAGE_COLS = [
@@ -369,17 +387,6 @@ def build_engineered_sequence_from_patient_flow(rows: List[PatientFlow]) -> List
     return build_latest_sequence_from_rows(payload_rows)
 
 
-def normalize_text(value, default: str = "") -> str:
-    if value is None:
-        return default
-    if isinstance(value, float) and np.isnan(value):
-        return default
-    text = str(value).strip()
-    if text.lower() == "nan":
-        return default
-    return text if text else default
-
-
 def normalize_bool(value, default: bool = False) -> bool:
     if value is None:
         return default
@@ -474,6 +481,59 @@ def _build_state_from_sequence(sequence_array: np.ndarray | None = None) -> tupl
     return state, result
 
 
+def _operational_explanation(feature_name: str, impact: float, rank: int) -> str:
+    """Generate operationally credible explanation text for a feature impact."""
+
+    LAG_FEATURES = {"lag_1", "lag_2", "lag_3", "lag_6", "lag_12", "lag_24", "patients"}
+    SHIFT_FEATURES = {"hour", "shift_period", "trend_feature"}
+    DOW_FEATURES = {"day_of_week", "is_weekend", "day_of_week_name"}
+    APPT_OR_FEATURES = {"appointments_count", "or_bookings_count", "appointments_load", "or_pending_count"}
+    ROLL_FEATURES = {"roll_mean_3", "roll_mean_6", "roll_mean_24", "roll_mean_12"}
+
+    # Detect lag hour count from feature name (e.g. lag_6 -> 6)
+    lag_hours = None
+    if feature_name.startswith("lag_"):
+        try:
+            lag_hours = int(feature_name.split("_")[1])
+        except (IndexError, ValueError):
+            lag_hours = None
+
+    direction = "increasing" if impact > 0 else "decreasing"
+
+    if feature_name in LAG_FEATURES or lag_hours is not None:
+        hours = lag_hours if lag_hours else 1
+        return (
+            f"Historical patient load ({hours} hour{'s' if hours != 1 else ''} ago) is the strongest signal, "
+            f"suggesting demand follows a {hours}-hour pattern and is {direction} the forecast."
+        )
+    if feature_name in SHIFT_FEATURES:
+        return (
+            "Time-of-day effects (shift transitions, peak visiting hours) are influencing the forecast "
+            f"and {direction} expected patient volume."
+        )
+    if feature_name in DOW_FEATURES:
+        return (
+            "Day-of-week patterns (weekday vs weekend admission rates) are driving forecast adjustment "
+            f"and {direction} the predicted load."
+        )
+    if feature_name in APPT_OR_FEATURES:
+        return (
+            "Current appointment load and OR schedule are increasing expected demand, "
+            f"with this factor {direction} the next-hour forecast."
+        )
+    if feature_name in ROLL_FEATURES:
+        window = feature_name.split("_")[-1] if "_" in feature_name else "recent"
+        return (
+            f"Recent patient volume trends (rolling average over {window} hours) suggest sustained "
+            f"pressure, {direction} the forecast over the next period."
+        )
+    # Generic fallback
+    return (
+        f"Feature '{feature_name}' has a {'positive' if impact > 0 else 'negative'} impact "
+        f"of {abs(impact):.2f} patients on the next-hour forecast."
+    )
+
+
 def explain_feature_importance(sequence_array: np.ndarray):
     base_result = predict_hybrid(sequence_array)
     base_pred = float(base_result["hybrid_prediction"])
@@ -495,6 +555,11 @@ def explain_feature_importance(sequence_array: np.ndarray):
         impacts.append({"feature": feature_name, "impact": float(new_pred - base_pred)})
 
     impacts = sorted(impacts, key=lambda x: abs(x["impact"]), reverse=True)
+
+    # Attach operationally credible explanation text to each feature entry.
+    for rank, entry in enumerate(impacts):
+        entry["explanation"] = _operational_explanation(entry["feature"], entry["impact"], rank)
+
     return {"base_prediction": float(base_pred), "feature_impacts": impacts}
 
 
@@ -850,6 +915,54 @@ def health_db(_token: dict = Depends(require_staff_or_admin)):
         return {"status": "ok"}
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"db_unhealthy: {e}")
+
+
+@system_router.get("/health/full")
+def health_full():
+    """Comprehensive health check: API, DB, artifacts, forecast readiness, model status."""
+
+    result: dict = {"api": "ok"}
+
+    # Database check
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        result["database"] = "ok"
+    except Exception as db_exc:
+        result["database"] = f"error: {db_exc}"
+
+    # Artifact checks
+    from pathlib import Path
+    import os as _os
+
+    artifact_base = Path(_os.getenv("ARTIFACT_DIR") or "artifacts").resolve()
+    models_72h_dir = artifact_base / "models_72h"
+    required_artifacts = [
+        artifact_base / "forecast_outputs" / "ops72h_overall_forecast.csv",
+        artifact_base / "forecast_outputs" / "ops72h_department_forecast.csv",
+        artifact_base / "metrics_72h" / "ops72h_model_metrics.csv",
+        models_72h_dir / "lstm_ops72h.keras",
+        models_72h_dir / "arimax_ops72h.pkl",
+    ]
+    missing_artifacts = [str(p) for p in required_artifacts if not p.exists()]
+    result["artifacts"] = "ok" if not missing_artifacts else f"missing: {missing_artifacts}"
+
+    # Forecast readiness via ForecastState
+    try:
+        state = build_canonical_forecast_state()
+        result["forecast_ready"] = bool(state.artifact_freshness.ready)
+        ms = state.model_status
+        result["model_status"] = {
+            "lstm_ok": bool(ms.lstm_ok),
+            "arimax_ok": bool(ms.arimax_ok),
+            "hybrid_ok": bool(ms.hybrid_ok),
+        }
+    except Exception as fs_exc:
+        result["forecast_ready"] = False
+        result["model_status"] = {"lstm_ok": False, "arimax_ok": False, "hybrid_ok": False}
+        result["forecast_error"] = str(fs_exc)
+
+    return result
 
 
 @system_router.get("/status")

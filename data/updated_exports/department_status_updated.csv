@@ -1,6 +1,6 @@
-department,current_patients,occupied_beds,available_beds,needed_beds,bed_shortage,available_doctors,needed_doctors,doctor_shortage,available_nurses,needed_nurses,nurse_shortage,department_status
-ER,50,41,5,55,50,10,7,0,22,13,0,Critical
-General Ward,47,39,53,52,0,12,6,0,30,12,0,Stable
-ICU,25,20,8,28,20,8,4,0,22,7,0,Warning
-Surgery,25,20,14,28,14,10,4,0,18,7,0,Stable
-Radiology,20,16,2,22,20,6,3,0,10,5,0,Critical
+department,current_patients,occupied_beds,available_beds,total_beds,occupancy_rate,needed_beds,bed_shortage,available_doctors,needed_doctors,doctor_shortage,available_nurses,needed_nurses,nurse_shortage,department_status,pressure_level
+ER,38,36,4,40,0.90,38,34,3,4,1,7,7,0,Critical,High
+ICU,15,15,5,20,0.75,15,10,3,2,0,8,5,0,Warning,Moderate
+General Ward,58,52,18,70,0.74,44,26,4,5,1,11,10,0,Stable,Low
+Surgery,18,16,8,24,0.67,14,6,3,2,0,6,5,0,Stable,Low
+Radiology,12,10,8,18,0.56,9,1,2,2,0,4,4,0,Stable,Low

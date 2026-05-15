@@ -75,3 +75,42 @@ python scripts\smoke_forecast_state.py
 python -m pytest -q
 python -m compileall dashboard.py dashboard_sections.py staff_sections.py notification_sections.py message_center_sections.py approval_sections.py audit_sections.py api.py api_client.py database.py ops_live.py resource_optimizer.py operational_data_workflow.py evaluation_service.py forecast_state.py forecast_inference_ops72h.py generate_ops72h_outputs.py -q
 ```
+
+---
+
+## Overhaul Verification (2026-05-16)
+
+Current validation state after senior overhaul pass:
+
+| Check | Result |
+|---|---|
+| `compileall` (all root .py files) | PASS |
+| `pytest` (87 tests) | 87 passed, 0 failed |
+| `smoke_forecast_state.py` | PASSED |
+| `what_if_scenarios.csv` row count ≥ 40 | PASS (42 rows) |
+| `what_if_scenarios.csv` schema (21 cols) | PASS |
+| DEPARTMENT_CONFIG capacities calibrated | PASS |
+| Department-specific staff ratios | PASS |
+| UI_BUILD_ID current | PASS (2026-05-16-overhaul) |
+| FastAPI lifespan pattern (not deprecated) | PASS |
+| `/health/full` endpoint | PASS |
+
+### Data Integrity Quick Check
+
+```powershell
+python -c "
+import pandas as pd
+df = pd.read_csv('data/updated_exports/what_if_scenarios.csv')
+assert len(df) >= 40, f'Only {len(df)} rows'
+assert 'scenario_id' in df.columns
+print(f'what_if_scenarios: {len(df)} rows, {len(df.columns)} columns - OK')
+"
+```
+
+### Pre-Demo Final Check Command
+
+```powershell
+$env:PYTHONPATH = "D:\hro-ps-ai"
+python scripts\smoke_forecast_state.py
+python -m pytest tests\ -q
+```
