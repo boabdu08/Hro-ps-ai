@@ -42,7 +42,7 @@ Feature Engineering (61 operational + temporal columns)
                 Captures linear trend and 24-hour seasonal periodicity
         │
         ▼
-Hybrid Forecast  (selected by validation RMSE: MAE 6.6 | RMSE 8.1 | MAPE 4.9%)
+Hybrid Forecast  (selected by validation RMSE: MAE 8.5 | RMSE 10.5 | MAPE 6.1% — retrain 2026-05-17)
         │
         ▼
 ForecastState  ← canonical, frozen source of truth

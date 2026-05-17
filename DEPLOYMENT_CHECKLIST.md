@@ -91,22 +91,28 @@ python -m compileall dashboard.py dashboard_sections.py staff_sections.py notifi
 
 ---
 
-## Overhaul Verification (2026-05-16)
+## Retrain Verification (2026-05-17)
 
-Current validation state after senior overhaul pass:
+Full model retrain from `clean_data(AutoRecovered).csv` — 60 epochs default, early stopping.
 
 | Check | Result |
 |---|---|
-| `compileall` (all root .py files) | PASS |
+| `compileall` (all key .py files) | PASS |
 | `pytest` (87 tests) | 87 passed, 0 failed |
-| `smoke_forecast_state.py` | PASSED |
+| `smoke_forecast_state.py` | PASSED (fallback_used=False) |
+| Dataset rows | 17,520 ✓ |
+| Dataset NaN | 0 ✓ |
+| LSTM test metrics | MAE=7.645, RMSE=9.579, MAPE=5.52% |
+| ARIMAX test metrics | MAE=16.450, RMSE=20.325, MAPE=12.58% (3 convergence warnings) |
+| Hybrid test metrics | MAE=8.495, RMSE=10.453, MAPE=6.13% |
+| Hybrid weights | LSTM=0.80, ARIMAX=0.20 (both models valid) |
+| Overall forecast rows | 72 ✓ |
+| Department forecast rows | 360 ✓ |
+| Forecast NaN/negatives | 0 / 0 ✓ |
+| Forecast non-flat | True (std=20.72) ✓ |
+| 72h peak | 210.4 patients |
 | `what_if_scenarios.csv` row count ≥ 40 | PASS (42 rows) |
 | `what_if_scenarios.csv` schema (21 cols) | PASS |
-| DEPARTMENT_CONFIG capacities calibrated | PASS |
-| Department-specific staff ratios | PASS |
-| UI_BUILD_ID current | PASS (2026-05-16-overhaul) |
-| FastAPI lifespan pattern (not deprecated) | PASS |
-| `/health/full` endpoint | PASS |
 
 ### Data Integrity Quick Check
 

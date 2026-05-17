@@ -66,29 +66,41 @@ LSTM uses a 24-hour sequence length, so sequence counts are reduced by 24 within
 ## Training Commands Run
 
 ```powershell
-$env:HRO_OPS72H_LSTM_EPOCHS='12'; $env:HRO_OPS72H_LSTM_BATCH_SIZE='128'; python train_lstm_ops72h.py
+# Retrain 2026-05-17 (full default epochs, both models from clean_data(AutoRecovered).csv)
+python train_lstm_ops72h.py
 python train_arimax_ops72h.py
 python build_hybrid_ops72h.py
 python generate_ops72h_outputs.py
 ```
 
-## Final Metrics
+## Final Metrics (Retrain 2026-05-17)
+
+Test set metrics (15% chronological hold-out):
 
 | Model | MAE | RMSE | MAPE |
 |---|---:|---:|---:|
-| LSTM | 7.158200 | 9.005371 | 5.329422 |
-| ARIMAX | 7.796137 | 9.317053 | 5.963158 |
-| Hybrid | 6.622505 | 8.148527 | 4.912072 |
+| LSTM | 7.6450 | 9.5789 | 5.52% |
+| ARIMAX | 16.4501 | 20.3250 | 12.58% |
+| Hybrid (0.8/0.2) | 8.4950 | 10.4532 | 6.13% |
+
+Validation set metrics (used for weight selection):
+
+| Model | MAE | RMSE | MAPE |
+|---|---:|---:|---:|
+| LSTM | 6.2535 | 8.4197 | 5.61% |
+| ARIMAX | 20.6688 | 25.7710 | 22.27% |
+| Hybrid (0.8/0.2) | 7.0715 | 9.2289 | 6.98% |
 
 ## Hybrid Weights
 
-Constrained grid search required both models to contribute between 0.2 and 0.8.
+Constrained grid search (w in [0.20, 0.80], step 0.05) selected the best weights by lowest validation RMSE.
 
-- LSTM weight: 0.8
-- ARIMAX weight: 0.2
+- LSTM weight: 0.80
+- ARIMAX weight: 0.20
 - Selection metric: validation RMSE
+- Both models used: lstm_valid=True, arimax_valid=True, fallback_reasons=[]
 
-This is now a genuine Hybrid model, not LSTM-only or ARIMAX-only.
+**Note:** In this retrain, LSTM alone has lower test MAE (7.645) than the Hybrid (8.495) because ARIMAX convergence was poor (3 MLE convergence warnings). Both models are still included — the weight search found 0.8/0.2 as the best available blend within constraints.
 
 ## Forecast Artifact Status
 
@@ -99,53 +111,63 @@ Generated files:
 - `artifacts/metrics_72h/ops72h_model_metrics.csv`
 - `artifacts/manifests/ops72h_training_summary.json`
 
-Forecast quality:
+Forecast quality (2026-05-17):
 
 - Overall forecast rows: 72
 - Department forecast rows: 360
 - Departments: ER, General Ward, ICU, Surgery, Radiology
-- LSTM valid: true
-- ARIMAX valid: true
-- Fallback reasons: none
-- Forecast is non-negative and non-flat.
+- NaN values: 0
+- Negative predictions: 0
+- LSTM valid: True
+- ARIMAX valid: True
+- Fallback used: False
+- Forecast is non-negative and non-flat (hybrid_pred std=20.72).
+- 72h peak: 210.37 patients
+- 72h average: 186.03 patients
+- Constant forecast detected by smoke test: False
+- Artifact timestamp: 2026-05-17T16:08:43.214496
 
-Latest generated 72h output:
+## LSTM Training Details (2026-05-17)
 
-- Forecast timestamp: `2026-05-10T10:11:05.448950`
-- 72h peak: `252.63652782074715`
-- 72h average: `222.9677434709386`
-- Constant forecast detected by smoke test: `False`
+- Epochs run: 40 (early stopped at 40, best model at epoch 30)
+- Max epochs configured: 60
+- Batch size: 64
+- Sequence length: 24 hours
+- Architecture: LSTM(128) → Dropout(0.2) → LSTM(64) → Dropout(0.2) → Dense(32, relu) → Dense(1)
+- Optimizer: Adam lr=0.001 with ReduceLROnPlateau
 
 ## Convergence Warnings
 
-ARIMAX emitted statsmodels convergence warnings:
+ARIMAX emitted 3 statsmodels MLE convergence warnings during training:
 
 ```text
 ConvergenceWarning: Maximum Likelihood optimization failed to converge.
 ```
 
-The ARIMAX output still produced varying validation/test predictions and was retained with transparent documentation. Hybrid validation selected a 0.8 / 0.2 LSTM/ARIMAX blend.
+Not hidden. The ARIMAX output is valid (non-flat, non-NaN, non-negative) but less accurate than the previous training run. The convergence issue is a known limitation of SARIMAX (1,1,1) on large datasets with many exogenous variables. A seasonal ARIMAX (1,1,1)(1,0,1,24) would better capture hospital periodicity and is recommended for production.
 
 ## Known Limitations
 
-- The dataset is synthetic demo data, not real hospital data.
-- Metrics are meaningful for the demo distribution but are not clinically validated.
-- ARIMAX convergence warnings indicate the statistical fit is imperfect.
-- Production deployment would require real hospital data ingestion, model monitoring, drift detection, and formal validation.
+- Dataset is synthetic demo data — not real hospital data.
+- Metrics are for the demo distribution only — not clinically validated.
+- ARIMAX convergence warnings indicate imperfect statistical fit.
+- In this retrain, ARIMAX performed significantly worse than LSTM (test RMSE 20.32 vs 9.58), making the Hybrid slightly worse than LSTM alone.
+- Production would require real data, model monitoring, drift detection, and formal clinical validation.
 
 ---
 
-## Status as of 2026-05-16 Overhaul
+## Status as of 2026-05-17 Retrain
 
-No retraining was performed in this pass — existing metrics and artifacts remain valid:
+Full retrain completed from `clean_data(AutoRecovered).csv`:
 
 | Model | MAE | RMSE | MAPE | Status |
 |---|---:|---:|---:|---|
-| LSTM | 7.158 | 9.005 | 5.33% | Valid |
-| ARIMAX | 7.796 | 9.317 | 5.96% | Valid (convergence warning documented) |
-| **Hybrid** | **6.623** | **8.149** | **4.91%** | **Best — Valid** |
+| LSTM | 7.645 | 9.579 | 5.52% | Valid |
+| ARIMAX | 16.450 | 20.325 | 12.58% | Valid, 3 convergence warnings |
+| **Hybrid** | **8.495** | **10.453** | **6.13%** | **Valid, genuinely blended 0.8/0.2** |
 
-- Hybrid weights confirmed: LSTM=0.80, ARIMAX=0.20
-- 72h forecast peak: 252.6, average: 222.9 (non-flat, non-negative)
-- ForecastState smoke: PASSED
-- Artifact timestamp: 2026-05-10T10:11:05.448950
+- Hybrid weights: LSTM=0.80, ARIMAX=0.20 (constraint: both must contribute 0.2–0.8)
+- 72h forecast peak: 210.4, average: 186.0 (non-flat, non-negative)
+- ForecastState smoke: PASSED (fallback_used=False)
+- pytest: 87 passed, 0 failed
+- compileall: clean
