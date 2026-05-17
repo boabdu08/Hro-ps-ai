@@ -126,7 +126,7 @@ def _render_approval_card(row, approver_name: str):
             st.caption("Reason")
             st.write(_normalize(rec_type).title())
 
-        a1, a2, a3 = st.columns([1, 1, 2])
+        a1, a2 = st.columns([1, 1])
         with a1:
             if st.button("Approve", key=f"approve_{rec_id}"):
                 ok = approve_recommendation(rec_id, approver_name)
@@ -145,14 +145,6 @@ def _render_approval_card(row, approver_name: str):
                 else:
                     st.error("Failed to reject recommendation.")
                 st.rerun()
-        with a3:
-            st.button(
-                "Request changes",
-                key=f"changes_{rec_id}",
-                disabled=True,
-                help="Request-changes workflow is not configured in this demo.",
-            )
-            st.caption("Request changes is visible for narrative completeness but is not wired to an unsupported API.")
 
 
 def _new_recommendation_id() -> str:
@@ -662,7 +654,7 @@ def show_admin_approval_panel(peak, beds_needed, doctors_needed, emergency_level
     )
     alert_box(
         "Approvals turn forecast and optimization recommendations into tracked operational decisions. "
-        "Approve/reject actions are supported; request changes is not configured in this demo.",
+        "Each approval or rejection is recorded in the immutable audit trail.",
         level="info",
     )
 

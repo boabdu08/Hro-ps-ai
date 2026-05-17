@@ -70,12 +70,63 @@ Before deployment, verify the target platform installs the intended file and can
 
 ## Recommended full architecture
 
-- **API:** Render or Railway web service running `uvicorn main:app --host 0.0.0.0 --port $PORT`
-- **Worker:** Render/Railway worker running `python worker.py`
-- **DB:** Neon/Supabase/Postgres
-- **Dashboard:** Streamlit Cloud or Render running `streamlit run dashboard.py --server.port $PORT --server.address 0.0.0.0 --server.headless true`
+- **DB:** Neon (recommended) or Supabase / Render Postgres
+- **API:** Render web service — `uvicorn main:app --host 0.0.0.0 --port $PORT`
+- **Dashboard:** Streamlit Cloud or Render web service — `streamlit run dashboard.py --server.port $PORT --server.address 0.0.0.0 --server.headless true`
+- **Worker:** Render worker — `python worker.py` — deploy **after** the API is healthy
 
-This repo includes `render.yaml` with API, dashboard, and worker services.
+This repo includes `render.yaml` with API, dashboard, and worker services configured.
+
+### Deployment order (important)
+
+Deploy in this order to avoid startup failures:
+
+1. **Provision the Neon database** and copy the connection string.
+2. **Deploy the API** (`hro-ps-api`). Set `DATABASE_URL`, `JWT_SECRET_KEY`, `CORS_ORIGINS`.
+3. **Seed the database**: after the API is up, run `python seed_from_csv.py` once (or `SEED_FORCE=true python seed_from_csv.py` if re-seeding). The API lifespan also seeds 7 baseline demo users on startup automatically.
+4. **Deploy the dashboard** (`hro-ps-dashboard`). Set `API_BASE_URL` to the Render API public URL.
+5. **Deploy the worker** (`hro-ps-worker`) last — it depends on the API and DB being ready.
+
+> Do **not** deploy the worker before the API. The worker requires the DB schema and API stack to exist first.
+
+### Required env vars
+
+**API service** (`hro-ps-api`):
+
+| Variable | Value |
+|---|---|
+| `DATABASE_URL` | Neon connection string with `?sslmode=require` |
+| `JWT_SECRET_KEY` | Strong random secret (never the demo value) |
+| `JWT_ALGORITHM` | `HS256` |
+| `CORS_ORIGINS` | Dashboard URL(s), comma-separated |
+| `DEFAULT_TENANT_SLUG` | `demo-hospital` |
+| `ARTIFACT_DIR` | `.` (artifacts in repo root) |
+| `APP_ENV` | `prod` |
+
+**Dashboard service** (`hro-ps-dashboard`):
+
+| Variable | Value |
+|---|---|
+| `API_BASE_URL` | Public Render API URL |
+| `DATABASE_URL` | Same Neon connection string |
+| `DEFAULT_TENANT_SLUG` | `demo-hospital` |
+| `ARTIFACT_DIR` | `.` |
+| `APP_ENV` | `prod` |
+
+### Artifact deployment note
+
+The `.gitignore` now has explicit exception rules so that required deployment artifacts are committed to git:
+
+```
+!artifacts/models_72h/*.keras
+!artifacts/models_72h/*.pkl
+!artifacts/forecast_outputs/*.csv
+!artifacts/metrics_72h/*.csv
+!artifacts/metrics_72h/*.json
+!artifacts/manifests/*.json
+```
+
+Without these exceptions, Render deployments will fail `/health/full` checks because model files will not be present on the cloud filesystem. Verify that `git status` does not show the artifact files as untracked before pushing.
 
 ## Streamlit Cloud deployment
 

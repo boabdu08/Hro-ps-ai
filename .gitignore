@@ -25,13 +25,23 @@ dist/
 # Streamlit cache
 .streamlit/cache/
 
-# ML / artifacts (keep only what you truly want versioned)
+# ML / artifacts — exclude large binary files by default
 *.h5
 *.keras
 *.pkl
 *.joblib
 *.npz
 *.npy
+
+# Exception: required deployment artifacts must be versioned so cloud deployments work
+# Without these exceptions, Render/Railway deployments will fail health checks.
+!artifacts/models_72h/*.keras
+!artifacts/models_72h/*.pkl
+!artifacts/models_72h/*.json
+!artifacts/forecast_outputs/*.csv
+!artifacts/metrics_72h/*.csv
+!artifacts/metrics_72h/*.json
+!artifacts/manifests/*.json
 
 # Local DB / cache
 *.sqlite3

@@ -27,6 +27,43 @@ HRO-PS is an **AI-powered hospital resource optimization prototype** built for a
 - **Explainability / Model Feature Sensitivity** for readable model-input interpretation.
 - **In-app alerts/messages foundation** for operational coordination, acknowledgments, and audit visibility.
 
+## System architecture
+
+```
+Synthetic / Demo Hospital Data (17,520 hourly rows, 2024–2025)
+        │
+        ▼
+Feature Engineering (61 operational + temporal columns)
+        │
+        ├──► LSTM (weight 0.80)
+        │       Captures non-linear surge spikes, shift transitions, emergency events
+        │
+        └──► ARIMAX (weight 0.20)
+                Captures linear trend and 24-hour seasonal periodicity
+        │
+        ▼
+Hybrid Forecast  (selected by validation RMSE: MAE 6.6 | RMSE 8.1 | MAPE 4.9%)
+        │
+        ▼
+ForecastState  ← canonical, frozen source of truth
+        │         All tabs and all API endpoints read from the same object.
+        │         This makes it architecturally impossible for Command Center,
+        │         Forecast, Digital Twin, Optimization, and Evaluation to
+        │         show different values for the same metric.
+        │
+        ├──► FastAPI (46 endpoints)
+        │       /forecast_state  /optimize  /explain  /health/full
+        │       PostgreSQL (21 tenant-scoped tables, bcrypt + JWT auth)
+        │
+        └──► Streamlit Dashboard (13 tabs, 3 role views)
+                Command Center → Forecast → Digital Twin
+                Optimization → What-if Simulation → Evaluation
+                Explainability → Shifts → Appointments → OR Bookings
+                Notifications → Messages → Approvals → Audit
+```
+
+The key architectural invariant is that **ForecastState is the single canonical source of truth**. All 13 dashboard tabs and all forecast/evaluation/optimization API responses derive their values from the same ForecastState instance. Cross-tab consistency is verified by a dedicated smoke test on every run.
+
 ## Technology stack
 
 - **Python 3.11** deployment runtime (`runtime.txt`).

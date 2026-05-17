@@ -337,3 +337,37 @@ pytest:                  87 passed, 0 failed (6.57s)
 smoke_forecast_state.py: PASSED (72h horizon, peak 252.6, avg 222.9, non-flat, wiring OK)
 what_if_scenarios.csv:   42 rows, 21 columns, schema valid, passes 40-row check
 ```
+
+---
+
+## Data, Users, and Seed Audit — 2026-05-17
+
+### Files Changed
+
+| File | Change |
+|---|---|
+| `users.csv` | Expanded from 5 to 30 user accounts (6 admin, 12 doctor, 12 nurse) |
+| `shifts.csv` | Removed duplicate `staff_username.1` column; corrected `staff_username` to lowercase |
+| `api.py` (lifespan) | Expanded baseline `desired` user list from 3 to 7 demo accounts |
+| `data/updated_exports/data_dictionary.csv` | Created: 168 column definitions across 10 datasets |
+| `data/HRO_PS_DATA_WORKBOOK.xlsx` | Created: 13-sheet Excel workbook (4.2 MB) |
+| `data/HRO_PS_DATA_AUDIT_NOTEBOOK.ipynb` | Created: 29-cell Jupyter audit notebook |
+
+### Root Causes Fixed
+
+1. **shifts.csv duplicate column bug**: `staff_username` appeared twice — first as uppercase (STF-0002), second as lowercase (stf-0002). `seed_from_csv.py` reads `row.get("staff_username")` which resolves to the first (uppercase) column. Login usernames are lowercase. This caused `show_my_shifts(username, role)` to never match shifts for stf-XXXX users. Fix: dropped the uppercase column, kept and renamed the lowercase one.
+
+2. **Insufficient demo users**: Only 5 total accounts. "My Shifts" and role-filtered views had no testable named accounts beyond generic ones. Expanded to 30 accounts using stf-XXXX usernames matching `staff_schedule.staff_username` exactly.
+
+3. **api.py lifespan seeded only 3 baseline users**: Fresh deployments only guaranteed admin1, doctor1, nurse1. Fixed by expanding the `desired` list to 7 core demo accounts.
+
+### Validation Results (2026-05-17)
+
+| Check | Result |
+|---|---|
+| users.csv: 30 accounts, 0 duplicate usernames | PASS |
+| shifts.csv: 0 uppercase staff_username, duplicate column removed | PASS |
+| data_dictionary.csv: 168 entries, 10 datasets | PASS |
+| HRO_PS_DATA_WORKBOOK.xlsx: 13 sheets | PASS |
+| HRO_PS_DATA_AUDIT_NOTEBOOK.ipynb: 29 cells | PASS |
+| Cross-table relationship integrity (11 checks) | ALL PASS |

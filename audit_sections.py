@@ -201,9 +201,3 @@ def show_execution_trace():
             st.write(f"**Target:** {_clean(row['target'])}")
             st.write(f"**Details:** {_clean(row['details'])}")
 
-def _render_reply(msg):
-    reply = msg.get("reply", "")
-    if reply:
-        st.markdown("#### Reply")
-        st.write(reply)
-        

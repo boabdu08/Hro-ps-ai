@@ -598,6 +598,20 @@ def show_overview():
         st.caption("Metadata only, not a patient-pressure KPI.")
     st.caption("Command Center KPIs are sourced from the canonical ForecastState used by Forecast, Digital Twin, Optimization, Evaluation, and API runtime.")
 
+    # Accuracy badge — read from canonical ForecastState metrics
+    try:
+        _mdf = forecast_state.metrics
+        if isinstance(_mdf, pd.DataFrame) and not _mdf.empty:
+            _hybrid_row = _mdf[_mdf["Model"].str.lower().str.contains("hybrid", na=False)]
+            if not _hybrid_row.empty:
+                _mae = round(float(_hybrid_row["MAE"].iloc[0]), 1)
+                _mape = round(float(_hybrid_row["MAPE"].iloc[0]), 1)
+                st.caption(f"Forecast accuracy — Hybrid model: MAE {_mae} patients | MAPE {_mape}% (caution metric)")
+            else:
+                st.caption("Forecast accuracy metrics unavailable.")
+    except Exception:
+        st.caption("Forecast accuracy metrics unavailable.")
+
     # Decision banner
     if emergency_level == "HIGH":
         alert_box(
@@ -2032,6 +2046,7 @@ def render_digital_twin(*, key_prefix: str = "twin"):
     )
     predicted_at_h = float(plot_values[int(horizon) - 1])
     st.caption(
+        f"Hour 1 = next hour ahead | Hour 72 = 3 days ahead. "
         f"Current view: {series_name}. The +{horizon}h KPI, chart, and table below are all based on this selected department/view and saved 72-hour horizon."
     )
 
@@ -2344,16 +2359,17 @@ def show_evaluation_panel():
 
 
 def show_explainability_panel():
-    page_header("Model Feature Sensitivity", "Readable explanation of which inputs increase or reduce forecast pressure.")
+    page_header("Model Feature Sensitivity", "Which inputs are driving forecast pressure — shown as percentage contributions.")
 
-    # Small operational narrative (rule-based) so operators can map the model sensitivity
-    # to day-to-day pressure drivers. This never overwrites model-based outputs.
-    st.subheader("How to read this")
-    st.caption(
-        "Positive impact increases forecast pressure. Negative impact reduces forecast pressure. "
-        "This is model feature sensitivity from the existing explainability service; it is not labeled as SHAP."
-    )
-
+    with st.container(border=True):
+        st.markdown("**How to read this**")
+        st.caption(
+            "Each feature's contribution is shown as a percentage of the total measured sensitivity across the top features. "
+            "A feature that 'increases predicted pressure by 32%' means it accounts for 32% of the total upward signal "
+            "among the top model inputs. "
+            "**This is feature sensitivity analysis, not SHAP.** "
+            "Percentages are normalized across displayed features and are approximate model introspection outputs."
+        )
 
     ctx = get_live_context()
     if not ctx["ready"]:
@@ -2362,63 +2378,108 @@ def show_explainability_panel():
 
     explanation = explain_prediction(ctx["last_sequence"])
     if explanation is None or "feature_impacts" not in explanation:
-        empty_state("Explainability service unavailable.")
+        empty_state("Explainability service unavailable. The model sensitivity service could not process the current input sequence.")
         return
 
     base_prediction = explanation["base_prediction"]
     impacts = explanation["feature_impacts"]
 
-    kpi_card("Base prediction", fmt_patients(base_prediction), delta="patients", status="info")
+    kpi_card("Base prediction (no feature adjustments)", fmt_patients(base_prediction), delta="patients", status="info")
 
     impact_df = pd.DataFrame(impacts)
     if impact_df.empty:
-        empty_state("No explainability impacts available.")
+        empty_state("No feature impact data available.")
         return
 
     impact_df["impact"] = pd.to_numeric(impact_df["impact"], errors="coerce").fillna(0.0)
     impact_df["abs_impact"] = impact_df["impact"].abs()
     impact_df["Feature"] = impact_df["feature"].apply(_friendly_feature_label)
-    impact_df["Direction"] = np.where(impact_df["impact"] >= 0, "Increases forecast pressure", "Reduces forecast pressure")
-    impact_df["Impact"] = impact_df["impact"].round(2)
-    impact_df["Plain-English meaning"] = impact_df.apply(lambda r: _feature_meaning(str(r.get("feature")), str(r.get("Direction"))), axis=1)
     top_df = impact_df.sort_values(by="abs_impact", ascending=False).head(12).copy()
 
-    inc_df = top_df[top_df["impact"] >= 0].sort_values("impact", ascending=True)
-    red_df = top_df[top_df["impact"] < 0].sort_values("impact", ascending=True)
+    # Normalize to contribution percentages (safe: denominator guard)
+    total_abs = top_df["abs_impact"].sum()
+    if total_abs > 0:
+        top_df["Contribution %"] = (top_df["abs_impact"] / total_abs * 100).round(1)
+    else:
+        top_df["Contribution %"] = 0.0
+
+    top_df["Direction"] = np.where(
+        top_df["impact"] >= 0,
+        "Increases forecast pressure",
+        "Reduces forecast pressure",
+    )
+    top_df["Contribution"] = top_df.apply(
+        lambda r: f"increases predicted pressure by {r['Contribution %']}%"
+        if r["impact"] >= 0
+        else f"reduces predicted pressure by {r['Contribution %']}%",
+        axis=1,
+    )
+    top_df["Plain-English meaning"] = top_df.apply(
+        lambda r: _feature_meaning(str(r.get("feature")), str(r.get("Direction"))),
+        axis=1,
+    )
+
+    inc_df = top_df[top_df["impact"] >= 0].sort_values("Contribution %", ascending=True)
+    red_df = top_df[top_df["impact"] < 0].sort_values("Contribution %", ascending=True)
+
     c_inc, c_red = st.columns(2)
     with c_inc:
-        section_header("Pressure-increasing drivers", "Positive impact")
+        section_header("Pressure-increasing drivers", "Features pushing the forecast higher")
         if inc_df.empty:
-            empty_state("No positive drivers in the top features.")
+            empty_state("No pressure-increasing drivers in the top features.")
         else:
             fig_inc = px.bar(
                 inc_df,
-                x="Impact",
+                x="Contribution %",
                 y="Feature",
                 orientation="h",
-                title="Top pressure-increasing features",
+                title="Increases forecast pressure",
+                color_discrete_sequence=["#EF4444"],
             )
-            fig_inc.update_layout(height=380, xaxis_title="Impact", yaxis_title="")
-            fig_inc.update_traces(hovertemplate="%{y}<br>Impact: %{x:.2f}<extra></extra>")
+            fig_inc.update_layout(
+                height=max(280, len(inc_df) * 45),
+                xaxis_title="Contribution to pressure increase (%)",
+                yaxis_title="",
+                margin=dict(l=8, r=8, t=36, b=8),
+                xaxis=dict(range=[0, 100]),
+            )
+            fig_inc.update_traces(
+                hovertemplate="%{y}<br>%{x:.1f}% of total measured sensitivity<extra></extra>"
+            )
             st.plotly_chart(fig_inc, use_container_width=True, key=scoped_key("explainability", "feature_impacts_positive"))
+
     with c_red:
-        section_header("Pressure-reducing drivers", "Negative impact")
+        section_header("Pressure-reducing drivers", "Features pushing the forecast lower")
         if red_df.empty:
-            empty_state("No negative drivers in the top features.")
+            empty_state("No pressure-reducing drivers in the top features.")
         else:
             fig_red = px.bar(
                 red_df,
-                x="Impact",
+                x="Contribution %",
                 y="Feature",
                 orientation="h",
-                title="Top pressure-reducing features",
+                title="Reduces forecast pressure",
+                color_discrete_sequence=["#22C55E"],
             )
-            fig_red.update_layout(height=380, xaxis_title="Impact", yaxis_title="")
-            fig_red.update_traces(hovertemplate="%{y}<br>Impact: %{x:.2f}<extra></extra>")
+            fig_red.update_layout(
+                height=max(280, len(red_df) * 45),
+                xaxis_title="Contribution to pressure reduction (%)",
+                yaxis_title="",
+                margin=dict(l=8, r=8, t=36, b=8),
+                xaxis=dict(range=[0, 100]),
+            )
+            fig_red.update_traces(
+                hovertemplate="%{y}<br>%{x:.1f}% of total measured sensitivity<extra></extra>"
+            )
             st.plotly_chart(fig_red, use_container_width=True, key=scoped_key("explainability", "feature_impacts_negative"))
 
-    table_cols = ["Feature", "Direction", "Impact", "Plain-English meaning"]
+    section_header("Feature contribution table", "All top features with direction and plain-English description")
+    table_cols = ["Feature", "Direction", "Contribution %", "Contribution", "Plain-English meaning"]
     modern_table(top_df[table_cols], key=scoped_key("explainability", "impact_table"))
+    st.caption(
+        "Contribution % is the feature's share of total absolute sensitivity across the top 12 features. "
+        "Values sum to 100% across all rows shown. This is model introspection — not SHAP, not clinical causality."
+    )
 
 
 def show_simulation():

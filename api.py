@@ -83,8 +83,12 @@ async def lifespan(app: FastAPI):
             hashed = hash_password(pwd)
             desired = [
                 {"username": "admin1", "name": "Hospital Admin", "role": "admin", "department": "Management"},
-                {"username": "doctor1", "name": "Dr. Ahmed", "role": "doctor", "department": "ER"},
-                {"username": "nurse1", "name": "Nurse Mona", "role": "nurse", "department": "General Ward"},
+                {"username": "admin2", "name": "Hospital Administrator 2", "role": "admin", "department": "Management"},
+                {"username": "ops_manager", "name": "Operations Manager", "role": "admin", "department": "Management"},
+                {"username": "doctor1", "name": "Dr. Ahmed Mahmoud", "role": "doctor", "department": "ER"},
+                {"username": "doctor2", "name": "Dr. Ahmed Nasser", "role": "doctor", "department": "ICU"},
+                {"username": "nurse1", "name": "Nurse Mona Mahmoud", "role": "nurse", "department": "General Ward"},
+                {"username": "nurse2", "name": "Nurse Hassan Yasin", "role": "nurse", "department": "ER"},
             ]
 
             for u in desired:

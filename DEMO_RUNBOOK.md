@@ -478,6 +478,18 @@ The biggest limitation is that the project uses demo data and pre-generated arti
 
 The next major step is a pilot-ready SaaS MVP with real hospital data ingestion, stronger authentication, tenant isolation, monitoring, and model lifecycle management.
 
+### 16. Why is the ARIMAX weight only 0.2 in the Hybrid model?
+
+The hybrid weights were chosen by exhaustive validation RMSE. We ran a constrained grid search over LSTM/ARIMAX blending weights from 0.20 to 0.80 in 0.05 steps and selected the combination with the lowest validation RMSE. The minimum was at LSTM = 0.80 / ARIMAX = 0.20.
+
+Removing ARIMAX entirely (pure LSTM) raises RMSE from 8.149 to 9.005 — a 10.8% degradation. So ARIMAX is not useless: it contributes linear trend and seasonal periodicity that stabilizes the hybrid, especially in lower-variance windows. The LSTM dominates because hourly hospital demand has strong non-linear behavior — surge spikes, shift transitions, emergency events — that ARIMA cannot model well.
+
+In short: the 0.2 weight is not a design failure. It is the empirically optimal contribution of ARIMAX given the nature of the data.
+
+### 17. Why keep ARIMAX if LSTM is already stronger?
+
+Because a 10.8% RMSE improvement is operationally meaningful. In a hospital context, reducing average forecast error from 9 patients to 8.1 patients per hour translates to better bed and staff planning decisions. ARIMAX also adds a safety property: when the LSTM temporarily overfits or produces unstable predictions, the ARIMAX component provides a linear anchor that reduces forecast volatility. The hybrid is more robust than either model alone. We would only drop ARIMAX if its validated contribution were zero — and it is not.
+
 ## 8. Emergency Backup Plan
 
 ### If Internet Fails

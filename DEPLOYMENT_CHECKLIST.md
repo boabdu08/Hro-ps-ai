@@ -36,6 +36,14 @@ Use this checklist before the graduation-demo deployment attempt.
 - [ ] Messages render Arabic text right-to-left.
 - [ ] Approvals show pending items and processed decision history.
 - [ ] Audit shows event logs and export works.
+- [ ] Explainability tab loads with feature impact bars (pressure-increasing and pressure-reducing columns).
+- [ ] Explainability tab: base prediction KPI card shows a patient count (not 0 or blank).
+- [ ] Explainability tab: plain-English feature meanings are readable in the impact table.
+- [ ] Explainability tab: no "unavailable" error shown.
+- [ ] Explainability tab: tab clearly labels the method as feature sensitivity analysis (not SHAP) unless real SHAP is wired.
+- [ ] What-if Scenarios: scenario table loads and shows ≥ 40 rows.
+- [ ] What-if Scenarios: demand/resource sliders affect simulated output.
+- [ ] What-if Scenarios: CSV export or summary works if implemented.
 
 ## Chart Checks
 
@@ -48,6 +56,8 @@ Use this checklist before the graduation-demo deployment attempt.
 - [ ] Shortage charts include a legend.
 - [ ] Shift chart labels are readable.
 - [ ] OR chart has readable room labels and useful values.
+- [ ] Feature impact bars have readable feature names and numerical impact values.
+- [ ] Positive drivers (left column) and negative drivers (right column) both render in Explainability.
 
 ## Dark Mode
 
@@ -65,6 +75,9 @@ Use this checklist before the graduation-demo deployment attempt.
 - [ ] Appointment doctors exist in staff master.
 - [ ] OR booking doctors exist in staff master.
 - [ ] No duplicate IDs in staff, appointments, OR bookings, tracking, scenarios.
+- [ ] `data/updated_exports/what_if_scenarios.csv` exists with ≥ 40 rows and 21 columns.
+- [ ] `users.csv` has ≥ 25 accounts covering admin, doctor, and nurse roles.
+- [ ] Login works for all named demo accounts (admin1, admin2, ops_manager, doctor1, doctor2, nurse1, nurse2, stf-0001).
 - [ ] No negative patient/resource values in required operational files.
 - [ ] No impossible single-hour patient spikes above 3x the rolling 24-hour average.
 

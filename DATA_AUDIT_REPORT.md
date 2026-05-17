@@ -285,3 +285,71 @@ Additional model features retained: `patients`, `week_number`, `holiday`, `occup
 | `staff_schedule.csv` | 1,470 | PASS (dates anchored to 2026-05-16) |
 | `appointments_updated.csv` | 153 | PASS (dates anchored to 2026-05-16) |
 | `or_bookings.csv` | 150 | PASS (dates anchored to 2026-05-16) |
+
+---
+
+## Data Audit Pass — 2026-05-17
+
+### Scope
+
+Full hospital data audit and correction pass. Reviewed all source data files, user seed files, DB seed scripts, and cross-table relationships. Created data dictionary, Excel workbook, and Jupyter audit notebook.
+
+### Changes Made
+
+| File | Change | Result |
+|---|---|---|
+| `users.csv` | Expanded from 5 to 30 user accounts (6 admin/manager, 12 doctor, 12 nurse) | PASS |
+| `shifts.csv` | Removed duplicate `staff_username` column; made `staff_username` lowercase to match login usernames | PASS |
+| `api.py` (lifespan desired list) | Expanded baseline demo user seeding from 3 to 7 accounts | PASS |
+| `data/updated_exports/data_dictionary.csv` | Created: 168 column definitions across 10 datasets | NEW |
+| `data/HRO_PS_DATA_WORKBOOK.xlsx` | Created: 13 sheets, all datasets + validation + relationship checks | NEW |
+| `data/HRO_PS_DATA_AUDIT_NOTEBOOK.ipynb` | Created: 29-cell Jupyter audit notebook | NEW |
+
+### Current File Status (2026-05-17)
+
+| File | Rows | Columns | Status |
+|---|---:|---:|---|
+| `clean_data(AutoRecovered).csv` | 17,520 | 61 | PASS — no nulls, no negative patients, no duplicate timestamps |
+| `data/updated_exports/staff_master_data.csv` | 148 | 11 | PASS — 46 doctors, 102 nurses, 0 duplicate staff_id |
+| `data/updated_exports/staff_schedule.csv` | 1,470 | 11 | PASS — all staff_id in master, lowercase usernames |
+| `data/updated_exports/appointments_updated.csv` | 153 | 7 | PASS — 0 duplicate appointment_id, 0 nulls |
+| `data/updated_exports/or_bookings.csv` | 150 | 13 | PASS — 0 duplicate booking_id |
+| `data/updated_exports/patient_tracking.csv` | 120 | 13 | PASS — 0 discharged without discharge_datetime, 0 waiting with bed |
+| `data/updated_exports/department_status_updated.csv` | 5 | 16 | PASS — bed math correct (occupied+available==total) for all 5 depts |
+| `data/updated_exports/what_if_scenarios.csv` | 42 | 21 | PASS — 0 nulls, 0 duplicate scenario_id |
+| `shifts.csv` | 1,470 | 10 | PASS — fixed: lowercase staff_username, duplicate column removed |
+| `users.csv` | 30 | 5 | PASS — expanded: 30 accounts, all with password 123456 |
+| `data/updated_exports/data_dictionary.csv` | 168 | 8 | NEW — covers all 10 datasets |
+| `data/HRO_PS_DATA_WORKBOOK.xlsx` | 13 sheets | — | NEW — 4.2 MB, all datasets + validation + relationship checks |
+| `data/HRO_PS_DATA_AUDIT_NOTEBOOK.ipynb` | 29 cells | — | NEW — covers all datasets + cross-table integrity checks |
+
+### User Accounts After Expansion
+
+| Role | Count | Examples |
+|---|---:|---|
+| admin/manager | 6 | admin1, admin2, ops_manager, er_head, icu_head, gw_head |
+| doctor | 12 | doctor1, doctor2, stf-0001, stf-0005, stf-0007, stf-0034, stf-0039, stf-0075, stf-0078, stf-0105, stf-0108, stf-0133 |
+| nurse | 12 | nurse1, nurse2, stf-0011, stf-0016, stf-0019, stf-0063, stf-0064, stf-0083, stf-0085, stf-0115, stf-0119, stf-0139 |
+| **Total** | **30** | All password: 123456 |
+
+Doctor and nurse usernames (stf-XXXX) match lowercase `staff_username` values in `staff_schedule.csv` and `shifts.csv`, ensuring the "My Shifts" dashboard tab works for every named user.
+
+### Key Bug Fixed
+
+`shifts.csv` had a duplicated `staff_username` column: the first column (uppercase STF-XXXX) and a second column (lowercase stf-XXXX) with identical data. The seeder `seed_from_csv.py → seed_staff_shifts()` reads `row.get("staff_username")` which returns the first column — uppercase — causing a mismatch with lowercase login usernames in `show_my_shifts()`. Fixed: dropped the uppercase column, renamed the lowercase column to `staff_username`.
+
+### Relationship Integrity Checks (All Pass)
+
+| Check | Result |
+|---|---|
+| staff_schedule.staff_id → staff_master.staff_id | PASS (0 missing) |
+| shifts.staff_username all lowercase | PASS (0 uppercase found) |
+| users.username unique | PASS (0 duplicates) |
+| dept_status: occupied + available == total | PASS (all 5 departments) |
+| patient_tracking: discharged have discharge_datetime | PASS (0 violations) |
+| patient_tracking: waiting patients have no bed | PASS (0 violations) |
+| appointments.appointment_id unique | PASS (0 duplicates) |
+| or_bookings.booking_id unique | PASS (0 duplicates) |
+| clean_data.patients no nulls | PASS |
+| clean_data.patients all positive | PASS |
+| clean_data.datetime no duplicates | PASS |

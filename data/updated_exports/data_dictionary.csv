@@ -1,0 +1,169 @@
+column_name,dataset,meaning,data_type,allowed_values,synthetic_demo,used_in_training,used_in_dashboard
+datetime,"clean_data (patient flow, training)",Timestamp of the hourly record,string,ISO datetime,True,True,False
+patients,"clean_data (patient flow, training)",Total patients present in hospital at this hour (primary target),int,42-232,True,True,True
+day_of_week,"clean_data (patient flow, training)",Integer day (0=Monday 6=Sunday),int,0-6,True,True,False
+day_of_week_name,"clean_data (patient flow, training)",Name of day,string,Monday-Sunday,True,True,False
+month,"clean_data (patient flow, training)",Calendar month,int,1-12,True,True,False
+is_weekend,"clean_data (patient flow, training)",1 if Saturday or Sunday,int,0 or 1,True,True,True
+holiday,"clean_data (patient flow, training)",1 if hospital calendar event or public holiday,int,0 or 1,True,True,True
+holiday_name,"clean_data (patient flow, training)",Name of holiday or event,string,free text or blank,True,True,False
+weather,"clean_data (patient flow, training)",Weather severity code,int,1-3,True,True,True
+weather_type,"clean_data (patient flow, training)",Weather label,string,Normal/Cold-Flu Season/Extreme Heat,True,True,False
+weather_severity,"clean_data (patient flow, training)",Weather severity (duplicates weather column),int,1-3,True,True,False
+hospital capacity,"clean_data (patient flow, training)",Maximum licensed beds at this hour,int,218-295,True,True,True
+is_capped,"clean_data (patient flow, training)",1 if patients equal capacity,int,0 or 1,True,True,False
+is_emergency,"clean_data (patient flow, training)",1 if mass casualty or emergency event active,int,0 or 1,True,True,True
+emergency_spike,"clean_data (patient flow, training)",Additional patients from emergency event,int,>=0,True,True,True
+is_outbreak,"clean_data (patient flow, training)",1 if disease outbreak active,int,0 or 1,True,True,True
+outbreak_intensity,"clean_data (patient flow, training)",Severity of outbreak (0=none 3=severe),int,0-3,True,True,True
+is_staff_shortage,"clean_data (patient flow, training)",1 if staff shortage in effect,int,0 or 1,True,True,True
+staff_shortage_impact,"clean_data (patient flow, training)",Patients affected by staff shortage,int,>=0,True,True,False
+scenario_primary,"clean_data (patient flow, training)",Human-readable scenario label,string,free text,True,True,False
+scenario_code,"clean_data (patient flow, training)",Integer code for scenario type,int,0-9,True,True,False
+y_patients_t_plus_1,"clean_data (patient flow, training)",Supervised label: patients 1 hour ahead,int,42-232,True,True,False
+y_patients_t_plus_24,"clean_data (patient flow, training)",Supervised label: patients 24 hours ahead,int,42-232,True,True,False
+hour,"clean_data (patient flow, training)",Hour of day,int,0-23,True,True,True
+season,"clean_data (patient flow, training)",Season label,string,Winter/Spring/Summer/Autumn,True,True,True
+week_of_year,"clean_data (patient flow, training)",ISO week number,int,1-52,True,True,False
+shift_period,"clean_data (patient flow, training)",Shift name for this hour,string,Morning/Evening/Night,True,True,True
+is_holiday,"clean_data (patient flow, training)",1 if holiday (alias of holiday column),int,0 or 1,True,True,False
+is_holiday_or_event,"clean_data (patient flow, training)",1 if holiday or special event,int,0 or 1,True,True,False
+event_flag,"clean_data (patient flow, training)",1 if any event is active,int,0 or 1,True,True,False
+arrivals,"clean_data (patient flow, training)",New patient arrivals this hour,int,>=0,True,True,True
+admissions,"clean_data (patient flow, training)",Admissions from arrivals,int,>=0,True,True,False
+discharges,"clean_data (patient flow, training)",Patients discharged this hour,int,>=0,True,True,True
+transfers,"clean_data (patient flow, training)",Transfers between departments,int,>=0,True,True,False
+emergency_arrivals,"clean_data (patient flow, training)",Emergency arrivals subset,int,>=0,True,True,True
+elective_arrivals,"clean_data (patient flow, training)",Elective/planned arrivals subset,int,>=0,True,True,False
+waiting_patients,"clean_data (patient flow, training)",Patients waiting for a bed,int,>=0,True,True,True
+avg_wait_time_minutes,"clean_data (patient flow, training)",Average wait time in minutes,int,>=0,True,True,True
+occupancy_rate,"clean_data (patient flow, training)",Fraction of beds occupied,float,0.0-1.0,True,True,True
+bed_occupancy,"clean_data (patient flow, training)",Alias of occupancy_rate,float,0.0-1.0,True,True,False
+occupied_beds,"clean_data (patient flow, training)",Count of beds in use,int,>=0,True,True,True
+available_beds,"clean_data (patient flow, training)",Count of free beds,int,>=0,True,True,True
+available_doctors,"clean_data (patient flow, training)",Doctors on duty this hour,int,>=0,True,True,True
+available_nurses,"clean_data (patient flow, training)",Nurses on duty this hour,int,>=0,True,True,True
+staff_on_duty,"clean_data (patient flow, training)",Total staff on duty,int,>=0,True,True,False
+doctor_shortage,"clean_data (patient flow, training)",Doctors below required ratio (0 = fully staffed),int,>=0,True,True,True
+nurse_shortage,"clean_data (patient flow, training)",Nurses below required ratio (0 = fully staffed),int,>=0,True,True,True
+bed_shortage,"clean_data (patient flow, training)",Beds below required count (0 = no shortage),int,>=0,True,True,True
+appointments_count,"clean_data (patient flow, training)",Scheduled appointments this hour,int,>=0,True,True,False
+or_bookings_count,"clean_data (patient flow, training)",OR bookings this hour,int,>=0,True,True,False
+delayed_discharge_count,"clean_data (patient flow, training)",Discharges delayed this hour,int,>=0,True,True,False
+department_pressure_score,"clean_data (patient flow, training)",Composite pressure index 0-100,float,0.0-100.0,True,True,True
+er_pressure_score,"clean_data (patient flow, training)",ER-specific pressure index 0-100,float,0.0-100.0,True,True,True
+doctors_available,"clean_data (patient flow, training)",Alias of available_doctors,int,>=0,True,True,False
+nurses_available,"clean_data (patient flow, training)",Alias of available_nurses,int,>=0,True,True,False
+lag_1,"clean_data (patient flow, training)",Patients 1 hour ago (lag feature),int,42-232,True,True,False
+lag_24,"clean_data (patient flow, training)",Patients 24 hours ago (lag feature),int,42-232,True,True,False
+roll_mean_3,"clean_data (patient flow, training)",3-hour rolling mean of patients,float,>=0,True,True,False
+roll_mean_6,"clean_data (patient flow, training)",6-hour rolling mean of patients,float,>=0,True,True,False
+roll_mean_24,"clean_data (patient flow, training)",24-hour rolling mean of patients,float,>=0,True,True,False
+predicted_patients_next_hour,"clean_data (patient flow, training)",LSTM predicted value at generation time,int,42-232,True,True,False
+staff_id,staff_master_data,Unique staff identifier (STF-XXXX format),string,STF-0001 to STF-0148,True,False,True
+staff_name,staff_master_data,Full display name,string,free text,True,False,True
+role,staff_master_data,Clinical role,string,doctor/nurse,True,False,True
+department,staff_master_data,Primary assigned department,string,ER/ICU/General Ward/Surgery/Radiology,True,False,True
+specialty,staff_master_data,Medical specialty,string,free text,True,False,True
+qualification_level,staff_master_data,Highest qualification,string,MD/PhD/BSN/RN/MSN,True,False,False
+years_experience,staff_master_data,Years in clinical practice,int,1-30,True,False,False
+overtime_hours,staff_master_data,Overtime hours this period,int,0-20,True,False,False
+available_for_shift,staff_master_data,Whether available for next shift,string,Yes/No,True,False,True
+max_hours_per_week,staff_master_data,Maximum weekly hours allowed,int,40/48/56,True,False,False
+notes,staff_master_data,Free-text operational notes,string,free text,True,False,False
+staff_id,staff_schedule,FK to staff_master staff_id (STF-XXXX),string,STF-0001 to STF-0148,True,False,True
+staff_name,staff_schedule,Display name,string,free text,True,False,True
+staff_username,staff_schedule,Login username (lowercase stf-XXXX or named),string,lowercase stf-XXXX,True,False,True
+role,staff_schedule,Clinical role,string,doctor/nurse,True,False,True
+department,staff_schedule,Assigned department for this shift,string,ER/ICU/General Ward/Surgery/Radiology,True,False,True
+shift_date,staff_schedule,Date of shift (YYYY-MM-DD),string,ISO date,True,False,True
+shift_type,staff_schedule,Shift period name,string,Morning/Evening/Night/Emergency Backup,True,False,True
+shift_start_time,staff_schedule,Shift start time (HH:MM),string,07:00/15:00/23:00,True,False,True
+shift_end_time,staff_schedule,Shift end time (HH:MM),string,15:00/23:00/07:00,True,False,True
+status,staff_schedule,Shift assignment status,string,Assigned/Pending/Cancelled,True,False,True
+notes,staff_schedule,Free-text notes,string,free text,True,False,False
+staff_username,shifts (DB seed source),Login username - must match users.csv/DB (lowercase stf-XXXX),string,lowercase stf-XXXX,True,False,True
+name,shifts (DB seed source),Display name,string,free text,True,False,True
+role,shifts (DB seed source),Clinical role,string,doctor/nurse,True,False,True
+department,shifts (DB seed source),Assigned department,string,ER/ICU/General Ward/Surgery/Radiology,True,False,True
+shift_date,shifts (DB seed source),Date of shift (YYYY-MM-DD),string,ISO date,True,False,True
+shift_type,shifts (DB seed source),Shift period,string,Morning/Evening/Night/Emergency Backup,True,False,True
+shift_start_time,shifts (DB seed source),Start time HH:MM,string,07:00/15:00/23:00,True,False,True
+shift_end_time,shifts (DB seed source),End time HH:MM,string,15:00/23:00/07:00,True,False,True
+status,shifts (DB seed source),Shift status,string,Assigned/Pending/Cancelled,True,False,True
+notes,shifts (DB seed source),Free-text notes,string,Synthetic demo schedule,True,False,False
+appointment_id,appointments,Unique appointment identifier,string,APT-XXXX,True,False,True
+department,appointments,Clinic department,string,ER/ICU/General Ward/Surgery/Radiology,True,False,True
+doctor,appointments,Attending doctor name,string,free text,True,False,True
+date,appointments,Appointment date (YYYY-MM-DD),string,ISO date,True,False,True
+time_slot,appointments,Appointment time slot,string,HH:MM-HH:MM,True,False,True
+patient_count,appointments,Number of patients in this slot,int,1-15,True,False,True
+status,appointments,Slot status,string,Scheduled/Completed/Cancelled/Walk-in/Delayed,True,False,True
+booking_id,or_bookings,Unique OR booking identifier,string,OR-XXXX,True,False,True
+room,or_bookings,Operating room name,string,OR-1 to OR-5,True,False,True
+doctor,or_bookings,Lead surgeon name,string,free text,True,False,True
+department,or_bookings,Surgical department,string,Surgery/ER/ICU,True,False,True
+booking_date,or_bookings,Booking date - alias of date column,string,ISO date,True,False,False
+date,or_bookings,Procedure date (YYYY-MM-DD),string,ISO date,True,False,True
+time_slot,or_bookings,Procedure time slot,string,HH:MM-HH:MM,True,False,True
+procedure,or_bookings,Procedure name,string,free text,True,False,True
+procedure_type,or_bookings,Procedure category,string,Elective/Emergency/Urgent,True,False,True
+procedure_duration_minutes,or_bookings,Expected duration in minutes,int,30-240,True,False,False
+post_op_bed_required,or_bookings,Whether a post-op bed is needed,bool,True/False,True,False,False
+status,or_bookings,Booking status,string,Scheduled/Completed/Cancelled/In Progress,True,False,True
+notes,or_bookings,Free-text notes,string,free text,True,False,False
+patient_id,patient_tracking,Unique patient identifier (anonymized),string,PAT-XXXX,True,False,True
+patient_name_or_anonymized_id,patient_tracking,Anonymized name label,string,Patient-XXXX,True,False,True
+national_id_or_card_id_optional,patient_tracking,National ID - always null for privacy,float,null only,True,False,False
+entry_datetime,patient_tracking,Datetime of hospital entry,string,ISO datetime,True,False,True
+entry_method,patient_tracking,How patient entered hospital,string,Walk-in/Ambulance/Referral/Transfer,True,False,True
+department,patient_tracking,Department patient was triaged to,string,ER/ICU/General Ward/Surgery/Radiology,True,False,True
+assigned_bed_id,patient_tracking,Bed assigned (null if waiting),string,BED-XXXX or null,True,False,True
+admission_status,patient_tracking,Admission outcome,string,Admitted/Waiting/Discharged/Transferred,True,False,True
+length_of_stay_hours,patient_tracking,Hours spent in hospital,int,1-120,True,False,False
+discharge_datetime,patient_tracking,Datetime of discharge (null if still admitted),string,ISO datetime or null,True,False,True
+payment_status,patient_tracking,Payment state,string,Paid/Pending/Insurance/Exempt,True,False,False
+current_status,patient_tracking,Current patient status,string,Active/Discharged/Transferred,True,False,True
+notes,patient_tracking,Free-text clinical notes,string,free text,True,False,False
+department,department_status,Department name,string,ER/ICU/General Ward/Surgery/Radiology,True,False,True
+current_patients,department_status,Patients present now,int,>=0,True,False,True
+occupied_beds,department_status,Beds currently occupied,int,>=0,True,False,True
+available_beds,department_status,Beds currently free,int,>=0,True,False,True
+total_beds,department_status,Licensed bed count,int,20-130,True,False,True
+occupancy_rate,department_status,Fraction occupied (occupied/total),float,0.0-1.0,True,False,True
+needed_beds,department_status,Model-recommended beds,int,>=0,True,False,True
+bed_shortage,department_status,Beds below needed (0 if surplus),int,>=0,True,False,True
+available_doctors,department_status,Doctors on duty in this department,int,>=0,True,False,True
+needed_doctors,department_status,Doctors required per patient ratio,int,>=0,True,False,True
+doctor_shortage,department_status,Doctors below needed (0 if surplus),int,>=0,True,False,True
+available_nurses,department_status,Nurses on duty in this department,int,>=0,True,False,True
+needed_nurses,department_status,Nurses required per patient ratio,int,>=0,True,False,True
+nurse_shortage,department_status,Nurses below needed (0 if surplus),int,>=0,True,False,True
+department_status,department_status,Status label,string,Normal/Under Pressure/Critical,True,False,True
+pressure_level,department_status,Pressure tier,string,Low/Medium/High/Critical,True,False,True
+scenario_id,what_if_scenarios,Unique scenario ID,string,WI-001 to WI-042,True,False,True
+scenario_name,what_if_scenarios,Human-readable scenario name,string,free text,True,False,True
+scenario_category,what_if_scenarios,Category of scenario,string,Mass Casualty/Epidemic/Staffing/Seasonal/Weather/Operational,True,False,True
+department,what_if_scenarios,Primarily affected department,string,ER/ICU/General Ward/All Departments,True,False,True
+time_window,what_if_scenarios,Simulation time window,string,e.g. 6h/12h/24h/72h,True,False,True
+demand_multiplier,what_if_scenarios,Multiplier applied to demand,float,0.5-3.0,True,False,True
+arrival_increase_percent,what_if_scenarios,Percent increase in patient arrivals,int,0-150,True,False,True
+bed_capacity_change_percent,what_if_scenarios,Percent change in bed availability,int,-50 to +30,True,False,True
+doctor_availability_change_percent,what_if_scenarios,Percent change in doctor availability,int,-50 to +20,True,False,True
+nurse_availability_change_percent,what_if_scenarios,Percent change in nurse availability,int,-50 to +20,True,False,True
+or_booking_change_percent,what_if_scenarios,Percent change in OR bookings,int,-100 to +50,True,False,True
+appointment_change_percent,what_if_scenarios,Percent change in appointments,int,-100 to +50,True,False,True
+discharge_delay_hours,what_if_scenarios,Additional hours of discharge delay,int,0-12,True,False,True
+severity_level,what_if_scenarios,Scenario severity,string,Low/Medium/High/Critical,True,False,True
+probability_level,what_if_scenarios,Likelihood of this scenario occurring,string,Low/Medium/High,True,False,True
+operational_risk,what_if_scenarios,Overall operational risk rating,string,Low/Medium/High/Critical,True,False,True
+affected_resources,what_if_scenarios,Resources impacted by this scenario,string,free text,True,False,True
+expected_system_response,what_if_scenarios,Expected system behaviour under this scenario,string,free text,True,False,True
+recommended_action,what_if_scenarios,Suggested operational action,string,free text,True,False,True
+escalation_required,what_if_scenarios,Whether escalation to management is needed,string,Yes/No,True,False,True
+notes,what_if_scenarios,Free-text notes,string,free text,True,False,False
+username,users (login accounts),Login username used for authentication,string,e.g. admin1/stf-0001,True,False,True
+password,users (login accounts),Plain-text password in CSV (bcrypt-hashed in DB),string,123456 (demo),True,False,False
+name,users (login accounts),Display name shown in dashboard,string,free text,True,False,True
+role,users (login accounts),Access role determining dashboard tab visibility,string,admin/doctor/nurse,True,False,True
+department,users (login accounts),Primary department for role-filtered views,string,ER/ICU/General Ward/Surgery/Radiology/Management,True,False,True
