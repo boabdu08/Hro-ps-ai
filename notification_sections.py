@@ -19,6 +19,26 @@ from ui_components import alert_box, empty_state, page_header, section_header, s
 
 
 KNOWN_DEPARTMENTS = ["ER", "ICU", "General Ward", "Surgery", "Radiology"]
+
+
+# ---------------------------------------------------------------------------
+# Cached API read wrappers — prevent repeated network calls on every rerun.
+# Call .clear() on these after any action that mutates alert/notification state.
+# ---------------------------------------------------------------------------
+
+@st.cache_data(ttl=15, show_spinner=False)
+def _cached_get_alerts(active_only: bool = True, department: str | None = None, limit: int = 100):
+    return get_alerts(active_only=active_only, department=department, limit=limit)
+
+
+@st.cache_data(ttl=15, show_spinner=False)
+def _cached_get_notifications(unread_only: bool = False, limit: int = 100):
+    return get_notifications(unread_only=unread_only, limit=limit)
+
+
+@st.cache_data(ttl=15, show_spinner=False)
+def _cached_get_unread_notification_count():
+    return get_unread_notification_count()
 SEVERITY_ORDER = ["Critical", "Warning", "Info"]
 
 
@@ -237,6 +257,7 @@ def _render_alert_card(alert: dict, *, role: str, user_department: str):
             ack_disabled = status in {"Acknowledged", "Resolved"} or not alert_id
             if st.button("Acknowledge", key=f"ack_{alert_id}", disabled=ack_disabled):
                 res = ack_alert_api(alert_id)
+                _cached_get_alerts.clear()
                 if res and res.get("status") == "acknowledged":
                     st.success("Alert acknowledged")
                     st.rerun()
@@ -249,6 +270,7 @@ def _render_alert_card(alert: dict, *, role: str, user_department: str):
                 resolve_disabled = status == "Resolved" or not alert_id
                 if st.button("Resolve", key=f"resolve_{alert_id}", disabled=resolve_disabled):
                     res = resolve_alert_api(alert_id)
+                    _cached_get_alerts.clear()
                     if res and res.get("status") == "resolved":
                         st.success("Alert resolved")
                         st.rerun()
@@ -273,7 +295,7 @@ def show_alerts_center(user: dict):
     department = str(user.get("department", "All Departments")).strip()
 
     page_header("Alerts", "Operational alerts driven by forecast, simulation, and optimization signals.")
-    data = get_alerts(active_only=True, department=None, limit=100) or {}
+    data = _cached_get_alerts(active_only=True, department=None, limit=100) or {}
     alerts = data.get("alerts", []) if isinstance(data, dict) else []
 
     if not alerts:
@@ -349,6 +371,8 @@ def _render_notification_card(row: dict):
         if status == "Unread" and notification_id:
             if st.button("Mark as read", key=f"read_{notification_id}"):
                 res = mark_notification_read(notification_id)
+                _cached_get_notifications.clear()
+                _cached_get_unread_notification_count.clear()
                 if res and res.get("status") == "read":
                     st.success("Marked as read")
                     st.rerun()
@@ -372,10 +396,10 @@ def _render_notification_group(title: str, rows: list[dict]):
 
 def show_notifications_center(user: dict):
     page_header("Notifications", "Your personal in-app notification inbox for operational workflow updates.")
-    unread_meta = get_unread_notification_count() or {}
+    unread_meta = _cached_get_unread_notification_count() or {}
     unread_count = int(unread_meta.get("unread_count") or 0)
 
-    data = get_notifications(unread_only=False, limit=100) or {}
+    data = _cached_get_notifications(unread_only=False, limit=100) or {}
     rows = data.get("notifications", []) if isinstance(data, dict) else []
 
     if not rows:

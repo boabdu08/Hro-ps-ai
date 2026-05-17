@@ -130,6 +130,7 @@ def _render_approval_card(row, approver_name: str):
         with a1:
             if st.button("Approve", key=f"approve_{rec_id}"):
                 ok = approve_recommendation(rec_id, approver_name)
+                load_recommendations.clear()
                 if ok:
                     st.success(f"{rec_id} approved and executed")
                 else:
@@ -138,6 +139,7 @@ def _render_approval_card(row, approver_name: str):
         with a2:
             if st.button("Reject", key=f"reject_{rec_id}"):
                 ok = reject_recommendation(rec_id, approver_name)
+                load_recommendations.clear()
                 if ok:
                     st.warning(f"{rec_id} rejected")
                 else:
@@ -214,6 +216,7 @@ def _recommendation_record_to_dict(row: RecommendationRecord) -> dict:
     }
 
 
+@st.cache_data(ttl=15, show_spinner=False)
 def load_recommendations() -> pd.DataFrame:
     db = SessionLocal()
     try:
@@ -244,6 +247,7 @@ def reset_recommendations():
             "Recommendation records were reset.",
         )
         db.commit()
+        load_recommendations.clear()
     finally:
         db.close()
 
@@ -356,6 +360,14 @@ def seed_demo_recommendations():
 
 
 def sync_recommendations(peak, beds_needed, doctors_needed, emergency_level):
+    # Guard: only sync once per session per unique set of inputs to prevent a
+    # DB write on every Streamlit rerun.  Callers that need a forced re-sync
+    # (e.g. after optimization changes) should call load_recommendations.clear().
+    _sync_key = f"_synced_recs_{peak}_{beds_needed}_{doctors_needed}_{emergency_level}"
+    if st.session_state.get(_sync_key):
+        return load_recommendations()
+    st.session_state[_sync_key] = True
+
     db = SessionLocal()
     try:
         _bootstrap_recommendations_from_csv_if_needed(db)

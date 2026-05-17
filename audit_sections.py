@@ -93,6 +93,7 @@ def _get_default_tenant_id(db) -> int:
     return int(row.id)
 
 
+@st.cache_data(ttl=30, show_spinner=False)
 def load_audit_log():
     db = SessionLocal()
     try:
@@ -148,8 +149,21 @@ def show_audit_table():
     if df.empty:
         empty_state("No audit log records available. Operational decisions will appear here after user actions are recorded.")
         return
-    display_df = _display_audit_df(df.sort_values(by="timestamp", ascending=False))
-    st.dataframe(display_df, use_container_width=True, hide_index=True)
+    sorted_df = df.sort_values(by="timestamp", ascending=False)
+    display_df = _display_audit_df(sorted_df)
+    _ROW_LIMIT = 200
+    if len(display_df) > _ROW_LIMIT:
+        st.caption(f"Showing the {_ROW_LIMIT} most recent events. Download below for the full log ({len(display_df)} total).")
+        st.dataframe(display_df.head(_ROW_LIMIT), use_container_width=True, hide_index=True)
+        st.download_button(
+            "Download full audit log (CSV)",
+            data=sorted_df.to_csv(index=False).encode("utf-8"),
+            file_name="audit_log_full.csv",
+            mime="text/csv",
+            key="audit_full_download",
+        )
+    else:
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
 
 
 def show_execution_trace():

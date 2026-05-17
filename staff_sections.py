@@ -39,6 +39,7 @@ def _bootstrap_appointments_from_csv_if_needed(db: Session):
     return
 
 
+@st.cache_data(ttl=30, show_spinner=False)
 def _load_shifts_df() -> pd.DataFrame:
     db = SessionLocal()
     try:
@@ -93,6 +94,7 @@ def _load_shifts_df() -> pd.DataFrame:
         db.close()
 
 
+@st.cache_data(ttl=60, show_spinner=False)
 def _load_or_df() -> pd.DataFrame:
     db = SessionLocal()
     try:
@@ -136,6 +138,7 @@ def _load_or_df() -> pd.DataFrame:
         db.close()
 
 
+@st.cache_data(ttl=60, show_spinner=False)
 def _load_appointments_df() -> pd.DataFrame:
     db = SessionLocal()
     try:

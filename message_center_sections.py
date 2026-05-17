@@ -72,7 +72,9 @@ def _priority_badge(priority: str):
         status_badge("NORMAL", "info")
 
 
+@st.cache_data(ttl=120, show_spinner=False)
 def _safe_templates_response():
+    """Cache message templates — they rarely change during a session."""
     response = get_message_templates() or {}
     return {
         "admin_templates": response.get("admin_templates", []),
@@ -80,6 +82,7 @@ def _safe_templates_response():
     }
 
 
+@st.cache_data(ttl=15, show_spinner=False)
 def _safe_messages_response(
     role=None,
     department=None,
@@ -88,6 +91,7 @@ def _safe_messages_response(
     include_archived=False,
     sender_name=None,
 ):
+    """Cache message list reads — short TTL to stay fresh without hitting API every rerun."""
     response = get_messages(
         role=role,
         department=department,
@@ -101,6 +105,11 @@ def _safe_messages_response(
         "messages": response.get("messages", []),
         "quick_replies": response.get("quick_replies", []),
     }
+
+
+@st.cache_data(ttl=15, show_spinner=False)
+def _cached_get_unread_message_count():
+    return get_unread_message_count()
 
 
 def _clean_text(value) -> str:
@@ -194,6 +203,7 @@ def _render_message_card(
                                         reply_text=reply,
                                         replied_by=user_name or "Staff User",
                                     )
+                                    _safe_messages_response.clear()
                                     if result and result.get("status") == "updated":
                                         st.success("Reply sent successfully.")
                                         st.rerun()
@@ -210,6 +220,7 @@ def _render_message_card(
                                 reply_text=custom_reply.strip(),
                                 replied_by=user_name or "Staff User",
                             )
+                            _safe_messages_response.clear()
                             if result and result.get("status") == "updated":
                                 st.success("Custom reply sent successfully.")
                                 st.rerun()
@@ -260,6 +271,7 @@ def _reply_block(msg: dict):
 def _render_archive_button(message_id: str, key_suffix: str):
     if st.button("Archive", key=f"archive_{key_suffix}"):
         result = archive_message_api(message_id)
+        _safe_messages_response.clear()
         if result and result.get("status") == "archived":
             st.success("Message archived.")
             st.rerun()
@@ -273,6 +285,8 @@ def _render_ack_button(message_id: str, is_read: bool, key_suffix: str):
 
     if st.button("Mark as Read", key=f"ack_{key_suffix}"):
         result = acknowledge_message_api(message_id)
+        _safe_messages_response.clear()
+        _cached_get_unread_message_count.clear()
         if result and result.get("status") == "acknowledged":
             st.success("Marked as read (for you only).")
             st.rerun()
@@ -344,6 +358,7 @@ def show_admin_message_center(sender_name: str, sender_role: str):
                             message=message,
                             priority=selected_priority,
                         )
+                        _safe_messages_response.clear()
                         if result and result.get("status") == "sent":
                             st.success("Template message sent successfully.")
                             st.rerun()
@@ -373,6 +388,7 @@ def show_admin_message_center(sender_name: str, sender_role: str):
                 message=custom_message.strip(),
                 priority=selected_priority,
             )
+            _safe_messages_response.clear()
             if result and result.get("status") == "sent":
                 st.success("Custom message sent successfully.")
                 st.rerun()
@@ -380,7 +396,7 @@ def show_admin_message_center(sender_name: str, sender_role: str):
                 st.error("Failed to send custom message.")
 
     section_header("Sent messages", "Inbox-style view of active coordination messages you sent.")
-    unread_meta = get_unread_message_count() or {}
+    unread_meta = _cached_get_unread_message_count() or {}
     if isinstance(unread_meta, dict) and "unread_count" in unread_meta:
         st.caption(f"Your unread (personal) inbox count: {int(unread_meta.get('unread_count') or 0)}")
 
@@ -437,6 +453,7 @@ def show_staff_message_center(user_name: str, role: str, department: str):
                     title=staff_title.strip(),
                     message=staff_message.strip(),
                 )
+                _safe_messages_response.clear()
                 if result and result.get("status") == "sent":
                     st.success("Message sent to admin.")
                     st.rerun()
@@ -456,7 +473,7 @@ def show_staff_message_center(user_name: str, role: str, department: str):
         messages = data["messages"]
         quick_replies = data["quick_replies"]
 
-        unread_meta = get_unread_message_count() or {}
+        unread_meta = _cached_get_unread_message_count() or {}
         if isinstance(unread_meta, dict) and "unread_count" in unread_meta:
             count = int(unread_meta.get("unread_count") or 0)
             status_badge(f"Unread: {count}", "critical" if count else "success")

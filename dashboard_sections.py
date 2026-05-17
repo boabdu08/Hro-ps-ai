@@ -47,6 +47,28 @@ OPS72H_TRAINING_SUMMARY_PATH = Path("artifacts") / "manifests" / "ops72h_trainin
 MAIN_CLEAN_DATASET_PATH = Path("clean_data(AutoRecovered).csv")
 
 
+# ---------------------------------------------------------------------------
+# Cached artifact loaders — eliminate repeated CSV/JSON reads on every rerun.
+# ---------------------------------------------------------------------------
+
+@st.cache_data(ttl=600, show_spinner=False)
+def _cached_artifact_forecast_state() -> "ForecastState":
+    """Cache the expensive 72h CSV artifact load. No live prediction params."""
+    return build_canonical_forecast_state()
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def _cached_metrics_df(split: str = "test") -> pd.DataFrame:
+    """Cache metrics JSON reads for Evaluation tab."""
+    return build_metrics_dataframe(split)
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def _cached_detailed_predictions_df(split: str = "test") -> pd.DataFrame:
+    """Cache NPZ file loads for Evaluation comparison chart."""
+    return build_detailed_predictions_dataframe(split)
+
+
 COUNT_DISPLAY_HINTS = (
     "patient",
     "patients",
@@ -139,7 +161,7 @@ def _build_recent_actual_forecast_comparison(hours: int = 24) -> tuple[pd.DataFr
     main dataset.
     """
 
-    detailed_df = build_detailed_predictions_dataframe(split="test")
+    detailed_df = _cached_detailed_predictions_df(split="test")
     if detailed_df.empty or "actual" not in detailed_df.columns or "hybrid_pred" not in detailed_df.columns:
         return pd.DataFrame(), None
 
@@ -320,7 +342,7 @@ def _load_ops72h_outputs(state: ForecastState | None = None) -> dict:
     """
 
 
-    state = state or build_canonical_forecast_state()
+    state = state or _cached_artifact_forecast_state()
     missing = list(state.artifact_freshness.missing or [])
     invalid = list(state.artifact_freshness.invalid_reasons or [])
     if not state.artifact_freshness.ready:
@@ -359,7 +381,7 @@ def _dashboard_forecast_state_from_live_context() -> ForecastState:
             return ctx["forecast_state"]
     except Exception:
         pass
-    return build_canonical_forecast_state()
+    return _cached_artifact_forecast_state()
 
 
 def _show_ops72h_missing_state(bundle: dict) -> None:
@@ -454,16 +476,13 @@ def _load_runtime_sequence(df: pd.DataFrame):
         expected_shape = (sequence_length, len(feature_columns))
         if arr.shape == expected_shape:
             return arr, feature_columns, sequence_length
-
-        # API reachable but returned unexpected payload.
-        st.warning(
-            f"Latest sequence received from API but shape was {arr.shape} (expected {expected_shape})."
-        )
+        # Shape mismatch — fall through so caller shows the not-ready message.
 
     # DB-first: do not fallback to CSV.
     return None, feature_columns, sequence_length
 
 
+@st.cache_data(ttl=30, show_spinner=False)
 def get_live_context():
     df = _load_runtime_dataframe()
     last_sequence, feature_columns, sequence_length = _load_runtime_sequence(df)
@@ -1091,8 +1110,9 @@ def _build_capacity_from_allocations(allocations: list[dict]) -> pd.DataFrame:
     return df[out_cols].sort_values(by="priority_score", ascending=False) if "priority_score" in df.columns else df[out_cols]
 
 
+@st.cache_data(ttl=600, show_spinner=False)
 def _load_what_if_scenarios() -> pd.DataFrame | None:
-    """Load expanded what-if scenario dataset.
+    """Load expanded what-if scenario dataset (cached — file rarely changes).
 
     Returns None when CSV is missing/invalid so callers can fall back to the
     legacy hardcoded scenario generator.
@@ -2217,8 +2237,8 @@ def show_evaluation_panel():
         key="eval_split_selector",
     )
 
-    eval_df = evaluation_source_metrics(state) if split == "test" else build_metrics_dataframe(split=split)
-    detailed_df = build_detailed_predictions_dataframe(split=split)
+    eval_df = evaluation_source_metrics(state) if split == "test" else _cached_metrics_df(split=split)
+    detailed_df = _cached_detailed_predictions_df(split=split)
 
     if eval_df.empty:
         empty_state("Evaluation files not found. Run the v2 training pipeline first.")

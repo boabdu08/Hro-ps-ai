@@ -1,6 +1,31 @@
 username,password,name,role,department
 admin1,123456,Hospital Admin,admin,Management
-doctor1,123456,Dr. Ahmed,doctor,ER
-doctor2,123456,Dr. Sara,doctor,ICU
-nurse1,123456,Nurse Mona,nurse,General Ward
-nurse2,123456,Nurse Ali,nurse,ER
+admin2,123456,Hospital Administrator 2,admin,Management
+ops_manager,123456,Operations Manager,admin,Management
+er_head,123456,ER Department Head,admin,ER
+icu_head,123456,ICU Department Head,admin,ICU
+gw_head,123456,General Ward Head,admin,General Ward
+doctor1,123456,Dr. Ahmed Mahmoud,doctor,ER
+doctor2,123456,Dr. Ahmed Nasser,doctor,ICU
+stf-0001,123456,Dr. Karim Mahmoud,doctor,ER
+stf-0005,123456,Dr. Noor Samir,doctor,ER
+stf-0007,123456,Dr. Ahmed Mahmoud,doctor,ER
+stf-0034,123456,Dr. Mona Fouad,doctor,General Ward
+stf-0039,123456,Dr. Sara Nasser,doctor,General Ward
+stf-0075,123456,Dr. Karim Said,doctor,ICU
+stf-0078,123456,Dr. Ahmed Nasser,doctor,ICU
+stf-0105,123456,Dr. Omar Samir,doctor,Surgery
+stf-0108,123456,Dr. Fatima Abdullah,doctor,Surgery
+stf-0133,123456,Dr. Fatima Ali,doctor,Radiology
+nurse1,123456,Nurse Mona Mahmoud,nurse,General Ward
+nurse2,123456,Nurse Hassan Yasin,nurse,ER
+stf-0011,123456,Nurse Hassan Yasin,nurse,ER
+stf-0016,123456,Nurse Mona Mahmoud,nurse,ER
+stf-0019,123456,Nurse Noor Mahmoud,nurse,ER
+stf-0063,123456,Nurse Laila Fouad,nurse,General Ward
+stf-0064,123456,Nurse Mona Fouad,nurse,General Ward
+stf-0083,123456,Nurse Karim Nasser,nurse,ICU
+stf-0085,123456,Nurse Hassan Ibrahim,nurse,ICU
+stf-0115,123456,Nurse Ahmed Ibrahim,nurse,Surgery
+stf-0119,123456,Nurse Karim Hassan,nurse,Surgery
+stf-0139,123456,Nurse Mostafa Nasser,nurse,Radiology
