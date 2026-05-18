@@ -1,6 +1,6 @@
 {
   "forecast_horizon_hours": 72,
-  "generated_at": "2026-05-17T16:08:43.214496",
+  "generated_at": "2026-05-18T01:36:13.148789",
   "overall_forecast_path": "artifacts\\forecast_outputs\\ops72h_overall_forecast.csv",
   "department_forecast_path": "artifacts\\forecast_outputs\\ops72h_department_forecast.csv",
   "metrics_csv_path": "artifacts\\metrics_72h\\ops72h_model_metrics.csv",
@@ -16,6 +16,22 @@
     "lstm_weight": 0.8,
     "arimax_weight": 0.2,
     "selection_metric": "validation_rmse",
+    "constrained_search": {
+      "w_min": 0.2,
+      "w_max": 0.8,
+      "step": 0.05,
+      "lstm_weight": 0.8,
+      "arimax_weight": 0.2
+    },
+    "unconstrained_search": {
+      "w_min": 0.0,
+      "w_max": 1.0,
+      "step": 0.05,
+      "lstm_weight": 0.95,
+      "arimax_weight": 0.05,
+      "label": "LSTM-only",
+      "note": "Unconstrained optimum assigns ARIMAX weight ~0. ARIMAX convergence issues mean it adds variance rather than information. The constrained Hybrid (LSTM 0.80 / ARIMAX 0.20) is used for actual predictions."
+    },
     "validation": {
       "LSTM": {
         "MAE": 6.253540512237314,
@@ -23,14 +39,14 @@
         "MAPE": 5.608160204197325
       },
       "ARIMAX": {
-        "MAE": 20.66884727345282,
-        "RMSE": 25.770980662847695,
-        "MAPE": 22.272080859186406
+        "MAE": 21.231875931473848,
+        "RMSE": 26.764990514879933,
+        "MAPE": 22.87398428115668
       },
       "Hybrid": {
-        "MAE": 7.071487809671823,
-        "RMSE": 9.228883527987092,
-        "MAPE": 6.984412989843886
+        "MAE": 7.250926742730011,
+        "RMSE": 9.433018753347648,
+        "MAPE": 7.1423989262306655
       }
     },
     "test": {
@@ -40,14 +56,14 @@
         "MAPE": 5.523540917360862
       },
       "ARIMAX": {
-        "MAE": 16.45011357440051,
-        "RMSE": 20.324951443344094,
-        "MAPE": 12.583058329649003
+        "MAE": 15.628011190880345,
+        "RMSE": 19.332804640224037,
+        "MAPE": 12.329903832101131
       },
       "Hybrid": {
-        "MAE": 8.494993683391561,
-        "RMSE": 10.453247384799063,
-        "MAPE": 6.133722264152591
+        "MAE": 8.310970996351882,
+        "RMSE": 10.215160300221052,
+        "MAPE": 6.066089506598121
       }
     },
     "alignment_note": "Aligned on shortest tail overlap between model outputs."

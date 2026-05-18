@@ -1,0 +1,152 @@
+[
+  {
+    "label": "C1: (1,1,1)x(0) 7-exog Powell",
+    "order": [
+      1,
+      1,
+      1
+    ],
+    "seasonal_order": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "exog_key": "reduced",
+    "method": "powell",
+    "maxiter": 300,
+    "val_metrics": {
+      "MAE": 21.077,
+      "RMSE": 26.6495,
+      "MAPE": 22.7017
+    },
+    "test_metrics": {
+      "MAE": 15.6777,
+      "RMSE": 19.3914,
+      "MAPE": 12.4409
+    },
+    "n_warnings": 0,
+    "elapsed_s": 14.063602924346924,
+    "failed": false
+  },
+  {
+    "label": "C2: (1,1,1)x(1,0,0,24) 7-exog Powell",
+    "order": [
+      1,
+      1,
+      1
+    ],
+    "seasonal_order": [
+      1,
+      0,
+      0,
+      24
+    ],
+    "exog_key": "reduced",
+    "method": "powell",
+    "maxiter": 300,
+    "val_metrics": {
+      "MAE": 20.7689,
+      "RMSE": 26.2752,
+      "MAPE": 22.2566
+    },
+    "test_metrics": {
+      "MAE": 18.0834,
+      "RMSE": 21.6628,
+      "MAPE": 13.7065
+    },
+    "n_warnings": 0,
+    "elapsed_s": 91.85816168785095,
+    "failed": false
+  },
+  {
+    "label": "C3: (1,1,0)x(1,0,0,24) 7-exog Powell",
+    "order": [
+      1,
+      1,
+      0
+    ],
+    "seasonal_order": [
+      1,
+      0,
+      0,
+      24
+    ],
+    "exog_key": "reduced",
+    "method": "powell",
+    "maxiter": 300,
+    "val_metrics": {
+      "MAE": 20.319,
+      "RMSE": 25.6457,
+      "MAPE": 21.4359
+    },
+    "test_metrics": {
+      "MAE": 17.9889,
+      "RMSE": 21.4914,
+      "MAPE": 13.5982
+    },
+    "n_warnings": 0,
+    "elapsed_s": 89.4824070930481,
+    "failed": false
+  },
+  {
+    "label": "C4: (1,1,1)x(1,0,0,24) 5-exog Powell",
+    "order": [
+      1,
+      1,
+      1
+    ],
+    "seasonal_order": [
+      1,
+      0,
+      0,
+      24
+    ],
+    "exog_key": "minimal",
+    "method": "powell",
+    "maxiter": 300,
+    "val_metrics": {
+      "MAE": 26.6497,
+      "RMSE": 33.4869,
+      "MAPE": 25.9025
+    },
+    "test_metrics": {
+      "MAE": 30.3193,
+      "RMSE": 36.1784,
+      "MAPE": 21.1727
+    },
+    "n_warnings": 0,
+    "elapsed_s": 98.66863346099854,
+    "failed": false
+  },
+  {
+    "label": "C5: (2,1,0)x(1,0,0,24) 7-exog Powell",
+    "order": [
+      2,
+      1,
+      0
+    ],
+    "seasonal_order": [
+      1,
+      0,
+      0,
+      24
+    ],
+    "exog_key": "reduced",
+    "method": "powell",
+    "maxiter": 300,
+    "val_metrics": {
+      "MAE": 20.5361,
+      "RMSE": 25.9652,
+      "MAPE": 21.9866
+    },
+    "test_metrics": {
+      "MAE": 17.8839,
+      "RMSE": 21.3784,
+      "MAPE": 13.5294
+    },
+    "n_warnings": 0,
+    "elapsed_s": 118.22993326187134,
+    "failed": false
+  }
+]

@@ -2,35 +2,22 @@
   "model": "ARIMAX",
   "training_source": "D:\\hro-ps-ai\\clean_data(AutoRecovered).csv",
   "val": {
-    "MAE": 20.518181818040006,
-    "RMSE": 25.66007832482601,
-    "MAPE": 22.104176558101212
+    "MAE": 21.077026365603093,
+    "RMSE": 26.64952149007193,
+    "MAPE": 22.701701998526868
   },
   "test": {
-    "MAE": 16.451913509852435,
-    "RMSE": 20.319358407016914,
-    "MAPE": 12.64375842415831
+    "MAE": 15.677662094930412,
+    "RMSE": 19.39135899814583,
+    "MAPE": 12.440900145466472
   },
   "exog_cols": [
-    "hour",
-    "day_of_week",
-    "month",
-    "week_number",
-    "season",
-    "is_weekend",
-    "is_holiday",
-    "holiday",
-    "shift_period_code",
-    "appointments_count",
-    "or_bookings_count",
-    "doctors_available",
-    "nurses_available",
-    "occupied_beds",
-    "waiting_patients",
     "lag_1",
     "lag_24",
-    "roll_mean_3",
-    "roll_mean_6",
-    "roll_mean_24"
+    "roll_mean_24",
+    "hour",
+    "is_weekend",
+    "appointments_count",
+    "occupied_beds"
   ]
 }

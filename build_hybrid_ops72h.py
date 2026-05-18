@@ -1,9 +1,16 @@
 """Build Hybrid forecast combiner (LSTM + ARIMAX) for ops-aware 72h pipeline.
 
-Hybrid formula:
-  hybrid = w * lstm + (1-w) * arimax
+Hybrid formula:  hybrid = w * lstm + (1-w) * arimax
 
-We search w in [0.0..1.0] step 0.05 and choose the best (lowest validation RMSE).
+Two weight searches are run:
+  Constrained   w in [0.20..0.80] step 0.05  — forces both models to contribute.
+                These weights are used for the actual Hybrid predictions.
+  Unconstrained w in [0.00..1.00] step 0.05  — finds the true validation optimum.
+                If unconstrained ARIMAX weight <= 0.05, ARIMAX convergence is too
+                poor to benefit the blend; this run is labeled "LSTM-dominant".
+
+Both results are saved to the config for academic transparency.
+
 Outputs:
   - artifacts/models_72h/hybrid_config.json
   - artifacts/metrics_72h/hybrid_ops72h_metrics.json
@@ -39,10 +46,10 @@ def _load_npz(path: Path):
     return np.array(data["y_true"], dtype=float).reshape(-1), np.array(data["y_pred"], dtype=float).reshape(-1)
 
 
-def find_best_weight(y_true, lstm_pred, arimax_pred):
+def find_best_weight(y_true, lstm_pred, arimax_pred, *, w_min: float = 0.2, w_max: float = 0.8):
+    """Search w in [w_min, w_max] step 0.05. Returns (lstm_w, arimax_w, hybrid_pred)."""
     best = {"w": 0.5, "rmse": float("inf"), "pred": None}
-    # Keep both models genuinely represented in the Hybrid model.
-    for w in np.arange(0.2, 0.8001, 0.05):
+    for w in np.arange(w_min, w_max + 0.0001, 0.05):
         pred = w * lstm_pred + (1.0 - w) * arimax_pred
         rmse = float(mean_squared_error(y_true, pred) ** 0.5)
         if rmse < best["rmse"]:
@@ -76,8 +83,29 @@ def main():
     y_test_lstm = y_test_lstm[-m2:]
     y_test_ar = y_test_ar[-m2:]
 
-    w_lstm, w_ar, y_val_hybrid = find_best_weight(y_val_true, y_val_lstm, y_val_ar)
+    # Constrained search [0.20, 0.80] — both models must contribute ≥ 20%.
+    # These weights are used for the actual Hybrid predictions.
+    w_lstm, w_ar, y_val_hybrid = find_best_weight(y_val_true, y_val_lstm, y_val_ar, w_min=0.20, w_max=0.80)
     y_test_hybrid = w_lstm * y_test_lstm + w_ar * y_test_ar
+
+    # Unconstrained search [0.00, 1.00] — academic transparency; finds true optimum.
+    w_lstm_unc, w_ar_unc, _ = find_best_weight(y_val_true, y_val_lstm, y_val_ar, w_min=0.00, w_max=1.00)
+    if w_ar_unc <= 0.05:
+        unc_label = "LSTM-only"
+        unc_note = (
+            "Unconstrained optimum assigns ARIMAX weight ~0. ARIMAX convergence issues "
+            "mean it adds variance rather than information. The constrained Hybrid (LSTM "
+            f"{w_lstm:.2f} / ARIMAX {w_ar:.2f}) is used for actual predictions."
+        )
+    elif w_ar_unc <= 0.20:
+        unc_label = "LSTM-dominant"
+        unc_note = (
+            "Unconstrained optimum assigns a small ARIMAX weight. ARIMAX contribution "
+            "is limited by convergence quality this run."
+        )
+    else:
+        unc_label = "Hybrid"
+        unc_note = "Both models contribute meaningfully at the unconstrained optimum."
 
     val_metrics = {
         "LSTM": metrics(y_val_true, y_val_lstm),
@@ -94,6 +122,22 @@ def main():
         "lstm_weight": w_lstm,
         "arimax_weight": w_ar,
         "selection_metric": "validation_rmse",
+        "constrained_search": {
+            "w_min": 0.20,
+            "w_max": 0.80,
+            "step": 0.05,
+            "lstm_weight": w_lstm,
+            "arimax_weight": w_ar,
+        },
+        "unconstrained_search": {
+            "w_min": 0.00,
+            "w_max": 1.00,
+            "step": 0.05,
+            "lstm_weight": w_lstm_unc,
+            "arimax_weight": w_ar_unc,
+            "label": unc_label,
+            "note": unc_note,
+        },
         "validation": val_metrics,
         "test": test_metrics,
         "alignment_note": "Aligned on shortest tail overlap between model outputs.",
@@ -101,7 +145,10 @@ def main():
     (MODEL_DIR / "hybrid_config.json").write_text(json.dumps(cfg, indent=2), encoding="utf-8")
     (METRICS_DIR / "hybrid_ops72h_metrics.json").write_text(json.dumps(cfg, indent=2), encoding="utf-8")
 
-    print("Best weights:", w_lstm, w_ar)
+    print("Constrained weights (used for Hybrid predictions):", w_lstm, w_ar)
+    print("Unconstrained optimum:", w_lstm_unc, w_ar_unc, f"-> label: {unc_label}")
+    if unc_label != "Hybrid":
+        print(f"NOTE: {unc_note}")
     print("Hybrid validation metrics:", val_metrics["Hybrid"])
     print("Hybrid test metrics:", test_metrics["Hybrid"])
 

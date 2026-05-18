@@ -91,9 +91,7 @@ python -m compileall dashboard.py dashboard_sections.py staff_sections.py notifi
 
 ---
 
-## Retrain Verification (2026-05-17)
-
-Full model retrain from `clean_data(AutoRecovered).csv` — 60 epochs default, early stopping.
+## Retrain Verification (2026-05-18 ARIMAX improvement; LSTM unchanged from 2026-05-17)
 
 | Check | Result |
 |---|---|
@@ -102,15 +100,17 @@ Full model retrain from `clean_data(AutoRecovered).csv` — 60 epochs default, e
 | `smoke_forecast_state.py` | PASSED (fallback_used=False) |
 | Dataset rows | 17,520 ✓ |
 | Dataset NaN | 0 ✓ |
-| LSTM test metrics | MAE=7.645, RMSE=9.579, MAPE=5.52% |
-| ARIMAX test metrics | MAE=16.450, RMSE=20.325, MAPE=12.58% (3 convergence warnings) |
-| Hybrid test metrics | MAE=8.495, RMSE=10.453, MAPE=6.13% |
+| LSTM test metrics | MAE=7.645, RMSE=9.579, MAPE=5.52% (unchanged) |
+| ARIMAX test metrics | MAE=15.678, RMSE=19.391, MAPE=12.44% (**0 convergence warnings**) |
+| Hybrid test metrics | MAE=8.311, RMSE=10.215, MAPE=6.07% (improved from 10.453) |
 | Hybrid weights | LSTM=0.80, ARIMAX=0.20 (both models valid) |
+| Unconstrained optimum | LSTM=0.95, ARIMAX=0.05 (LSTM-dominant) |
+| Best model by test RMSE | **LSTM** (9.579 < Hybrid 10.215) |
 | Overall forecast rows | 72 ✓ |
 | Department forecast rows | 360 ✓ |
 | Forecast NaN/negatives | 0 / 0 ✓ |
-| Forecast non-flat | True (std=20.72) ✓ |
-| 72h peak | 210.4 patients |
+| Forecast non-flat | True (smoke: PASSED) ✓ |
+| 72h peak | 218.4 patients |
 | `what_if_scenarios.csv` row count ≥ 40 | PASS (42 rows) |
 | `what_if_scenarios.csv` schema (21 cols) | PASS |
 

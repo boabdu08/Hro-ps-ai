@@ -598,17 +598,30 @@ def show_overview():
         st.caption("Metadata only, not a patient-pressure KPI.")
     st.caption("Command Center KPIs are sourced from the canonical ForecastState used by Forecast, Digital Twin, Optimization, Evaluation, and API runtime.")
 
-    # Accuracy badge — read from canonical ForecastState metrics
+    # Accuracy badge — show the best model's metrics from canonical ForecastState
     try:
         _mdf = forecast_state.metrics
-        if isinstance(_mdf, pd.DataFrame) and not _mdf.empty:
-            _hybrid_row = _mdf[_mdf["Model"].str.lower().str.contains("hybrid", na=False)]
-            if not _hybrid_row.empty:
-                _mae = round(float(_hybrid_row["MAE"].iloc[0]), 1)
-                _mape = round(float(_hybrid_row["MAPE"].iloc[0]), 1)
-                st.caption(f"Forecast accuracy — Hybrid model: MAE {_mae} patients | MAPE {_mape}% (caution metric)")
+        _best_name = forecast_state.selected_model
+        if isinstance(_mdf, pd.DataFrame) and not _mdf.empty and "Model" in _mdf.columns:
+            if _best_name:
+                _best_row = _mdf[_mdf["Model"] == _best_name]
+            elif "RMSE" in _mdf.columns:
+                _best_row = _mdf.sort_values("RMSE", ascending=True).iloc[[0]]
+                _best_name = str(_best_row.iloc[0]["Model"])
+            else:
+                _best_row = pd.DataFrame()
+            if not _best_row.empty:
+                _mae = round(float(_best_row["MAE"].iloc[0]), 1)
+                _rmse = round(float(_best_row["RMSE"].iloc[0]), 1)
+                _mape = round(float(_best_row["MAPE"].iloc[0]), 1)
+                st.caption(
+                    f"Forecast accuracy — Best model ({_best_name}): "
+                    f"MAE {_mae} | RMSE {_rmse} | MAPE {_mape}% (caution metric)"
+                )
             else:
                 st.caption("Forecast accuracy metrics unavailable.")
+        else:
+            st.caption("Forecast accuracy metrics unavailable.")
     except Exception:
         st.caption("Forecast accuracy metrics unavailable.")
 
@@ -845,18 +858,45 @@ def show_forecast():
         with m5:
             kpi_card("MAPE (caution)", fmt_mape(row.get("MAPE", 0.0)), status="warning")
 
-    # Lightweight, honest explanations to prevent “model is broken” impressions.
-    # (No data changes; display-only notes.)
+    # Honest model recommendation note — text is dynamic based on which model won.
     best_rmse_text = ""
     if not metrics_df.empty and {"Model", "RMSE"}.issubset(metrics_df.columns):
         best_row = metrics_df.sort_values("RMSE", ascending=True).iloc[0]
-        best_rmse_text = f" Lowest RMSE: {_model_name(best_row.get('Model'))} ({fmt_mae_rmse(best_row.get('RMSE'))})."
-    alert_box(
-        "Hybrid is highlighted as the operational recommendation when it has the lowest RMSE, because RMSE summarizes absolute forecast error in patient-count units more directly than MAPE." + best_rmse_text,
-        "success" if best_model == "Hybrid" else "info",
-    )
+        best_rmse_text = f" Lowest test RMSE: {_model_name(best_row.get('Model'))} ({fmt_mae_rmse(best_row.get('RMSE'))})."
+    _unc_search = (summary.get("hybrid_config") or {}).get("unconstrained_search") or {}
+    _unc_label = _unc_search.get("label", "")
+    if best_model == "Hybrid":
+        _rec_note = (
+            "Hybrid has the lowest test RMSE in this training run, confirming that "
+            "blending LSTM and ARIMAX improves over either model alone."
+        )
+    elif best_model == "LSTM":
+        _unc_addendum = ""
+        if _unc_label in ("LSTM-only", "LSTM-dominant"):
+            _unc_w_lstm = _unc_search.get("lstm_weight", "?")
+            _unc_w_ar = _unc_search.get("arimax_weight", "?")
+            try:
+                _unc_addendum = (
+                    f" Unconstrained weight search (w in [0.00, 1.00]) found the optimal blend at "
+                    f"LSTM={float(_unc_w_lstm):.2f}, ARIMAX={float(_unc_w_ar):.2f} "
+                    f"({_unc_label}), confirming that ARIMAX adds variance rather than information this run."
+                )
+            except Exception:
+                pass
+        _rec_note = (
+            "LSTM has the lowest test RMSE in this training run. The Hybrid blend "
+            f"(LSTM {fmt_weight(weights.get('lstm', 0.0))} / ARIMAX {fmt_weight(weights.get('arimax', 0.0))}) "
+            "is shown for comparison — ARIMAX convergence warnings reduced its accuracy, "
+            "making the constrained Hybrid slightly weaker than LSTM alone." + _unc_addendum
+        )
+    else:
+        _rec_note = (
+            f"{best_model or 'The selected model'} has the lowest test RMSE. "
+            "RMSE is used as the primary selection metric because it expresses error in patient-count units."
+        )
+    alert_box(_rec_note + best_rmse_text, "success" if best_model == "Hybrid" else "info")
 
-    # ARIMAX “flatness” / early stabilization hint: base on loaded artifact variability.
+    # ARIMAX "flatness" / early stabilization hint: base on loaded artifact variability.
     # If curves are nearly constant, explain that it may be an artifact/model limitation.
     try:
         if "arimax_pred" in overall_df.columns:
@@ -2053,7 +2093,7 @@ def render_digital_twin(*, key_prefix: str = "twin"):
     weights = summary.get("weights") or {}
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        kpi_card("Best model", _model_name(summary.get("best_model") or "Hybrid"), status="success")
+        kpi_card("Best model", _model_name(summary.get("best_model") or state.selected_model or "—"), status="success")
     with c2:
         kpi_card(f"+{horizon}h", fmt_patients(predicted_at_h), status="normal")
     with c3:
