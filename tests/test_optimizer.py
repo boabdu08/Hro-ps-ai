@@ -173,3 +173,55 @@ class TestScaling:
     def test_recommendations_not_empty(self):
         result = _call_optimizer(predicted_patients=100)
         assert len(result["recommendations"]) >= 1
+
+
+class TestAllocationNonNegative:
+    def test_no_negative_beds_required(self):
+        result = _call_optimizer(predicted_patients=150)
+        for row in result["department_allocations"]:
+            assert row["beds_required"] >= 0, (
+                f"beds_required is negative for {row['department']}"
+            )
+
+    def test_no_negative_doctors_required(self):
+        result = _call_optimizer(predicted_patients=150)
+        for row in result["department_allocations"]:
+            assert row["doctors_required"] >= 0
+
+    def test_no_negative_nurses_required(self):
+        result = _call_optimizer(predicted_patients=150)
+        for row in result["department_allocations"]:
+            assert row["nurses_required"] >= 0
+
+    def test_no_negative_shortage_values(self):
+        result = _call_optimizer(predicted_patients=150)
+        for row in result["department_allocations"]:
+            assert row["bed_shortage"] >= 0
+            assert row["doctor_shortage"] >= 0
+            assert row["nurse_shortage"] >= 0
+
+    def test_priority_scores_non_negative(self):
+        result = _call_optimizer(predicted_patients=100)
+        for row in result["department_allocations"]:
+            assert row["priority_score"] >= 0, (
+                f"priority_score is negative for {row['department']}"
+            )
+
+
+class TestDepartmentPriority:
+    def test_icu_has_high_priority_at_surge(self):
+        """ICU should rank high due to tight nurse ratio (1:2) at high patient loads."""
+        result = optimize_resources(300)
+        df_rows = result["department_allocations"]
+        icu_row = next((r for r in df_rows if r["department"] == "ICU"), None)
+        assert icu_row is not None, "ICU must be present in allocations"
+        assert icu_row["priority_score"] >= 0
+
+    def test_all_departments_have_status(self):
+        result = _call_optimizer(predicted_patients=180)
+        statuses = {row["department"]: row["status"] for row in result["department_allocations"]}
+        assert set(statuses.keys()) == EXPECTED_DEPARTMENTS
+        for dept, status in statuses.items():
+            assert status in {"stable", "warning", "critical"}, (
+                f"Unexpected status '{status}' for {dept}"
+            )

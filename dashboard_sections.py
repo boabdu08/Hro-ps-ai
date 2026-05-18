@@ -1028,18 +1028,68 @@ def show_optimization():
     with c4:
         kpi_card("Top priority", top_dept, delta=f"Objective: {objective}" if objective is not None else None, status="info")
 
-    st.caption(
-        f"Optimization input is ForecastState.predicted_patients_next_hour = {fmt_patients(canonical_input)}; recommendations and allocations are generated from that same value."
-    )
-    st.info(
-        f"Optimizer method: {summary.get('optimization_method', 'constraint-aware optimization')}. "
-        "Objective prioritizes departments with higher shortage, appointment pressure, OR pressure, and forecast load."
-    )
+    # Input + solver source banner
+    with st.container(border=True):
+        ic1, ic2, ic3 = st.columns(3)
+        with ic1:
+            kpi_card("Forecast input", fmt_patients(canonical_input), status="info")
+            st.caption("ForecastState.predicted_patients_next_hour — same value used by Command Center, Digital Twin, and all API endpoints.")
+        with ic2:
+            _beds_total = int(summary.get("beds_needed_total", 0))
+            _docs_total = int(summary.get("doctors_needed_total", 0))
+            _nurses_total = int(summary.get("nurses_needed_total", 0))
+            st.metric("Total beds requested", _beds_total)
+            st.caption(f"Doctors: {_docs_total}  |  Nurses: {_nurses_total}")
+        with ic3:
+            _mip_status = str(summary.get("mip_status") or "not run")
+            _solver_label = "Solver: MILP (optimal)" if _mip_status == "optimal" else (
+                "Solver: MILP (feasible)" if _mip_status == "feasible" else (
+                    "Solver: greedy fallback" if "fallback" in _mip_status else f"Solver: {_mip_status}"
+                )
+            )
+            _solver_tone = "success" if "optimal" in _solver_label else ("warning" if "fallback" in _solver_label else "info")
+            status_badge(_solver_label, _solver_tone)
+            st.caption("scipy.optimize.milp (Mixed Integer LP). Greedy fallback activates only if solver exceeds 5-second time limit.")
+
+    with st.expander("How the optimizer works", expanded=False):
+        st.markdown(
+            """
+**Objective:** Minimize total resource shortfall across all five departments,
+weighted by clinical priority.
+
+**Demand model (per department):**
+- Allocated share of forecast load: `dept_patients = forecast × share × pressure_modifier`
+- Pressure modifier = 1 + min(0.25, appointments/400) + min(0.20, OR_pending × 0.03)
+- Beds required = ceil(dept_patients × 1.10)  *(10% safety buffer)*
+- Doctors required = max(1, ceil(dept_patients / doctor_ratio))
+- Nurses required = max(1, ceil(dept_patients / nurse_ratio))
+
+**Staff ratios (clinically calibrated):**
+
+| Department | Doctor ratio | Nurse ratio |
+|---|---|---|
+| ER | 1 per 6 patients | 1 per 3 patients |
+| ICU | 1 per 3 patients | 1 per 2 patients (intensive) |
+| General Ward | 1 per 10 patients | 1 per 6 patients |
+| Surgery | 1 per 4 patients | 1 per 3 patients |
+| Radiology | 1 per 8 patients | 1 per 8 patients |
+
+**Priority score formula:**
+`priority = bed_shortage×3.0 + doctor_shortage×2.5 + nurse_shortage×2.0 + appt_load×0.10 + OR_pending×2.5 + dept_patients×0.05`
+
+**MIP allocation (scipy.optimize.milp):**
+Allocates integer resource units to departments, maximizing priority-weighted coverage
+subject to total availability constraints. Falls back to deterministic greedy allocation
+if MILP exceeds 5 seconds.
+
+**Status levels:** stable = occupancy < warning threshold | warning = approaching capacity | critical = at/above capacity threshold
+"""
+        )
 
     left, right = st.columns([1.35, 1])
     with left:
         with st.container(border=True):
-            section_header("Department allocations")
+            section_header("Department allocations", "Beds, doctors, and nurses required vs shortfall per department")
             if allocations:
                 alloc_df = pd.DataFrame(allocations)
                 show_cols = [
@@ -1059,13 +1109,14 @@ def show_optimization():
                     if c in alloc_df.columns
                 ]
                 modern_table(alloc_df[show_cols] if show_cols else alloc_df, key=scoped_key("optimization", "alloc_table"))
+                st.caption("beds_required = forecast share x 1.10 buffer | shortage = required minus currently available | priority_score drives MIP allocation order")
             else:
                 empty_state("No optimization allocations available.")
 
         if allocations:
             alloc_df = pd.DataFrame(allocations)
             with st.container(border=True):
-                section_header("Pressure ranking")
+                section_header("Pressure ranking", "Higher score = higher intervention priority")
                 if "priority_score" in alloc_df.columns and "department" in alloc_df.columns:
                     fig_priority = px.bar(
                         alloc_df,
@@ -1073,14 +1124,15 @@ def show_optimization():
                         y="priority_score",
                         color="status" if "status" in alloc_df.columns else None,
                         title="",
+                        color_discrete_map={"critical": "#e74c3c", "warning": "#f39c12", "stable": "#2ecc71"},
                     )
-                    fig_priority.update_layout(height=360, yaxis_title="Priority score", xaxis_title="Department")
+                    fig_priority.update_layout(height=360, yaxis_title="Priority score", xaxis_title="Department", legend_title_text="Status")
                     st.plotly_chart(fig_priority, use_container_width=True, key=scoped_key("optimization", "pressure_ranking"))
 
             shortage_cols = ["department", "bed_shortage", "doctor_shortage", "nurse_shortage"]
             if all(col in alloc_df.columns for col in shortage_cols):
                 with st.container(border=True):
-                    section_header("Shortages by department")
+                    section_header("Shortages by department", "Units short of what the forecast load requires")
                     shortage_df = alloc_df[shortage_cols].copy()
                     fig_shortage = px.bar(
                         shortage_df,
@@ -1095,8 +1147,15 @@ def show_optimization():
 
             if mip_allocation:
                 with st.container(border=True):
-                    section_header("MIP allocation check", "Integer allocation plan from scipy.optimize.milp")
+                    _mip_disp_status = str(summary.get("mip_status") or "")
+                    _mip_hdr = "MIP integer allocation"
+                    if "fallback" in _mip_disp_status:
+                        _mip_hdr = "MIP allocation (greedy fallback — solver did not converge in time)"
+                    elif _mip_disp_status in ("optimal", "feasible"):
+                        _mip_hdr = f"MIP integer allocation (solver: {_mip_disp_status})"
+                    section_header(_mip_hdr, "Integer units assigned per department and resource by scipy.optimize.milp")
                     modern_table(_round_display_dataframe(pd.DataFrame(mip_allocation)), key=scoped_key("optimization", "mip_allocation"))
+                    st.caption("mip_assigned = units the solver allocated | mip_gap = remaining unmet need after allocation")
 
     with right:
         with st.container(border=True):
@@ -1108,11 +1167,12 @@ def show_optimization():
                 empty_state("No recommendations available.")
 
         with st.container(border=True):
-            section_header("Action plan")
+            section_header("Action plan", "Constraint-based staff transfers and appointment/OR actions")
             if actions:
                 modern_table(pd.DataFrame(actions), key=scoped_key("optimization", "actions_table"))
+                st.caption("staff_reassign: move staff from surplus department to deficit department. appointments_reschedule: defer lower-priority slots to reduce load. or_escalate: escalate pending OR bookings.")
             else:
-                empty_state("No explicit actions generated.")
+                empty_state("No explicit actions generated — all departments within acceptable thresholds or no staff surplus available for transfer.")
 
 
 def _build_capacity_from_allocations(allocations: list[dict]) -> pd.DataFrame:
@@ -1941,12 +2001,33 @@ def render_simulation(*, key_prefix: str = "sim"):
         left, right = st.columns(2)
         with left:
             with st.container(border=True):
-                section_header("Bed allocation")
-                st.json(sim["bed_allocation"])
+                section_header("Bed allocation", "Based on simulated patient load vs available beds")
+                _ba = sim.get("bed_allocation") or {}
+                _ba_status = str(_ba.get("status", "OK"))
+                _ba_tone = "critical" if _ba_status == "SHORTAGE" else "success"
+                ba1, ba2, ba3 = st.columns(3)
+                with ba1:
+                    status_badge(_ba_status, _ba_tone)
+                    st.metric("Beds used", int(_ba.get("beds_used", 0)))
+                with ba2:
+                    st.metric("Beds remaining", int(_ba.get("beds_remaining", 0)))
+                with ba3:
+                    _shortage_val = int(_ba.get("shortage", 0))
+                    st.metric("Shortage", _shortage_val)
+                if _shortage_val > 0:
+                    st.caption(f"Bed shortage of {_shortage_val} at current demand + slider settings. Adjust available beds or reduce demand.")
         with right:
             with st.container(border=True):
-                section_header("Recommended resources")
-                st.json(sim["recommended_resources"])
+                section_header("Recommended resources", "Estimated staffing need for simulated patient volume")
+                _rr = sim.get("recommended_resources") or {}
+                rr1, rr2, rr3 = st.columns(3)
+                with rr1:
+                    st.metric("Beds needed", int(_rr.get("beds_needed", 0)))
+                with rr2:
+                    st.metric("Doctors needed", int(_rr.get("doctors_needed", 0)))
+                with rr3:
+                    st.metric("Nurses needed", int(_rr.get("nurses_needed", 0)))
+                st.caption("Estimates: beds = patients x 1.15 | doctors = patients / 6 | nurses = patients / 3.5")
 
     # Capacity view derived from allocations.
     optimization = ctx.get("optimization") or {}

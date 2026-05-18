@@ -48,14 +48,14 @@ def clean_df() -> pd.DataFrame:
 @pytest.fixture(scope="module")
 def overall_forecast_df() -> pd.DataFrame:
     if not OVERALL_FORECAST_PATH.exists():
-        pytest.skip(f"Overall forecast not found: {OVERALL_FORECAST_PATH}")
+        pytest.fail(f"Critical: overall forecast artifact missing at {OVERALL_FORECAST_PATH}. Run generate_ops72h_outputs.py.")
     return pd.read_csv(OVERALL_FORECAST_PATH)
 
 
 @pytest.fixture(scope="module")
 def department_forecast_df() -> pd.DataFrame:
     if not DEPARTMENT_FORECAST_PATH.exists():
-        pytest.skip(f"Department forecast not found: {DEPARTMENT_FORECAST_PATH}")
+        pytest.fail(f"Critical: department forecast artifact missing at {DEPARTMENT_FORECAST_PATH}. Run generate_ops72h_outputs.py.")
     return pd.read_csv(DEPARTMENT_FORECAST_PATH)
 
 
@@ -206,6 +206,137 @@ class TestDepartmentForecast:
 # ---------------------------------------------------------------------------
 # Model artifact files existence
 # ---------------------------------------------------------------------------
+
+class TestCleanDataTemporalIntegrity:
+    def test_no_duplicate_timestamps(self, clean_df):
+        dup_count = clean_df["datetime"].duplicated().sum()
+        assert dup_count == 0, (
+            f"clean_data(AutoRecovered).csv has {dup_count} duplicate datetime values"
+        )
+
+    def test_datetime_parseable(self, clean_df):
+        parsed = pd.to_datetime(clean_df["datetime"], errors="coerce")
+        bad_count = parsed.isna().sum()
+        assert bad_count == 0, f"{bad_count} datetime values could not be parsed"
+
+    def test_date_range_starts_2024(self, clean_df):
+        parsed = pd.to_datetime(clean_df["datetime"], errors="coerce")
+        assert parsed.min().year == 2024, (
+            f"Expected start year 2024, got {parsed.min().year}"
+        )
+
+    def test_date_range_ends_2025(self, clean_df):
+        parsed = pd.to_datetime(clean_df["datetime"], errors="coerce")
+        assert parsed.max().year == 2025, (
+            f"Expected end year 2025, got {parsed.max().year}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# what_if_scenarios.csv integrity
+# ---------------------------------------------------------------------------
+
+WHAT_IF_PATH = PROJECT_ROOT / "data" / "updated_exports" / "what_if_scenarios.csv"
+WHAT_IF_MIN_ROWS = 40
+WHAT_IF_EXPECTED_COLS = 21
+
+
+class TestWhatIfScenarios:
+    def test_what_if_csv_exists(self):
+        assert WHAT_IF_PATH.exists(), (
+            f"what_if_scenarios.csv not found at {WHAT_IF_PATH}"
+        )
+
+    def test_what_if_csv_min_rows(self):
+        if not WHAT_IF_PATH.exists():
+            pytest.skip("what_if_scenarios.csv missing — see test_what_if_csv_exists")
+        df = pd.read_csv(WHAT_IF_PATH)
+        assert len(df) >= WHAT_IF_MIN_ROWS, (
+            f"what_if_scenarios.csv has {len(df)} rows, expected >= {WHAT_IF_MIN_ROWS}"
+        )
+
+    def test_what_if_csv_column_count(self):
+        if not WHAT_IF_PATH.exists():
+            pytest.skip("what_if_scenarios.csv missing")
+        df = pd.read_csv(WHAT_IF_PATH)
+        assert len(df.columns) == WHAT_IF_EXPECTED_COLS, (
+            f"what_if_scenarios.csv has {len(df.columns)} columns, expected {WHAT_IF_EXPECTED_COLS}"
+        )
+
+    def test_what_if_scenario_id_present(self):
+        if not WHAT_IF_PATH.exists():
+            pytest.skip("what_if_scenarios.csv missing")
+        df = pd.read_csv(WHAT_IF_PATH)
+        assert "scenario_id" in df.columns, "what_if_scenarios.csv must have a 'scenario_id' column"
+
+    def test_what_if_no_duplicate_scenario_ids(self):
+        if not WHAT_IF_PATH.exists():
+            pytest.skip("what_if_scenarios.csv missing")
+        df = pd.read_csv(WHAT_IF_PATH)
+        if "scenario_id" not in df.columns:
+            pytest.skip("scenario_id column not present")
+        dup_count = df["scenario_id"].duplicated().sum()
+        assert dup_count == 0, (
+            f"what_if_scenarios.csv has {dup_count} duplicate scenario_id values"
+        )
+
+
+# ---------------------------------------------------------------------------
+# users.csv integrity
+# ---------------------------------------------------------------------------
+
+USERS_CSV_PATH = PROJECT_ROOT / "users.csv"
+USERS_MIN_COUNT = 25
+
+
+class TestUsersCSV:
+    def test_users_csv_exists(self):
+        assert USERS_CSV_PATH.exists(), (
+            f"users.csv not found at {USERS_CSV_PATH}"
+        )
+
+    def test_users_csv_min_count(self):
+        if not USERS_CSV_PATH.exists():
+            pytest.skip("users.csv missing")
+        df = pd.read_csv(USERS_CSV_PATH)
+        assert len(df) >= USERS_MIN_COUNT, (
+            f"users.csv has {len(df)} users, expected >= {USERS_MIN_COUNT}"
+        )
+
+    def test_users_no_duplicate_usernames(self):
+        if not USERS_CSV_PATH.exists():
+            pytest.skip("users.csv missing")
+        df = pd.read_csv(USERS_CSV_PATH)
+        if "username" not in df.columns:
+            pytest.skip("username column not present in users.csv")
+        dup_count = df["username"].duplicated().sum()
+        assert dup_count == 0, (
+            f"users.csv has {dup_count} duplicate username values"
+        )
+
+    def test_users_roles_are_valid(self):
+        if not USERS_CSV_PATH.exists():
+            pytest.skip("users.csv missing")
+        df = pd.read_csv(USERS_CSV_PATH)
+        if "role" not in df.columns:
+            pytest.skip("role column not present in users.csv")
+        valid_roles = {"admin", "doctor", "nurse"}
+        invalid = set(df["role"].dropna().unique()) - valid_roles
+        assert not invalid, f"users.csv has invalid role values: {invalid}"
+
+    def test_demo_users_present(self):
+        if not USERS_CSV_PATH.exists():
+            pytest.skip("users.csv missing")
+        df = pd.read_csv(USERS_CSV_PATH)
+        if "username" not in df.columns:
+            pytest.skip("username column not present in users.csv")
+        required = {"admin1", "doctor1", "nurse1"}
+        present = set(df["username"].astype(str))
+        missing = required - present
+        assert not missing, (
+            f"Demo accounts missing from users.csv: {missing}"
+        )
+
 
 class TestModelArtifactFiles:
     def test_models_72h_directory_exists(self):

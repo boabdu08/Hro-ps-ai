@@ -35,14 +35,18 @@ Synthetic / Demo Hospital Data (17,520 hourly rows, 2024–2025)
         ▼
 Feature Engineering (61 operational + temporal columns)
         │
-        ├──► LSTM (weight 0.80)
+        ├──► LSTM (weight 0.80)  ← Best model by test RMSE (9.579)
         │       Captures non-linear surge spikes, shift transitions, emergency events
         │
         └──► ARIMAX (weight 0.20)
-                Captures linear trend and 24-hour seasonal periodicity
+                Captures linear trend and 24-hour periodicity via lag_24 + hour features
+                (0 convergence warnings after 2026-05-18 improvement; 7-variable exog set)
         │
         ▼
-Hybrid Forecast  (selected by validation RMSE: MAE 8.5 | RMSE 10.5 | MAPE 6.1% — retrain 2026-05-17)
+Constrained Hybrid Blend  (LSTM 0.80 / ARIMAX 0.20 — retrain 2026-05-18)
+  MAE 8.3 | RMSE 10.2 | MAPE 6.1%   ← comparison model; LSTM alone: RMSE 9.579
+  Unconstrained weight search finds LSTM=0.95/ARIMAX=0.05 ("LSTM-only"),
+  confirming LSTM dominance; constrained blend keeps both models represented.
         │
         ▼
 ForecastState  ← canonical, frozen source of truth
@@ -50,6 +54,7 @@ ForecastState  ← canonical, frozen source of truth
         │         This makes it architecturally impossible for Command Center,
         │         Forecast, Digital Twin, Optimization, and Evaluation to
         │         show different values for the same metric.
+        │         selected_model = LSTM  (lowest test RMSE in this training run)
         │
         ├──► FastAPI (46 endpoints)
         │       /forecast_state  /optimize  /explain  /health/full
@@ -57,7 +62,7 @@ ForecastState  ← canonical, frozen source of truth
         │
         └──► Streamlit Dashboard (13 tabs, 3 role views)
                 Command Center → Forecast → Digital Twin
-                Optimization → What-if Simulation → Evaluation
+                Optimization (scipy MILP) → What-if Simulation → Evaluation
                 Explainability → Shifts → Appointments → OR Bookings
                 Notifications → Messages → Approvals → Audit
 ```
