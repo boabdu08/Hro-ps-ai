@@ -20,6 +20,7 @@ from dashboard_sections import (
     show_overview,
     show_simulation,
 )
+from home_section import show_home
 from message_center_sections import show_message_center
 from notification_sections import show_notifications_panel
 from staff_sections import (
@@ -307,6 +308,7 @@ def sidebar_navigation(role):
 
     if role == "admin":
         pages = [
+            "Home",
             "Command Center",
             "Forecast",
             "Optimization",
@@ -323,6 +325,7 @@ def sidebar_navigation(role):
         ]
     elif role == "doctor":
         pages = [
+            "Home",
             "Overview",
             "Forecast",
             "My Shifts",
@@ -333,6 +336,7 @@ def sidebar_navigation(role):
         ]
     else:
         pages = [
+            "Home",
             "Overview",
             "My Shifts",
             "Appointments",
@@ -416,7 +420,10 @@ def main_app():
     inject_page_context(page)
 
     if role == "admin":
-        if page == "Command Center":
+        if page == "Home":
+            show_home()
+
+        elif page == "Command Center":
             show_overview()
 
         elif page == "Forecast":
@@ -481,7 +488,10 @@ def main_app():
             show_execution_trace()
 
     elif role == "doctor":
-        if page == "Overview":
+        if page == "Home":
+            show_home()
+
+        elif page == "Overview":
             show_overview()
 
         elif page == "Forecast":
@@ -503,7 +513,10 @@ def main_app():
             show_message_center(user)
 
     else:
-        if page == "Overview":
+        if page == "Home":
+            show_home()
+
+        elif page == "Overview":
             show_overview()
 
         elif page == "My Shifts":

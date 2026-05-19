@@ -38,7 +38,16 @@ The deployment must include the saved artifacts used by dashboard/API runtime pa
 - `y_scaler.pkl`
 - `hybrid_config.json`
 
-If any required artifact is missing, the related tab/API route may show a missing-artifact state or fail inference.
+These root-level files are **separate** from the 72-hour forecast dashboard artifacts above. They serve different runtime paths:
+
+| Artifact set | Used by | Purpose |
+|---|---|---|
+| `artifacts/models_72h/` + `artifacts/forecast_outputs/` | Dashboard (ForecastState), `/health/full` | Pre-computed 72h forecast shown in all dashboard tabs |
+| Root `hospital_forecast_model.keras`, `arimax_model.pkl`, etc. | `forecast_inference.py` → `/predict`, `/explain` API endpoints | Live per-request model inference |
+
+If the root artifacts are missing, the `/predict` and `/explain` endpoints will fail to load and return 500 errors. The dashboard will still work from the pre-computed 72h CSV artifacts. If the 72h artifacts are missing, the dashboard tabs will show a missing-artifact error and `/health/full` will report `"artifacts":"missing"`.
+
+Both sets must be present for full functionality.
 
 ## Environment variables
 
@@ -159,8 +168,9 @@ If the Hugging Face deployment becomes unstable, prefer Streamlit Cloud/Render f
 After deployment, verify:
 
 1. API health:
-   - `GET /health`
-   - `GET /health/db`
+   - `GET /health` → `{"status":"ok"}`
+   - `GET /health/db` → `{"status":"ok"}`
+   - `GET /health/full` → `{"api":"ok","database":"ok","artifacts":"ok","forecast_ready":true}` — this is the canonical deployment gate; if any value is not `ok`/`true`, the deployment is not ready for demo
 2. Login:
    - `POST /auth/login`
 3. Dashboard pages:
