@@ -876,13 +876,27 @@ def scoped_key(*parts: object) -> str:
     return "_".join(cleaned) if cleaned else "key"
 
 
-def modern_table(df, *, key: str | None = None):
-    """Dataframe wrapper with optional Streamlit key, scrollable view, and CSV export."""
+def modern_table(df, *, key: str | None = None, preview_rows: int | None = None):
+    """Dataframe wrapper with optional row preview, scrollable view, and CSV export.
+
+    preview_rows: if set and len(df) > preview_rows, display only the first N rows
+    with a caption. The full dataset is always available via CSV export.
+    """
+
+    display_df = df
+    truncated = False
+    if preview_rows is not None and len(df) > preview_rows:
+        display_df = df.head(preview_rows)
+        truncated = True
 
     if key:
-        st.dataframe(df, use_container_width=True, hide_index=True, key=key)
+        st.dataframe(display_df, use_container_width=True, hide_index=True, key=key)
     else:
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+    if truncated:
+        st.caption(f"Showing first {preview_rows} of {len(df)} rows. Export CSV to download all.")
+
     try:
         csv = df.to_csv(index=False).encode("utf-8")
         st.download_button(

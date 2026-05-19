@@ -223,7 +223,7 @@ def show_all_shifts():
     with s5:
         kpi_card("Departments covered", fmt_int(departments), status="info")
 
-    modern_table(df, key=scoped_key("shifts", "all", "table"))
+    modern_table(df, key=scoped_key("shifts", "all", "table"), preview_rows=50)
 
     left, right = st.columns(2)
     with left:

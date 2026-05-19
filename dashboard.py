@@ -39,9 +39,13 @@ from ui_components import (
     set_theme_mode,
     sidebar_status_card,
 )
-from api_client import get_unread_notification_count
-
 st.set_page_config(page_title="HRO Command Center", layout="wide")
+
+
+@st.cache_data(ttl=30, show_spinner=False)
+def _cached_notif_count():
+    from api_client import get_unread_notification_count
+    return get_unread_notification_count()
 
 
 def _get_query_param(name: str) -> str | None:
@@ -363,9 +367,9 @@ def show_sidebar_context(user):
         ],
     )
 
-    # Notification counter (in-app notifications)
+    # Notification counter — cached 30 s to avoid an API hit on every rerun.
     try:
-        notif_meta = get_unread_notification_count() or {}
+        notif_meta = _cached_notif_count() or {}
         notif_unread = int(notif_meta.get("unread_count") or 0)
     except Exception:
         notif_unread = 0

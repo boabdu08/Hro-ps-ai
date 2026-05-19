@@ -69,6 +69,18 @@ def _cached_detailed_predictions_df(split: str = "test") -> pd.DataFrame:
     return build_detailed_predictions_dataframe(split)
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def _load_clean_data_timestamps() -> pd.Series:
+    """Cache timestamp column of the 17,520-row historical dataset (1-hour TTL)."""
+    if not MAIN_CLEAN_DATASET_PATH.exists():
+        return pd.Series(dtype="datetime64[ns]")
+    try:
+        df = pd.read_csv(MAIN_CLEAN_DATASET_PATH, usecols=["datetime"])
+        return pd.to_datetime(df["datetime"], errors="coerce").dropna().reset_index(drop=True)
+    except Exception:
+        return pd.Series(dtype="datetime64[ns]")
+
+
 COUNT_DISPLAY_HINTS = (
     "patient",
     "patients",
@@ -170,12 +182,12 @@ def _build_recent_actual_forecast_comparison(hours: int = 24) -> tuple[pd.DataFr
         return pd.DataFrame(), None
 
     timestamps = pd.Series(dtype="datetime64[ns]")
-    if MAIN_CLEAN_DATASET_PATH.exists():
-        try:
-            main_df = pd.read_csv(MAIN_CLEAN_DATASET_PATH, usecols=["datetime"])
-            timestamps = pd.to_datetime(main_df["datetime"], errors="coerce").dropna().tail(len(recent)).reset_index(drop=True)
-        except Exception:
-            timestamps = pd.Series(dtype="datetime64[ns]")
+    try:
+        all_ts = _load_clean_data_timestamps()
+        if len(all_ts) > 0:
+            timestamps = all_ts.tail(len(recent)).reset_index(drop=True)
+    except Exception:
+        pass
 
     if len(timestamps) != len(recent):
         timestamps = pd.date_range(end=pd.Timestamp.now().floor("h"), periods=len(recent), freq="h").to_series(index=range(len(recent)))
@@ -552,7 +564,8 @@ def get_live_context():
 
 
 def show_overview():
-    ctx = get_live_context()
+    with st.spinner("Loading live forecast and optimization data..."):
+        ctx = get_live_context()
     if not ctx["ready"]:
         empty_state(ctx["reason"])
         return
@@ -1001,7 +1014,8 @@ def show_optimization():
         "AI-powered resource optimization — allocations, shortages, and recommended actions.",
     )
 
-    ctx = get_live_context()
+    with st.spinner("Running resource optimization..."):
+        ctx = get_live_context()
     if not ctx["ready"]:
         empty_state(ctx["reason"])
         return
@@ -1882,7 +1896,8 @@ def _build_simulation_scenario_analysis(
 def render_operations(*, key_prefix: str = "ops"):
     """Operations tab: live overview (no what-if controls)."""
 
-    ctx = get_live_context()
+    with st.spinner("Loading operations data..."):
+        ctx = get_live_context()
     if not ctx["ready"]:
         empty_state(ctx["reason"])
         return
@@ -1970,7 +1985,8 @@ def render_operations(*, key_prefix: str = "ops"):
 def render_simulation(*, key_prefix: str = "sim"):
     """Simulation tab: what-if sliders + scenario outputs."""
 
-    ctx = get_live_context()
+    with st.spinner("Loading simulation context..."):
+        ctx = get_live_context()
     if not ctx["ready"]:
         empty_state(ctx["reason"])
         return
@@ -2222,7 +2238,8 @@ def render_digital_twin(*, key_prefix: str = "twin"):
 def render_department_status(*, key_prefix: str = "dept"):
     """Department status tab: per-department breakdown from optimization allocations."""
 
-    ctx = get_live_context()
+    with st.spinner("Loading department status..."):
+        ctx = get_live_context()
     if not ctx["ready"]:
         empty_state(ctx["reason"])
         return
@@ -2394,7 +2411,7 @@ def show_evaluation_panel():
     with e3:
         kpi_card("Primary: MAE", fmt_mae_rmse(best_model_row.get("MAE")), status="normal")
     with e4:
-        kpi_card("Secondary: MAPE", fmt_mape(best_model_row.get("MAPE")), status="warning")
+        kpi_card("MAPE (caution — not primary)", fmt_mape(best_model_row.get("MAPE")), status="warning")
 
     alert_box(
         f"Best model is selected using the lowest RMSE: {_model_name(best_model_row.get('Model'))}. RMSE and MAE are emphasized because they are errors in patient-count units.",
@@ -2492,7 +2509,8 @@ def show_explainability_panel():
             "Percentages are normalized across displayed features and are approximate model introspection outputs."
         )
 
-    ctx = get_live_context()
+    with st.spinner("Computing feature sensitivity..."):
+        ctx = get_live_context()
     if not ctx["ready"]:
         empty_state(ctx["reason"])
         return

@@ -700,7 +700,7 @@ def show_admin_approval_panel(peak, beds_needed, doctors_needed, emergency_level
             empty_state("No processed recommendations yet.")
         else:
             st.caption("Decision history recovered from the audit trail.")
-            modern_table(audit_history_df, key=scoped_key("approvals", "audit_decision_history"))
+            modern_table(audit_history_df, key=scoped_key("approvals", "audit_decision_history"), preview_rows=25)
     else:
         history_df = history_df.sort_values(by="timestamp", ascending=False)
         display_df = history_df.rename(
@@ -716,4 +716,4 @@ def show_admin_approval_panel(peak, beds_needed, doctors_needed, emergency_level
                 "affected_files": "Affected records",
             }
         )
-        modern_table(display_df, key=scoped_key("approvals", "decision_history"))
+        modern_table(display_df, key=scoped_key("approvals", "decision_history"), preview_rows=25)
