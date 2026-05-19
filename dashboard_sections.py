@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -213,44 +214,220 @@ def _model_name(value) -> str:
 
 
 def _friendly_feature_label(feature: str) -> str:
+    """Backward-compatible friendly label (used outside explainability panel)."""
     name = str(feature or "")
     direct = {
+        "patients": "Current patient census",
         "is_weekend": "Weekend effect",
-        "trend_feature": "Recent trend",
+        "trend_feature": "Long-term demand trend",
         "holiday": "Holiday effect",
-        "month": "Season/month effect",
+        "month": "Seasonal (month) pattern",
         "day_of_week": "Day-of-week pattern",
-        "hour_sin": "Time-of-day pattern",
-        "hour_cos": "Time-of-day pattern",
+        "hour": "Current hour effect",
+        "hour_sin": "Time-of-day rhythm (sin)",
+        "hour_cos": "Time-of-day rhythm (cos)",
+        "weather": "Weather conditions",
+        "patients_lag_1": "1 hour ago — patient load",
+        "patients_lag_2": "2 hours ago — patient load",
+        "patients_lag_3": "3 hours ago — patient load",
+        "patients_lag_6": "6 hours ago — patient load",
+        "patients_lag_12": "12 hours ago — patient load",
+        "patients_lag_24": "Same time yesterday",
+        "patients_diff_1": "1-hour patient change",
+        "patients_diff_24": "24-hour patient change",
     }
     if name in direct:
         return direct[name]
     if name.startswith("patients_roll_mean_"):
-        return "Recent average patient load"
+        n = name.split("_")[-1]
+        return f"{n}-hour rolling average"
+    if name.startswith("patients_roll_std_"):
+        n = name.split("_")[-1]
+        return f"{n}-hour demand variability"
     if name.startswith("patients_lag_"):
-        return "Previous patient load"
+        n = name.split("_")[-1]
+        return f"{n} hours ago — patient load"
     if name.startswith("patients_diff_"):
         return "Recent change in patient load"
-    if name.startswith("patients_roll_std_"):
-        return "Recent volatility in patient load"
     return name.replace("_", " ").strip().title() or "Feature"
 
 
 def _feature_meaning(feature: str, direction: str) -> str:
     label = _friendly_feature_label(feature).lower()
-    if "patient load" in label:
+    if "patient" in label and ("ago" in label or "census" in label or "average" in label or "change" in label):
         base = "Recent/previous patient volumes are influencing the next forecast."
     elif "weekend" in label:
         base = "Weekend calendar patterns are influencing demand."
     elif "holiday" in label:
         base = "Holiday effects are influencing expected arrivals."
-    elif "time-of-day" in label:
+    elif "time-of-day" in label or "hour" in label:
         base = "Hourly arrival patterns are influencing expected demand."
     elif "trend" in label:
-        base = "The recent direction of demand is influencing the forecast."
+        base = "The long-term direction of demand is influencing the forecast."
     else:
         base = "This model input is influencing the forecast."
     return f"{base} Direction: {direction.lower()}."
+
+
+# ---------------------------------------------------------------------------
+# Context-aware explainability helpers (used by show_explainability_panel)
+# ---------------------------------------------------------------------------
+
+_DAY_NAMES_EXPL = [
+    "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
+]
+
+# Binary calendar features — active only when value >= 0.5
+_EXPL_BINARY_CALENDAR = {"is_weekend", "holiday"}
+
+# Always-contextual features (not binary, but represent background signals)
+_EXPL_CONTEXT_ALWAYS = {"trend_feature", "weather"}
+
+# Time-encoding features — context (always on, but represent current time, not a pressure driver)
+_EXPL_TIME_ENCODING = {"hour_sin", "hour_cos"}
+
+
+def _expl_extract_feature_values(last_sequence, feature_columns: list) -> dict:
+    """Extract the last row of the input sequence as {feature: value}."""
+    try:
+        last_row = last_sequence[-1]
+        return {col: float(last_row[i]) for i, col in enumerate(feature_columns) if i < len(last_row)}
+    except Exception:
+        return {}
+
+
+def _expl_feature_label(feature: str, fv: dict) -> str:
+    """Context-aware label — enriches time/day features with current values."""
+    if feature == "hour":
+        h = int(round(float(fv.get("hour", 0)))) % 24
+        return f"Current hour effect ({h:02d}:00)"
+    if feature == "day_of_week":
+        d = int(round(float(fv.get("day_of_week", 0)))) % 7
+        return f"Day-of-week pattern ({_DAY_NAMES_EXPL[d]})"
+    if feature == "is_weekend":
+        active = float(fv.get("is_weekend", 0)) >= 0.5
+        return "Weekend effect (active)" if active else "Weekend effect (inactive)"
+    if feature == "holiday":
+        active = float(fv.get("holiday", 0)) >= 0.5
+        return "Holiday effect (active)" if active else "Holiday effect (inactive)"
+    return _friendly_feature_label(feature)
+
+
+def _expl_status(feature: str, fv: dict) -> str:
+    """Return 'Active', 'Inactive', or 'Context' for a feature."""
+    if feature in _EXPL_BINARY_CALENDAR:
+        return "Active" if float(fv.get(feature, 0)) >= 0.5 else "Inactive"
+    if feature in _EXPL_CONTEXT_ALWAYS or feature in _EXPL_TIME_ENCODING:
+        return "Context"
+    return "Active"
+
+
+def _expl_group(feature: str, impact: float, fv: dict) -> str:
+    """Classify into 'active_inc', 'active_red', or 'context'."""
+    status = _expl_status(feature, fv)
+    if status in {"Inactive", "Context"}:
+        return "context"
+    return "active_inc" if impact >= 0 else "active_red"
+
+
+def _expl_explanation(feature: str, impact: float, fv: dict) -> str:
+    """Context-aware plain-English explanation tied to current feature values."""
+    direction = "increases" if impact > 0 else "reduces"
+    val = float(fv.get(feature, 0))
+
+    h = int(round(float(fv.get("hour", 0)))) % 24
+    dow = int(round(float(fv.get("day_of_week", 0)))) % 7
+    day_name = _DAY_NAMES_EXPL[dow]
+    is_weekend_now = float(fv.get("is_weekend", 0)) >= 0.5
+    is_holiday_now = float(fv.get("holiday", 0)) >= 0.5
+    shift = "morning" if 6 <= h < 14 else ("evening" if 14 <= h < 22 else "night")
+
+    if feature == "patients":
+        return (
+            f"Current patient census ({int(val)}) directly {direction} forecast pressure — "
+            "the model uses this as the primary continuity anchor."
+        )
+    if feature == "patients_lag_1":
+        return (
+            f"Patient load 1 hour ago ({int(val)}) is the strongest single signal, "
+            f"{direction} the next-hour forecast through learned autocorrelation."
+        )
+    if feature == "patients_lag_24":
+        return (
+            f"Same-hour patient load yesterday ({int(val)}) {direction} the forecast — "
+            "the model detects a 24-hour demand cycle."
+        )
+    if feature.startswith("patients_lag_"):
+        n = feature.split("_")[-1]
+        return (
+            f"Patient load {n} hours ago ({int(val)}) provides historical context, "
+            f"{direction} the forecast."
+        )
+    if feature.startswith("patients_roll_mean_"):
+        n = feature.split("_")[-1]
+        return (
+            f"{n}-hour rolling average ({val:.1f} patients) {direction} the forecast — "
+            "reflects whether the recent demand trend is elevated or suppressed."
+        )
+    if feature.startswith("patients_roll_std_"):
+        n = feature.split("_")[-1]
+        note = "high variability adds upward uncertainty" if impact > 0 else "stable, low-variance demand supports a lower forecast"
+        return f"{n}-hour demand variability ({val:.1f}) {direction} the forecast — {note}."
+    if feature == "patients_diff_1":
+        chg = "rising" if val > 0 else ("falling" if val < 0 else "stable")
+        return (
+            f"Patient count changed by {val:+.0f} in the last hour (demand is {chg}), "
+            f"{direction} forecast pressure."
+        )
+    if feature == "patients_diff_24":
+        chg = "higher" if val > 0 else ("lower" if val < 0 else "equal to")
+        return (
+            f"Current load is {chg} than the same hour yesterday ({val:+.0f}), "
+            f"{direction} the forecast."
+        )
+    if feature in ("hour", "hour_sin", "hour_cos"):
+        return (
+            f"The {shift} hour ({h:02d}:00) {direction} forecast pressure — "
+            "the model captures time-of-day arrival patterns learned from 17,520 hours of data."
+        )
+    if feature == "day_of_week":
+        return (
+            f"It is {day_name} — weekday admission patterns for this day {direction} the forecast."
+        )
+    if feature == "month":
+        return f"Month {int(val)} has a seasonal pattern that {direction} the forecast baseline."
+    if feature == "is_weekend":
+        if is_weekend_now:
+            return (
+                f"It is a weekend — weekend admission patterns {direction} forecast pressure "
+                "relative to a typical weekday."
+            )
+        return (
+            f"Weekend effect is INACTIVE — today is {day_name} (a weekday). "
+            "This feature is not an active driver of the current forecast. "
+            "The sensitivity score shows what would happen IF this were a weekend."
+        )
+    if feature == "holiday":
+        if is_holiday_now:
+            return (
+                f"Today is a holiday — atypical admission patterns {direction} forecast pressure."
+            )
+        return (
+            f"Holiday effect is INACTIVE — today is not a holiday. "
+            "This feature is not an active driver of the current forecast. "
+            "The sensitivity score shows what would happen IF today were a holiday."
+        )
+    if feature == "weather":
+        return (
+            f"Weather conditions (index {val:.1f}) provide background context, "
+            f"{direction} the forecast."
+        )
+    if feature == "trend_feature":
+        return (
+            f"Long-term demand trend (position {val:.3f} in training window) represents the "
+            f"overall growth/decay signal, {direction} the forecast baseline."
+        )
+    return f"This model input {direction} the forecast by approximately {abs(impact):.1f} patients."
 
 
 def _build_scenario_summary_report(scenario_df: pd.DataFrame) -> tuple[pd.DataFrame, str]:
@@ -2497,16 +2674,20 @@ def show_evaluation_panel():
 
 
 def show_explainability_panel():
-    page_header("Model Feature Sensitivity", "Which inputs are driving forecast pressure — shown as percentage contributions.")
+    page_header(
+        "Model Feature Sensitivity",
+        "Context-aware analysis of which inputs are driving the current forecast.",
+    )
 
     with st.container(border=True):
         st.markdown("**How to read this**")
         st.caption(
-            "Each feature's contribution is shown as a percentage of the total measured sensitivity across the top features. "
-            "A feature that 'increases predicted pressure by 32%' means it accounts for 32% of the total upward signal "
-            "among the top model inputs. "
+            "Each bar shows a feature's share of the total sensitivity within its group "
+            "(pressure-increasing or pressure-reducing). "
+            "Features that are currently inactive — such as 'Weekend effect' on a weekday — "
+            "are moved to the 'Context indicators' section and excluded from the main charts. "
             "**This is feature sensitivity analysis, not SHAP.** "
-            "Percentages are normalized across displayed features and are approximate model introspection outputs."
+            "Percentages are normalized within each group. Method: single-row perturbation on the live input sequence."
         )
 
     with st.spinner("Computing feature sensitivity..."):
@@ -2517,14 +2698,70 @@ def show_explainability_panel():
 
     explanation = explain_prediction(ctx["last_sequence"])
     if explanation is None or "feature_impacts" not in explanation:
-        empty_state("Explainability service unavailable. The model sensitivity service could not process the current input sequence.")
+        empty_state(
+            "Explainability service unavailable. "
+            "The model sensitivity service could not process the current input sequence."
+        )
         return
 
-    base_prediction = explanation["base_prediction"]
+    base_prediction = float(explanation["base_prediction"])
     impacts = explanation["feature_impacts"]
+    feature_columns = ctx.get("feature_columns") or []
+    last_sequence = ctx["last_sequence"]
 
-    kpi_card("Base prediction (no feature adjustments)", fmt_patients(base_prediction), delta="patients", status="info")
+    # ── Extract current feature values from last row of input sequence ────
+    fv = _expl_extract_feature_values(last_sequence, feature_columns)
 
+    # Derive readable context indicators from feature values
+    now = datetime.now()
+    h = int(round(float(fv.get("hour", now.hour)))) % 24
+    dow = int(round(float(fv.get("day_of_week", now.weekday())))) % 7
+    day_name = _DAY_NAMES_EXPL[dow]
+    is_weekend_now = float(fv.get("is_weekend", 0)) >= 0.5
+    is_holiday_now = float(fv.get("holiday", 0)) >= 0.5
+    shift_period = (
+        "Morning (06:00–14:00)" if 6 <= h < 14
+        else ("Evening (14:00–22:00)" if 14 <= h < 22 else "Night (22:00–06:00)")
+    )
+    cur_patients = float(fv.get("patients", base_prediction))
+
+    # ── Context summary card ──────────────────────────────────────────────
+    section_header("Forecast context", "The current situation this explanation is based on")
+    with st.container(border=True):
+        cs1, cs2, cs3, cs4 = st.columns(4)
+        with cs1:
+            st.markdown("**Day / Time**")
+            st.write(f"{day_name} · {h:02d}:00")
+            st.markdown("**Shift period**")
+            st.write(shift_period)
+        with cs2:
+            st.markdown("**Weekend**")
+            st.write("Yes" if is_weekend_now else "No (weekday)")
+            st.markdown("**Holiday**")
+            st.write("Yes" if is_holiday_now else "No (regular day)")
+        with cs3:
+            st.markdown("**Current patients**")
+            st.write(f"{int(round(cur_patients))} patients")
+            st.markdown("**Base forecast**")
+            st.write(f"{int(round(base_prediction))} patients")
+        with cs4:
+            fs_art = _cached_artifact_forecast_state()
+            model_name = (fs_art.selected_model or "Hybrid").upper() if fs_art else "Hybrid"
+            lstm_w = (fs_art.model_weights or {}).get("lstm", 0.80) if fs_art else 0.80
+            arimax_w = (fs_art.model_weights or {}).get("arimax", 0.20) if fs_art else 0.20
+            st.markdown("**Model**")
+            st.write(f"{model_name} (LSTM {lstm_w:.0%} · ARIMAX {arimax_w:.0%})")
+            st.markdown("**Source**")
+            st.write("ForecastState (live sequence + artifacts)")
+
+    kpi_card(
+        "Base prediction (sensitivity baseline)",
+        fmt_patients(base_prediction),
+        delta="patients at current model inputs, before any feature perturbation",
+        status="info",
+    )
+
+    # ── Build impact dataframe ────────────────────────────────────────────
     impact_df = pd.DataFrame(impacts)
     if impact_df.empty:
         empty_state("No feature impact data available.")
@@ -2532,93 +2769,189 @@ def show_explainability_panel():
 
     impact_df["impact"] = pd.to_numeric(impact_df["impact"], errors="coerce").fillna(0.0)
     impact_df["abs_impact"] = impact_df["impact"].abs()
-    impact_df["Feature"] = impact_df["feature"].apply(_friendly_feature_label)
-    top_df = impact_df.sort_values(by="abs_impact", ascending=False).head(12).copy()
-
-    # Normalize to contribution percentages (safe: denominator guard)
-    total_abs = top_df["abs_impact"].sum()
-    if total_abs > 0:
-        top_df["Contribution %"] = (top_df["abs_impact"] / total_abs * 100).round(1)
-    else:
-        top_df["Contribution %"] = 0.0
-
-    top_df["Direction"] = np.where(
-        top_df["impact"] >= 0,
-        "Increases forecast pressure",
-        "Reduces forecast pressure",
+    impact_df["group"] = impact_df.apply(
+        lambda r: _expl_group(r["feature"], r["impact"], fv), axis=1
     )
-    top_df["Contribution"] = top_df.apply(
-        lambda r: f"increases predicted pressure by {r['Contribution %']}%"
-        if r["impact"] >= 0
-        else f"reduces predicted pressure by {r['Contribution %']}%",
+    impact_df["Status"] = impact_df["feature"].apply(lambda f: _expl_status(f, fv))
+    impact_df["Feature"] = impact_df["feature"].apply(lambda f: _expl_feature_label(f, fv))
+    impact_df["Direction"] = np.where(
+        impact_df["impact"] >= 0,
+        "Increases pressure",
+        "Reduces pressure",
+    )
+    impact_df["Explanation"] = impact_df.apply(
+        lambda r: _expl_explanation(r["feature"], r["impact"], fv),
         axis=1,
     )
-    top_df["Plain-English meaning"] = top_df.apply(
-        lambda r: _feature_meaning(str(r.get("feature")), str(r.get("Direction"))),
-        axis=1,
+    impact_df["Current value"] = impact_df["feature"].apply(
+        lambda f: f"{float(fv.get(f, 0)):.2f}" if f in fv else "—"
     )
 
-    inc_df = top_df[top_df["impact"] >= 0].sort_values("Contribution %", ascending=True)
-    red_df = top_df[top_df["impact"] < 0].sort_values("Contribution %", ascending=True)
+    # Split into groups (top 8 active each; all context indicators)
+    active_inc = (
+        impact_df[impact_df["group"] == "active_inc"]
+        .sort_values("abs_impact", ascending=False)
+        .head(8)
+        .copy()
+    )
+    active_red = (
+        impact_df[impact_df["group"] == "active_red"]
+        .sort_values("abs_impact", ascending=False)
+        .head(8)
+        .copy()
+    )
+    ctx_indicators = (
+        impact_df[impact_df["group"] == "context"]
+        .sort_values("abs_impact", ascending=False)
+        .copy()
+    )
 
+    # Normalize Contribution % WITHIN each group separately
+    def _norm_pct(df_grp: pd.DataFrame) -> pd.DataFrame:
+        df_grp = df_grp.copy()
+        total = df_grp["abs_impact"].sum()
+        df_grp["Contribution %"] = (
+            (df_grp["abs_impact"] / total * 100).round(1) if total > 0 else 0.0
+        )
+        return df_grp
+
+    active_inc = _norm_pct(active_inc)
+    active_red = _norm_pct(active_red)
+    if not ctx_indicators.empty:
+        ctx_indicators = _norm_pct(ctx_indicators)
+
+    n_active = len(active_inc) + len(active_red)
+    n_context = len(ctx_indicators)
+    n_total = len(impact_df)
+
+    # ── Charts ────────────────────────────────────────────────────────────
     c_inc, c_red = st.columns(2)
+
     with c_inc:
-        section_header("Pressure-increasing drivers", "Features pushing the forecast higher")
-        if inc_df.empty:
-            empty_state("No pressure-increasing drivers in the top features.")
+        section_header(
+            "Active pressure-increasing drivers",
+            "Features actively pushing the forecast higher right now",
+        )
+        if active_inc.empty:
+            empty_state("No active pressure-increasing drivers detected for this forecast context.")
         else:
+            df_chart_i = active_inc.sort_values("Contribution %", ascending=True).copy()
             fig_inc = px.bar(
-                inc_df,
+                df_chart_i,
                 x="Contribution %",
                 y="Feature",
                 orientation="h",
-                title="Increases forecast pressure",
                 color_discrete_sequence=["#EF4444"],
+                text=df_chart_i["Contribution %"].apply(lambda v: f"{v:.1f}%"),
+                hover_data={
+                    "Current value": True,
+                    "Explanation": True,
+                    "Contribution %": ":.1f",
+                },
             )
+            fig_inc.update_traces(textposition="outside")
             fig_inc.update_layout(
-                height=max(280, len(inc_df) * 45),
-                xaxis_title="Contribution to pressure increase (%)",
+                height=max(280, len(df_chart_i) * 50),
+                xaxis=dict(
+                    title="Contribution within increasing group (%)",
+                    range=[0, 115],
+                ),
                 yaxis_title="",
-                margin=dict(l=8, r=8, t=36, b=8),
-                xaxis=dict(range=[0, 100]),
+                margin=dict(l=8, r=8, t=10, b=8),
             )
-            fig_inc.update_traces(
-                hovertemplate="%{y}<br>%{x:.1f}% of total measured sensitivity<extra></extra>"
+            st.plotly_chart(
+                fig_inc, use_container_width=True,
+                key=scoped_key("explainability", "active_inc"),
             )
-            st.plotly_chart(fig_inc, use_container_width=True, key=scoped_key("explainability", "feature_impacts_positive"))
 
     with c_red:
-        section_header("Pressure-reducing drivers", "Features pushing the forecast lower")
-        if red_df.empty:
-            empty_state("No pressure-reducing drivers in the top features.")
+        section_header(
+            "Active pressure-reducing drivers",
+            "Features actively pushing the forecast lower right now",
+        )
+        if active_red.empty:
+            empty_state(
+                "No active pressure-reducing drivers detected for this forecast context."
+            )
         else:
+            df_chart_r = active_red.sort_values("Contribution %", ascending=True).copy()
             fig_red = px.bar(
-                red_df,
+                df_chart_r,
                 x="Contribution %",
                 y="Feature",
                 orientation="h",
-                title="Reduces forecast pressure",
                 color_discrete_sequence=["#22C55E"],
+                text=df_chart_r["Contribution %"].apply(lambda v: f"{v:.1f}%"),
+                hover_data={
+                    "Current value": True,
+                    "Explanation": True,
+                    "Contribution %": ":.1f",
+                },
             )
+            fig_red.update_traces(textposition="outside")
             fig_red.update_layout(
-                height=max(280, len(red_df) * 45),
-                xaxis_title="Contribution to pressure reduction (%)",
+                height=max(280, len(df_chart_r) * 50),
+                xaxis=dict(
+                    title="Contribution within reducing group (%)",
+                    range=[0, 115],
+                ),
                 yaxis_title="",
-                margin=dict(l=8, r=8, t=36, b=8),
-                xaxis=dict(range=[0, 100]),
+                margin=dict(l=8, r=8, t=10, b=8),
             )
-            fig_red.update_traces(
-                hovertemplate="%{y}<br>%{x:.1f}% of total measured sensitivity<extra></extra>"
+            st.plotly_chart(
+                fig_red, use_container_width=True,
+                key=scoped_key("explainability", "active_red"),
             )
-            st.plotly_chart(fig_red, use_container_width=True, key=scoped_key("explainability", "feature_impacts_negative"))
 
-    section_header("Feature contribution table", "All top features with direction and plain-English description")
-    table_cols = ["Feature", "Direction", "Contribution %", "Contribution", "Plain-English meaning"]
-    modern_table(top_df[table_cols], key=scoped_key("explainability", "impact_table"))
+    if is_weekend_now:
+        _weekend_note = ""
+    else:
+        _weekend_note = " 'Weekend effect' is in context indicators because today is a weekday."
     st.caption(
-        "Contribution % is the feature's share of total absolute sensitivity across the top 12 features. "
-        "Values sum to 100% across all rows shown. This is model introspection — not SHAP, not clinical causality."
+        f"Showing {n_active} active drivers out of {n_total} model features. "
+        f"{n_context} calendar/background feature(s) moved to 'Context indicators' below.{_weekend_note}"
     )
+
+    # ── Active driver table ───────────────────────────────────────────────
+    section_header(
+        "Feature contribution table",
+        "Active drivers — direction, contribution %, current value, and plain-English explanation",
+    )
+    active_all = pd.concat([active_inc, active_red], ignore_index=True).sort_values(
+        "abs_impact", ascending=False
+    )
+    if active_all.empty:
+        empty_state("No active driver data to display.")
+    else:
+        table_df = active_all[
+            ["Feature", "Status", "Direction", "Contribution %", "Current value", "Explanation"]
+        ].copy()
+        modern_table(table_df, key=scoped_key("explainability", "impact_table"))
+    st.caption(
+        "Contribution % is normalized within the active-increasing and active-reducing groups separately. "
+        "Inactive binary calendar features (weekend/holiday when not active today) are excluded. "
+        "This is model introspection — not SHAP, not clinical causality."
+    )
+
+    # ── Context indicators (collapsed) ───────────────────────────────────
+    with st.expander(
+        f"Context indicators — {n_context} inactive or background feature(s)",
+        expanded=False,
+    ):
+        st.caption(
+            "These features exist in the model but are either inactive in today's context "
+            "(e.g., 'Weekend effect' on a weekday, 'Holiday effect' on a non-holiday) "
+            "or represent background patterns (weather, long-term trend, time encoding). "
+            "Their sensitivity score shows what would happen IF they changed — "
+            "not that they are currently driving the forecast."
+        )
+        if ctx_indicators.empty:
+            st.info("All model features are active in the current forecast context.")
+        else:
+            ctx_table = ctx_indicators[
+                ["Feature", "Status", "Direction", "Contribution %", "Current value", "Explanation"]
+            ].copy()
+            modern_table(ctx_table, key=scoped_key("explainability", "ctx_table"))
 
 
 def show_simulation():
