@@ -258,30 +258,39 @@ Fallback explanation if asked:
 
 ### Step 7: Explainability
 
+**Important:** The Explainability tab requires the FastAPI service (`uvicorn`) to be running and reachable at `API_BASE_URL`. If the API is offline, the tab displays an empty state: *"Explainability service unavailable."* Always start the API before the dashboard, and confirm `/health` returns OK before presenting this tab.
+
 What to click:
 
 - Open **Explainability**.
 
 What to show:
 
-- Base prediction.
-- Top pressure-increasing drivers.
-- Top pressure-reducing drivers.
-- Feature impact table.
+- Forecast context card (day, hour, shift, weekend/holiday status, current patients).
+- Base prediction (sensitivity baseline).
+- Active pressure-increasing drivers chart.
+- Active pressure-reducing drivers chart.
+- Feature contribution table (active drivers only).
+- Context indicators expander (inactive or background features).
 
 What to say:
 
-> Explainability helps users understand what inputs influence the forecast, such as recent patient load, time-of-day patterns, day-of-week effects, and trend features. This is intended to make model behavior easier to discuss with operations teams.
+> Explainability explains what inputs are actively driving the current forecast. Features that are inactive — like 'Weekend effect' on a weekday — are moved to the 'Context indicators' section so they don't mislead the viewer. The main charts show only features that are genuinely contributing to today's pressure level.
 
 Value to hospital operations:
 
 - Improves trust.
-- Helps users understand why pressure is increasing or decreasing.
+- Helps users understand why pressure is increasing or decreasing right now.
+- Prevents confusion from showing irrelevant calendar features as "top drivers."
 - Supports model review and accountability.
 
-Fallback explanation if asked:
+Fallback explanation if asked about weekend/holiday features not appearing:
 
-> This is model feature sensitivity for demo explainability. It is not presented as clinical causality.
+> Calendar features like weekend effect and holiday effect are only shown as active drivers when they are actually on — that is, when is_weekend or is_holiday equals 1 in the current input. If today is a weekday, the model still contains this feature, but it is correctly classified as inactive for today's forecast context.
+
+Fallback explanation if the tab shows empty state:
+
+> The Explainability tab requires the API service to be running. Start uvicorn and reload the dashboard. This is not a model failure — it means the live inference endpoint is temporarily unavailable.
 
 ### Step 8: Staff / Appointments / OR Bookings
 

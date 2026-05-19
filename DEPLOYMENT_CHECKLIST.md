@@ -45,10 +45,12 @@ These items have been confirmed by automated tests and smoke scripts. No manual 
 - [ ] All required artifact files are committed — run `git ls-files artifacts/` and confirm model/forecast/metrics files are listed.
 - [ ] `requirements-api.txt` and `requirements-dashboard.txt` are up to date.
 - [ ] `render.yaml` is committed and points to correct entry points.
+- [ ] **Seed script safety note:** `seed_from_csv.py` reads `shifts.csv` (not `staff_schedule_updated.csv`). The file `staff_schedule_updated.csv` is NOT required and NOT read by the seeder. If it is missing, the seed will still complete successfully.
 - [ ] Neon database is provisioned and `DATABASE_URL` connection string is ready.
 - [ ] `JWT_SECRET_KEY` is set to a strong random secret (not the demo default).
 - [ ] `CORS_ORIGINS` will include the dashboard Render URL.
 - [ ] `API_BASE_URL` in the dashboard service env is set to the deployed API URL.
+- [ ] **Commit message quality:** Use conventional commit format (`fix:`, `feat:`, `docs:`, `chore:`). Include what changed and why (e.g., `fix: resolve pytest datetime warnings in test_data_integrity.py` not `"update project"`). The git log is the first thing a reviewer or jury member reads.
 
 ---
 

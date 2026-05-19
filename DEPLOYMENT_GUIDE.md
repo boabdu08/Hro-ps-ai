@@ -137,6 +137,17 @@ The `.gitignore` now has explicit exception rules so that required deployment ar
 
 Without these exceptions, Render deployments will fail `/health/full` checks because model files will not be present on the cloud filesystem. Verify that `git status` does not show the artifact files as untracked before pushing.
 
+### ARIMAX large file warning
+
+`artifacts/models_72h/arimax_ops72h.pkl` is **53.5 MB**. GitHub's soft warning threshold is 50 MB; the hard push limit is 100 MB. This file is below the hard limit and can be committed and pushed without Git LFS. However:
+
+- GitHub will display a warning when you push: *"File exceeds recommended size (53.5 MB)."* This is cosmetic and does not block the push.
+- The root-level `arimax_model.pkl` is 27.6 MB and is below both thresholds — no warning expected.
+- Do **not** use `git lfs track *.pkl` unless you have confirmed Git LFS is installed on Render. Render's free tier does not support Git LFS by default, and tracking with LFS without Render LFS support will cause the pkl file to be replaced by a pointer file at deploy time, which will break the API.
+- If the 53.5 MB warning blocks your push (it should not), use `git push --no-verify` is **not recommended**; instead, verify you are pushing to a repo where this file was already committed and the remote already has it.
+
+**Recommended action:** Push as-is. Accept the GitHub size warning. Both pkl files are required for full `/predict` and `/explain` functionality and are already committed.
+
 ## Streamlit Cloud deployment
 
 1. Connect the GitHub repo.

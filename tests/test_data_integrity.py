@@ -215,18 +215,18 @@ class TestCleanDataTemporalIntegrity:
         )
 
     def test_datetime_parseable(self, clean_df):
-        parsed = pd.to_datetime(clean_df["datetime"], errors="coerce")
+        parsed = pd.to_datetime(clean_df["datetime"], format="%d-%m-%y %H:%M", errors="coerce")
         bad_count = parsed.isna().sum()
         assert bad_count == 0, f"{bad_count} datetime values could not be parsed"
 
     def test_date_range_starts_2024(self, clean_df):
-        parsed = pd.to_datetime(clean_df["datetime"], errors="coerce")
+        parsed = pd.to_datetime(clean_df["datetime"], format="%d-%m-%y %H:%M", errors="coerce")
         assert parsed.min().year == 2024, (
             f"Expected start year 2024, got {parsed.min().year}"
         )
 
     def test_date_range_ends_2025(self, clean_df):
-        parsed = pd.to_datetime(clean_df["datetime"], errors="coerce")
+        parsed = pd.to_datetime(clean_df["datetime"], format="%d-%m-%y %H:%M", errors="coerce")
         assert parsed.max().year == 2025, (
             f"Expected end year 2025, got {parsed.max().year}"
         )
