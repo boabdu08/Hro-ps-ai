@@ -1,3 +1,6 @@
+import io
+from typing import Optional
+
 import pandas as pd
 
 from database import SessionLocal
@@ -7,6 +10,9 @@ from settings import get_settings
 REQUIRED_PATIENT_COLS = ["patients"]
 REQUIRED_APPT_COLS = ["department", "patient_count"]
 REQUIRED_OR_COLS = ["department", "status"]
+
+# 10 MB upload guard — block obvious abuse before hitting pd.read_csv
+_MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
 
 def validate_columns(df, required):
@@ -21,17 +27,19 @@ def clean_dataframe(df):
     return df
 
 
+def _validate_upload(file) -> bytes:
+    """Read file bytes and enforce size limit before parsing."""
+    raw = file.read() if hasattr(file, "read") else file
+    if len(raw) > _MAX_UPLOAD_BYTES:
+        raise ValueError(
+            f"Upload exceeds 10 MB limit ({len(raw):,} bytes). "
+            "Split the file or contact an administrator."
+        )
+    return raw
+
+
 def _get_or_create_default_tenant_id(db) -> int:
-    """Resolve tenant_id for ingestion.
-
-    Ingestion endpoints are admin-only, but they must still attach rows to a
-    tenant to keep the runtime DB-first dashboard working.
-
-    Historically some ingestion code inserted rows with tenant_id=None when the
-    tenants table wasn't seeded yet. That breaks /patient_flow/latest which is
-    tenant-scoped.
-    """
-
+    """Resolve the default tenant_id by slug (fallback for legacy callers)."""
     settings = get_settings()
     slug = (settings.default_tenant_slug or "demo-hospital").strip() or "demo-hospital"
     tenant = db.query(Tenant).filter(Tenant.slug == slug).first()
@@ -43,16 +51,24 @@ def _get_or_create_default_tenant_id(db) -> int:
     return int(tenant.id)
 
 
-def ingest_patient_flow(file):
-    df = pd.read_csv(file)
+def _resolve_tenant_id(db, tenant_id: Optional[int]) -> int:
+    """Use the caller-supplied tenant_id when available, else fall back to default."""
+    if tenant_id is not None:
+        return int(tenant_id)
+    return _get_or_create_default_tenant_id(db)
+
+
+def ingest_patient_flow(file, tenant_id: Optional[int] = None):
+    raw = _validate_upload(file)
+    df = pd.read_csv(io.BytesIO(raw))
     validate_columns(df, REQUIRED_PATIENT_COLS)
     df = clean_dataframe(df)
     db = SessionLocal()
     try:
-        tenant_id = _get_or_create_default_tenant_id(db)
+        tid = _resolve_tenant_id(db, tenant_id)
         for _, row in df.iterrows():
             db.add(PatientFlow(
-                tenant_id=int(tenant_id),
+                tenant_id=tid,
                 datetime=str(row.get("datetime", "")) if row.get("datetime", "") != "" else None,
                 patients=float(row["patients"]),
                 day_of_week=int(row.get("day_of_week", 0)) if str(row.get("day_of_week", "")).strip() != "" else None,
@@ -66,16 +82,17 @@ def ingest_patient_flow(file):
         db.close()
 
 
-def ingest_appointments(file):
-    df = pd.read_csv(file)
+def ingest_appointments(file, tenant_id: Optional[int] = None):
+    raw = _validate_upload(file)
+    df = pd.read_csv(io.BytesIO(raw))
     validate_columns(df, REQUIRED_APPT_COLS)
     df = clean_dataframe(df)
     db = SessionLocal()
     try:
-        tenant_id = _get_or_create_default_tenant_id(db)
+        tid = _resolve_tenant_id(db, tenant_id)
         for _, row in df.iterrows():
             db.add(Appointment(
-                tenant_id=int(tenant_id),
+                tenant_id=tid,
                 appointment_id=str(row.get("appointment_id", "")).strip(),
                 department=str(row["department"]).strip(),
                 doctor=str(row.get("doctor", "")).strip(),
@@ -89,16 +106,17 @@ def ingest_appointments(file):
         db.close()
 
 
-def ingest_or(file):
-    df = pd.read_csv(file)
+def ingest_or(file, tenant_id: Optional[int] = None):
+    raw = _validate_upload(file)
+    df = pd.read_csv(io.BytesIO(raw))
     validate_columns(df, REQUIRED_OR_COLS)
     df = clean_dataframe(df)
     db = SessionLocal()
     try:
-        tenant_id = _get_or_create_default_tenant_id(db)
+        tid = _resolve_tenant_id(db, tenant_id)
         for _, row in df.iterrows():
             db.add(ORBooking(
-                tenant_id=int(tenant_id),
+                tenant_id=tid,
                 booking_id=str(row.get("booking_id", "")).strip(),
                 room=str(row.get("room", "")).strip(),
                 doctor=str(row.get("doctor", "")).strip(),
@@ -111,6 +129,3 @@ def ingest_or(file):
         db.commit()
     finally:
         db.close()
-
-
-

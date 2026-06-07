@@ -623,17 +623,24 @@ def _get_default_tenant_id(db: Session) -> int:
 def get_tenant_id(payload: dict, db: Session) -> int:
     """Tenant context for the current request.
 
-    Backwards compatible:
-    - if JWT has tenant_id -> use it
-    - else use default tenant id
+    Uses the tenant_id embedded in the JWT. If the claim is absent (legacy
+    tokens or misconfiguration) we fall back to the default tenant and log a
+    warning — the caller should always embed tenant_id at login time.
     """
 
     tid = payload.get("tenant_id")
     if tid is None:
+        username = payload.get("username", "<unknown>")
+        logging.warning(
+            "JWT for user '%s' is missing tenant_id claim; falling back to default tenant. "
+            "Re-issue the token to fix this.",
+            username,
+        )
         return _get_default_tenant_id(db)
     try:
         return int(tid)
     except Exception:
+        logging.warning("JWT tenant_id '%s' is not a valid integer; falling back to default tenant.", tid)
         return _get_default_tenant_id(db)
 
 
@@ -877,12 +884,6 @@ def home_public():
 
     return {"message": "Hospital AI API is running"}
 
-
-@system_router.get("/", include_in_schema=False)
-def home_authenticated(_token: dict = Depends(require_staff_or_admin)):
-    # Keep an authenticated version for backward compatibility in case
-    # the dashboard expected auth on root.
-    return {"message": "Hospital AI API is running"}
 
 
 @system_router.get("/health", include_in_schema=False)
@@ -2131,8 +2132,10 @@ def get_evaluation(_token: dict = Depends(require_staff_or_admin)):
 def upload_patient_flow(
     file: UploadFile = File(...),
     _token: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
 ):
-    ingest_patient_flow(file.file)
+    tid = get_tenant_id(_token, db)
+    ingest_patient_flow(file.file, tenant_id=tid)
     return {"status": "patient flow uploaded"}
 
 
@@ -2140,8 +2143,10 @@ def upload_patient_flow(
 def upload_appointments(
     file: UploadFile = File(...),
     _token: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
 ):
-    ingest_appointments(file.file)
+    tid = get_tenant_id(_token, db)
+    ingest_appointments(file.file, tenant_id=tid)
     return {"status": "appointments uploaded"}
 
 
@@ -2149,8 +2154,10 @@ def upload_appointments(
 def upload_or(
     file: UploadFile = File(...),
     _token: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
 ):
-    ingest_or(file.file)
+    tid = get_tenant_id(_token, db)
+    ingest_or(file.file, tenant_id=tid)
     return {"status": "or bookings uploaded"}
 
 

@@ -138,7 +138,7 @@ Free-tier Render services spin down after inactivity. A cold-start can add 30–
 ### Jury Demo Walkthrough Order
 
 1. Login as `admin1 / 123456` on tenant `demo-hospital`.
-2. Command Center — KPIs, forecast accuracy caption (Hybrid MAE 6.6 | RMSE 8.1 | MAPE 4.9%).
+2. Command Center — KPIs, forecast accuracy caption (best model = LSTM: MAE 7.6 pts | RMSE 9.6 pts | MAPE 5.5%; deployed model = Hybrid LSTM 0.80/ARIMAX 0.20 for robustness).
 3. Forecast — 72-hour chart, three model comparison, hybrid weights grid-search result.
 4. Optimization — run MILP solver, department resource allocation.
 5. Approvals — pending AI recommendation, approve, confirm audit entry created.

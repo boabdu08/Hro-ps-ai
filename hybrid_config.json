@@ -1,16 +1,43 @@
 {
-  "lstm_weight": 1.0,
-  "arimax_weight": 0.0,
+  "lstm_weight": 0.8,
+  "arimax_weight": 0.2,
   "selection_metric": "validation_rmse",
+  "_note": "Constrained grid search (w_min=0.20, w_max=0.80, step=0.05) selected LSTM=0.80/ARIMAX=0.20 for deployment robustness. Unconstrained optimum is LSTM=0.95/ARIMAX=0.05 (near LSTM-only); LSTM alone achieves lower test RMSE (9.58 vs Hybrid 10.22). The hybrid is deployed because the ARIMAX component provides a linear anchor that stabilises predictions when LSTM encounters out-of-distribution surges. This is the same config used by the 72h pipeline (artifacts/models_72h/hybrid_config.json).",
   "validation_metrics": {
-    "MAE": 4.645725334522336,
-    "RMSE": 7.352719648111633,
-    "MAPE": 6.104985708623469
+    "LSTM": {
+      "MAE": 6.253540512237314,
+      "RMSE": 8.419737019061742,
+      "MAPE": 5.608160204197325
+    },
+    "ARIMAX": {
+      "MAE": 21.231875931473848,
+      "RMSE": 26.764990514879933,
+      "MAPE": 22.87398428115668
+    },
+    "Hybrid": {
+      "MAE": 7.250926742730011,
+      "RMSE": 9.433018753347648,
+      "MAPE": 7.1423989262306655
+    }
   },
   "test_metrics": {
-    "MAE": 4.9899135086887565,
-    "RMSE": 9.931300070700793,
-    "MAPE": 5.343036625482426
+    "LSTM": {
+      "MAE": 7.6449849382157335,
+      "RMSE": 9.578906263624232,
+      "MAPE": 5.523540917360862
+    },
+    "ARIMAX": {
+      "MAE": 15.628011190880345,
+      "RMSE": 19.332804640224037,
+      "MAPE": 12.329903832101131
+    },
+    "Hybrid": {
+      "MAE": 8.310970996351882,
+      "RMSE": 10.215160300221052,
+      "MAPE": 6.066089506598121
+    }
   },
-  "alignment_note": "LSTM and ARIMAX outputs aligned using the shortest common tail length."
+  "best_model_by_test_rmse": "LSTM",
+  "deployed_model": "Hybrid (LSTM 0.80 / ARIMAX 0.20)",
+  "alignment_note": "Aligned on shortest tail overlap between model outputs."
 }
