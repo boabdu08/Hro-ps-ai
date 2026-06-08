@@ -2687,7 +2687,10 @@ def show_explainability_panel():
             "Features that are currently inactive — such as 'Weekend effect' on a weekday — "
             "are moved to the 'Context indicators' section and excluded from the main charts. "
             "**This is feature sensitivity analysis, not SHAP.** "
-            "Percentages are normalized within each group. Method: single-row perturbation on the live input sequence."
+            "Percentages are normalized within each group. Method: single-row perturbation on the live input sequence. "
+            "Note: this view uses the root inference model (26-feature set) which shares the same "
+            "0.80/0.20 LSTM/ARIMAX weights as the dashboard forecast but was trained on a separate run "
+            "with a different feature schema — sensitivity drivers reflect the root model's learned patterns."
         )
 
     with st.spinner("Computing feature sensitivity..."):
