@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 from feature_spec import FEATURE_COLUMNS as LOCAL_FEATURE_COLUMNS, SEQUENCE_LENGTH as LOCAL_SEQUENCE_LENGTH
@@ -523,6 +524,26 @@ def evaluation_source_metrics(state: ForecastState) -> pd.DataFrame:
     return state.metrics.copy() if isinstance(state.metrics, pd.DataFrame) else pd.DataFrame()
 
 
+@st.cache_data(ttl=600)
+def _load_uncertainty_bands() -> dict | None:
+    """Load empirical prediction-band offsets (supplementary eval artifact).
+
+    Returns None when the artifact is absent — the Forecast tab then simply
+    renders without a band (no error).
+    """
+
+    import json
+
+    path = Path("artifacts/metrics_72h/supplementary/supplementary_evaluation.json")
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        return payload.get("uncertainty_bands")
+    except Exception:
+        return None
+
+
 def _load_ops72h_outputs(state: ForecastState | None = None) -> dict:
     """Load saved 72-hour forecast artifacts for Forecast and Digital Twin tabs.
 
@@ -636,6 +657,7 @@ def _build_engineered_frame_from_base(df: pd.DataFrame, feature_columns: list[st
 
     base_df["patients_diff_1"] = patients.diff(1)
     base_df["patients_diff_24"] = patients.diff(24)
+    # trend_feature = row_index / (N-1) → [0.0, 1.0]; captures long-run demand trend.
     base_df["trend_feature"] = (
         np.arange(len(base_df), dtype=float) / float(len(base_df) - 1)
         if len(base_df) > 1 else 0.0
@@ -1123,9 +1145,37 @@ def show_forecast():
             markers=True,
             title="72-hour overall forecast (patient counts)",
         )
+        # Uncertainty band: empirical 80% residual quantiles from the held-out
+        # test split (artifacts/metrics_72h/supplementary). Additive evidence —
+        # the point forecast itself is unchanged.
+        bands = _load_uncertainty_bands()
+        if bands and "hybrid_pred" in overall_chart_df.columns:
+            lo_off = float(bands["band_80"]["lower_offset"])
+            up_off = float(bands["band_80"]["upper_offset"])
+            hybrid_vals = pd.to_numeric(overall_chart_df["hybrid_pred"], errors="coerce")
+            x_vals = overall_chart_df["datetime"].tolist()
+            fig_forecast.add_trace(
+                go.Scatter(
+                    x=x_vals, y=(hybrid_vals + up_off).clip(lower=0).tolist(),
+                    mode="lines", line=dict(width=0), showlegend=False, hoverinfo="skip",
+                )
+            )
+            fig_forecast.add_trace(
+                go.Scatter(
+                    x=x_vals, y=(hybrid_vals + lo_off).clip(lower=0).tolist(),
+                    mode="lines", line=dict(width=0), fill="tonexty",
+                    fillcolor="rgba(99, 110, 250, 0.15)",
+                    name="80% uncertainty band", hoverinfo="skip",
+                )
+            )
         fig_forecast.update_layout(height=380, xaxis_title="Forecast time", yaxis_title="Predicted patients")
-        fig_forecast.update_traces(hovertemplate="%{x}<br>%{fullData.name}: %{y:.0f} patients<extra></extra>")
+        fig_forecast.update_traces(hovertemplate="%{x}<br>%{fullData.name}: %{y:.0f} patients<extra></extra>", selector=dict(mode="lines+markers"))
         st.plotly_chart(fig_forecast, use_container_width=True, key=scoped_key("forecast", "ops72h_overall_curve"))
+        if bands:
+            st.caption(
+                "Shaded band = empirical 80% prediction interval from held-out test residuals "
+                "(one-step-ahead). True multi-step uncertainty widens toward hour 72."
+            )
 
     with col2:
         display_cols = [c for c in ["hour_ahead", "datetime", "lstm_pred", "arimax_pred", "hybrid_pred"] if c in overall_df.columns]
@@ -1299,8 +1349,16 @@ if MILP exceeds 5 seconds.
                     ]
                     if c in alloc_df.columns
                 ]
+                # Column legend: *_required = Needed (what the forecast demands);
+                #                *_shortage = Shortage (gap vs currently available).
                 modern_table(alloc_df[show_cols] if show_cols else alloc_df, key=scoped_key("optimization", "alloc_table"))
-                st.caption("beds_required = forecast share x 1.10 buffer | shortage = required minus currently available | priority_score drives MIP allocation order")
+                st.caption(
+                    "**Needed** (`beds_required`, `doctors_required`, `nurses_required`) = "
+                    "what the forecast load demands (forecast share × 1.10 safety buffer).  "
+                    "**Shortage** (`bed_shortage`, `doctor_shortage`, `nurse_shortage`) = "
+                    "Needed minus currently available — the deficit the MILP solver must cover.  "
+                    "`priority_score` drives allocation order."
+                )
             else:
                 empty_state("No optimization allocations available.")
 

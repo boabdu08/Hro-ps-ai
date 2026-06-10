@@ -162,3 +162,76 @@ No tests existed for authentication, RBAC, or multi-tenant isolation. A regressi
 | 9 | `tests/test_auth_and_rbac.py` | Tests | 108 | **128** |
 
 **No regressions. Smoke validation: PASSED after all changes.**
+
+---
+
+## FINAL_SUBMISSION_PROMPT.md Pass — Additional Changes (2026-06-09)
+
+### 10. `api.py` — ALERT_ROUTING_TABLE + routing-aware `create_alert_and_notify`
+
+**Type:** Feature implementation (🟡 supervisor item #9)
+**Severity:** HIGH
+
+Added `ALERT_ROUTING_TABLE` dict mapping 6 alert types to default recipient roles.
+`create_alert_and_notify()` now reads this table when `target_role` is `None`, replacing
+the previous "send to all" default. New `/alert-routing-table` GET endpoint exposes the
+table as JSON (authenticated). Full Purpose/Source/Destination docstring added.
+
+### 11. `api_client.py` — `get_alert_routing_table()`
+
+**Type:** Feature (client helper for new endpoint)
+**Severity:** LOW
+
+### 12. `notification_sections.py` — Admin alert routing table viewer
+
+**Type:** UI feature (🟡 supervisor item #9)
+**Severity:** MEDIUM
+
+Added `_render_alert_routing_table()` expander visible to admin role in the Notifications
+panel. Shows the routing table as a DataFrame so the jury can see the alert-type → role
+mapping during the demo.
+
+### 13. `dashboard_sections.py` — "Needed vs Shortage" explicit caption
+
+**Type:** UX clarity (🟡 supervisor item #23)
+**Severity:** MEDIUM
+
+The allocation table caption now explicitly defines:
+- **Needed** = `*_required` columns = forecast demand × 1.10 safety buffer
+- **Shortage** = `*_shortage` columns = Needed minus currently available
+
+### 14. `forecast_features.py` + `dashboard_sections.py` — `trend_feature` formula documented
+
+**Type:** Documentation in code (🟡 supervisor item #22)
+**Severity:** LOW
+
+Added formula comment: `trend_feature = row_index / (N-1)` with explanation of what it
+captures (normalised position in training window → long-run demand trend).
+
+### 15. `approval_sections.py` — RAG re-validation badge after approval
+
+**Type:** Feature (🟡 supervisor item #4)
+**Severity:** MEDIUM
+
+`_show_revalidation_status()` function displays a Green/Amber badge immediately after
+a recommendation is approved, closing the apply→re-run→Red-Amber-Green loop visually.
+
+### 16. `resource_optimizer.py` — `optimize_resources()` docstring with Purpose/Source/Destination
+
+**Type:** Documentation in code (🟡 supervisor item #11)
+**Severity:** LOW
+
+Full docstring added with Purpose / Source (Trigger) / Destination (Outcome) + label
+legend for `*_required` (Needed) vs `*_shortage` (Shortage).
+
+| # | File | Type | Tests |
+|---|------|------|-------|
+| 10 | `api.py` | Alert routing table | **128** |
+| 11 | `api_client.py` | Routing table client | **128** |
+| 12 | `notification_sections.py` | Admin routing viewer | **128** |
+| 13 | `dashboard_sections.py` | Needed/Shortage caption | **128** |
+| 14 | `forecast_features.py` + `dashboard_sections.py` | trend_feature docs | **128** |
+| 15 | `approval_sections.py` | RAG re-validation badge | **128** |
+| 16 | `resource_optimizer.py` | Purpose/Source/Dest docstring | **128** |
+
+**All 128 tests green. Smoke PASSED. compileall clean.**

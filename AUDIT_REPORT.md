@@ -1,8 +1,9 @@
 # HRO-PS Audit Report
 
-**Generated:** 2026-06-08  
+**Generated:** 2026-06-09 (refreshed by FINAL_SUBMISSION_PROMPT.md)
 **Baseline:** 108 tests passing, smoke PASSED, compileall clean  
-**Final state:** 128 tests passing, smoke PASSED, compileall clean
+**Final state:** 128 tests passing, smoke PASSED, compileall clean  
+**Phase A–D:** All 🟡 supervisor items actioned; 2 new slides inserted; docs compiled
 
 ---
 
@@ -51,5 +52,25 @@ of truth; where docs disagreed with code, docs were corrected.
 | O2 | No Pydantic `response_model=` on most endpoints | Too many endpoints (48) to add safely without risk of breaking callers. Zero jury impact — Swagger shows the correct dynamic response. |
 | O3 | `etl_pipeline.py` uses `iterrows()` (slow at scale) | Acceptable at demo data volume. Bulk insert refactor is a post-graduation task. |
 | O4 | `python-jose` deprecation warnings in test output | Third-party library; cannot fix without forking or switching to `PyJWT`. |
-| O5 | Phase 8 (thesis/paper/poster pandoc compilation) | Requires pandoc + rsvg-convert + python-pptx installed on this machine and access to `D:\Hro new dashboard\`. Not executed here to avoid destructive file operations on external documents. |
-| O6 | Phase 9 (screenshots) | Requires running API + Streamlit dashboard simultaneously with browser access. Cannot be automated in a terminal session. |
+| O5 | Paper needs Turnitin + AI-detection check | Cannot be automated — manual step by team before journal submission (supervisor M8/M10 hard requirement). |
+| O6 | College Journal Word template | Supervisor to provide link; apply manually to `HRO-PS_Paper_REVISED.docx`. |
+| O7 | ARIMAX pkl (64 MB) not committed to git | Hugging Face deployment: use pre-generated CSVs for dashboard; commit LSTM `.keras` only; ARIMAX needed only for retraining. |
+
+---
+
+## FINAL_SUBMISSION_PROMPT.md Pass — New Findings (2026-06-09)
+
+| ID | File | Finding | Status |
+|----|------|---------|--------|
+| N1 | `api.py` | No configurable alert-routing table — `create_alert_and_notify()` sent to "all" by default | Fixed: `ALERT_ROUTING_TABLE` + routing-aware dispatch |
+| N2 | `dashboard_sections.py` | "Needed" vs "Shortage" column distinction not labelled in UI | Fixed: explicit caption added to allocation table |
+| N3 | `forecast_features.py` | `trend_feature` formula undocumented | Fixed: formula comment added to both files |
+| N4 | `approval_sections.py` | Apply→re-run→RAG loop had no visual re-validation outcome | Fixed: `_show_revalidation_status()` RAG badge |
+| N5 | `resource_optimizer.py` | No Purpose/Source/Destination annotation | Fixed: full docstring added |
+| N6 | Presentation | No commercial-products comparison slide | Fixed: slide inserted after S08 |
+| N7 | Presentation | No dedicated model-evaluation slide with canonical MAE/RMSE/MAPE | Fixed: slide inserted after Hybrid Architecture |
+| N8 | Presentation | S03 subtitle did not mention Risk & Crisis Management | Fixed: subtitle updated |
+| N9 | Presentation | Deployment referenced Azure/AWS not Hugging Face | Fixed: patched to "Hugging Face Spaces (GitHub-linked)" |
+| N10 | Poster | Tables had fabricated OR scheduling + wrong MAPE values | Fixed: Phase 10 Section E (previous session) |
+| N11 | Thesis DOCX | Only 55 KB (figures not embedded) when compiled directly | Fixed: re-ran `insert_figures_v2.py` → 9815 KB |
+| N12 | Paper DOCX | Correctly 3188 KB with 5 screenshots + 3 diagrams | No action needed |

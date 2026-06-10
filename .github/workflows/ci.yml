@@ -57,6 +57,12 @@ jobs:
           python -c "import main"
           python -c "import dashboard"
 
+      - name: Compile all sources (syntax gate)
+        run: python -m compileall . -q
+
+      - name: ForecastState smoke test (canonical wiring)
+        run: python scripts/smoke_forecast_state.py
+
       - name: Format check (black)
         run: black --check .
 

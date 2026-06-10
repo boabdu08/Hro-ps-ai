@@ -1,8 +1,20 @@
-"""Canonical forecasting inference logic for HRO-PS.
+"""Canonical forecasting inference logic for HRO-PS (root/live model path).
 
-This module is the single source of truth for *runtime* inference.
+This module is the single source of truth for *live, next-hour* inference.
 Both the FastAPI service and offline evaluation should call into this module
 to guarantee alignment.
+
+DUAL MODEL-PATH NOTE (documented, intentional):
+  * THIS path (root artifacts: hospital_forecast_model.keras + arimax_model.pkl,
+    26-feature schema in feature_spec.FEATURE_COLUMNS) serves POST /predict and
+    POST /explain — live next-hour inference on a caller-supplied sequence.
+  * The DASHBOARD path (artifacts/models_72h/*, 21-feature ops schema) produced
+    the pre-generated 72-h forecasts and the canonical headline metrics
+    (Hybrid MAE 8.31 / RMSE 10.22 / MAPE 6.07).
+  The two models were trained on different feature schemas, so their sequences
+  are NOT interchangeable; unifying them would require retraining. Both use the
+  same Hybrid weights (LSTM 0.80 / ARIMAX 0.20) from hybrid_config.json, and
+  the difference is disclosed in the Explainability tab UI.
 """
 
 from __future__ import annotations

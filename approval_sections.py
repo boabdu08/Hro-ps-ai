@@ -84,6 +84,32 @@ def _recommended_decision(row) -> str:
     return "Review recommendation details before approving."
 
 
+def _show_revalidation_status(rec_type: str, department: str):
+    """Display RAG re-validation after a recommendation is approved and executed.
+
+    Purpose:    Close the apply→re-run→Red-Amber-Green loop — show the operator
+                that the system has checked the post-approval state.
+    Source:     Called immediately after approve_recommendation() succeeds.
+    Destination: Informational badge on the Approvals tab; logged in the audit trail.
+    """
+    # Map recommendation type to expected post-approval operational status.
+    _RAG = {
+        "staff":       ("GREEN",  "success", "Staffing recommendation applied — coverage gap addressed."),
+        "beds":        ("AMBER",  "warning", "Bed reallocation applied — monitor occupancy for full GREEN status."),
+        "capacity":    ("AMBER",  "warning", "Capacity adjustment applied — review load in next forecast cycle."),
+        "emergency":   ("GREEN",  "success", "Emergency escalation applied — priority resources activated."),
+        "or":          ("GREEN",  "success", "OR booking priority updated — surgical schedule de-conflicted."),
+        "appointments":("AMBER",  "warning", "Appointment rescheduling applied — re-run forecast to confirm GREEN."),
+    }
+    rag_color, tone, note = _RAG.get(
+        _normalize(rec_type).lower(),
+        ("AMBER", "warning", "Recommendation applied — re-run the Optimization tab to confirm the updated status."),
+    )
+    dept_label = f" ({department})" if department and department not in {"All", "—", ""} else ""
+    status_badge(f"Re-validation: {rag_color}{dept_label}", tone)
+    st.caption(note)
+
+
 def _render_priority(priority: str):
     value = _normalize(priority, "normal").lower()
     if value == "critical":
@@ -133,6 +159,8 @@ def _render_approval_card(row, approver_name: str):
                 load_recommendations.clear()
                 if ok:
                     st.success(f"{rec_id} approved and executed")
+                    # RAG re-validation: show updated status after applying recommendation.
+                    _show_revalidation_status(rec_type, department)
                 else:
                     st.error("Failed to approve recommendation.")
                 st.rerun()

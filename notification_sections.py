@@ -447,9 +447,38 @@ def show_notifications_center(user: dict):
         _render_notification_group("Resolved / Archived", filtered_archived)
 
 
+def _render_alert_routing_table():
+    """Show the configurable alert-type → recipient-role routing table (admin view)."""
+    from api_client import get_alert_routing_table
+    with st.expander("Alert routing table (admin — how alerts reach recipients)", expanded=False):
+        st.caption(
+            "Each alert type is routed to a default recipient role when no explicit "
+            "target_role is set. Admins can extend this table in api.py (ALERT_ROUTING_TABLE)."
+        )
+        data = get_alert_routing_table()
+        routing = data.get("routing_table", {}) if isinstance(data, dict) else {}
+        if routing:
+            rows = [
+                {
+                    "Alert type": atype,
+                    "Default role": v.get("role", "all"),
+                    "Department scope": v.get("department") or "All",
+                    "Description": v.get("description", ""),
+                }
+                for atype, v in routing.items()
+            ]
+            import pandas as pd
+            st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
+        else:
+            st.info("Routing table unavailable — API offline or auth required.")
+
+
 def show_notifications_panel(user: dict):
     show_alerts_center(user)
     st.markdown("---")
     show_notifications_center(user)
     st.markdown("---")
+    if str(user.get("role", "")).lower() == "admin":
+        _render_alert_routing_table()
+        st.markdown("---")
     _render_preferences()

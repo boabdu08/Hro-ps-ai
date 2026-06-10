@@ -2,8 +2,8 @@
 
 HRO-PS is an **AI-powered hospital resource optimization prototype** built for a graduation demo. It combines patient-surge forecasting, operational dashboards, resource optimization, what-if simulation, and in-app communication foundations.
 
-> **Project status:** graduation-demo ready prototype.  
-> **Not production hospital SaaS yet:** the system still needs real hospital integration, clinical/operations validation, security/compliance hardening, production migrations, observability, and tenant-isolation testing before real-world use.
+> **Project status:** graduation-demo ready prototype (235 passing tests).  
+> **Not production hospital SaaS yet:** the system still needs real hospital integration, clinical/operations validation, production migrations, and observability before real-world use. Tenant isolation, rate limiting, security headers, upload validation, and drift detection are implemented and regression-tested.
 
 ## Demo data and privacy
 
@@ -56,9 +56,10 @@ ForecastState  ← canonical, frozen source of truth
         │         show different values for the same metric.
         │         selected_model = LSTM  (lowest test RMSE in this training run)
         │
-        ├──► FastAPI (46 endpoints)
+        ├──► FastAPI (48 endpoints)
         │       /forecast_state  /optimize  /explain  /health/full
-        │       PostgreSQL (21 tenant-scoped tables, bcrypt + JWT auth)
+        │       PostgreSQL (21 tenant-scoped tables, bcrypt + JWT auth,
+        │       rate-limited login/upload, security headers)
         │
         └──► Streamlit Dashboard (13 tabs, 3 role views)
                 Command Center → Forecast → Digital Twin
@@ -187,9 +188,30 @@ python -m pytest -q
 - Ensure all required artifacts are included in the deployed filesystem or mounted storage.
 - Do not run training scripts during dashboard/API startup.
 - Free-tier deployments may sleep and may have ephemeral storage.
-- Hugging Face Spaces can be used for a simple Streamlit showcase, but the full system is better suited to API + worker + DB deployment on Render/Railway/Neon/Streamlit Cloud.
 
-See `DEPLOYMENT_GUIDE.md` for detailed deployment-readiness notes.
+### Hugging Face Spaces (primary demo deployment)
+
+The repo ships a ready Space bootstrap:
+
+- `app.py` — Streamlit-SDK entrypoint that starts the FastAPI backend on an
+  internal port and then runs the dashboard (single container, no training on
+  startup; all model artifacts are committed in `artifacts/models_72h/`).
+- `README_HF_SPACE.md` — use its content as the Space's `README.md` (contains
+  the Space card YAML: `sdk: streamlit`, `app_file: app.py`).
+- Secrets: set `JWT_SECRET_KEY` in the Space settings; `DATABASE_URL` defaults
+  to a local SQLite file for the demo.
+
+Render/Railway/Neon remain supported via `main:app` + `render.yaml` for a
+multi-process deployment. See `DEPLOYMENT_GUIDE.md` for details, required data
+formats (CSV/SQL/Excel), and per-hospital retraining notes.
+
+### Supplementary evaluation artifacts
+
+`python generate_supplementary_eval.py` regenerates
+`artifacts/metrics_72h/supplementary/` (training loss curves, residual
+diagnostics, rolling-origin fold metrics, per-department error, uncertainty
+bands) from existing artifacts only — canonical headline metrics are never
+modified. See `ARCHITECTURE.md` for the architecture/decision summary.
 
 ## Graduation demo positioning
 

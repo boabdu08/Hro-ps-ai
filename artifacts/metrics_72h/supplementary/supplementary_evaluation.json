@@ -1,0 +1,120 @@
+{
+  "generated_from": "existing artifacts only (no retraining)",
+  "hybrid_test_metrics_check": {
+    "MAE": 8.311,
+    "RMSE": 10.215,
+    "MAPE": 6.066
+  },
+  "residual_diagnostics": {
+    "n": 2604,
+    "mean_residual": -5.253,
+    "std_residual": 8.761,
+    "skewness": 0.358,
+    "lag1_autocorrelation": 0.573,
+    "pct_within_1_rmse": 67.1,
+    "pct_within_2_rmse": 95.8,
+    "max_underforecast": -40.16,
+    "max_overforecast": 34.05,
+    "note": "Residuals = hybrid_pred - actual on the held-out test split. Positive lag-1 autocorrelation is expected for one-step-ahead hourly forecasts; it indicates persistence, not leakage."
+  },
+  "rolling_origin_folds": [
+    {
+      "MAE": 7.241,
+      "RMSE": 8.99,
+      "MAPE": 5.618,
+      "fold": 1,
+      "n_hours": 434
+    },
+    {
+      "MAE": 7.799,
+      "RMSE": 9.852,
+      "MAPE": 6.178,
+      "fold": 2,
+      "n_hours": 434
+    },
+    {
+      "MAE": 7.476,
+      "RMSE": 9.196,
+      "MAPE": 5.565,
+      "fold": 3,
+      "n_hours": 434
+    },
+    {
+      "MAE": 7.932,
+      "RMSE": 9.665,
+      "MAPE": 5.893,
+      "fold": 4,
+      "n_hours": 434
+    },
+    {
+      "MAE": 8.076,
+      "RMSE": 9.986,
+      "MAPE": 6.368,
+      "fold": 5,
+      "n_hours": 434
+    },
+    {
+      "MAE": 11.343,
+      "RMSE": 13.058,
+      "MAPE": 6.775,
+      "fold": 6,
+      "n_hours": 434
+    }
+  ],
+  "per_department_metrics": [
+    {
+      "MAE": 4.582,
+      "RMSE": 6.49,
+      "MAPE": 10.715,
+      "department": "ER",
+      "share": 0.3001
+    },
+    {
+      "MAE": 4.261,
+      "RMSE": 6.035,
+      "MAPE": 10.655,
+      "department": "General Ward",
+      "share": 0.2801
+    },
+    {
+      "MAE": 2.807,
+      "RMSE": 3.777,
+      "MAPE": 13.166,
+      "department": "ICU",
+      "share": 0.1499
+    },
+    {
+      "MAE": 2.491,
+      "RMSE": 3.321,
+      "MAPE": 14.708,
+      "department": "Radiology",
+      "share": 0.1201
+    },
+    {
+      "MAE": 2.777,
+      "RMSE": 3.772,
+      "MAPE": 13.079,
+      "department": "Surgery",
+      "share": 0.1498
+    }
+  ],
+  "uncertainty_bands": {
+    "method": "empirical residual quantiles on held-out test split",
+    "n_residuals": 2604,
+    "band_80": {
+      "lower_offset": -15.71,
+      "upper_offset": 6.22
+    },
+    "band_95": {
+      "lower_offset": -21.32,
+      "upper_offset": 13.21
+    },
+    "residual_std": 8.761,
+    "note": "Offsets are added to the point forecast to draw the band: lower = forecast - |lower_offset| ... upper = forecast + upper_offset. Derived from one-step-ahead test residuals; multi-step uncertainty grows with horizon, so 72-h tails are wider than shown."
+  },
+  "loss_curve_epochs": 40,
+  "loss_curve_final": {
+    "loss": 0.0014,
+    "val_loss": 0.0021
+  }
+}

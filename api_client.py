@@ -242,6 +242,11 @@ def get_alerts(active_only: bool = True, department: str | None = None, limit: i
     return _safe_get(f"{API_BASE_URL}/alerts", params=params, timeout=15)
 
 
+def get_alert_routing_table():
+    """Fetch the alert-type → recipient-role routing table from the API."""
+    return _safe_get(f"{API_BASE_URL}/alert-routing-table", timeout=10)
+
+
 def create_alert_api(
     title: str,
     message: str,

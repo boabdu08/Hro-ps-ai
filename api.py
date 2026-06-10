@@ -7,7 +7,7 @@ import logging
 import numpy as np
 from fastapi import FastAPI, HTTPException, Depends, Query, UploadFile, File, APIRouter, Header
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from sqlalchemy import text
@@ -31,6 +31,7 @@ from resource_optimizer import optimize_resources
 from schemas import LoginRequest
 from etl_pipeline import ingest_patient_flow, ingest_appointments, ingest_or
 from auth import create_token, bearer_from_header, decode_token, verify_password, hash_password
+from rate_limit import login_rate_limiter, upload_rate_limiter
 from forecast_inference import load_assets as _load_assets, predict_hybrid as _predict_hybrid
 from forecast_runtime import generate_multistep_forecast
 from forecast_state import build_canonical_forecast_state, forecast_state_to_dict
@@ -272,10 +273,10 @@ class PredictRequest(BaseModel):
 
 
 class SimulateRequest(BaseModel):
-    predicted_patients: float
-    beds_available: int
-    doctors_available: int
-    demand_increase_percent: float = 0
+    predicted_patients: float = Field(ge=0, le=10_000)
+    beds_available: int = Field(ge=0, le=100_000)
+    doctors_available: int = Field(ge=0, le=100_000)
+    demand_increase_percent: float = Field(default=0, ge=-100, le=1_000)
 
 
 class ExplainRequest(BaseModel):
@@ -676,6 +677,49 @@ def _should_notify_user(pref: NotificationPreference, priority: str, channel: st
     return True
 
 
+# ---------------------------------------------------------------------------
+# Alert routing table — configurable mapping of alert type → default recipients.
+#
+# Each entry:  alert_type → {"role": role_or_"all", "department": dept_or_None, "description": str}
+#
+# Purpose:   Define which staff role receives which class of alert by default.
+# Source:    create_alert_and_notify() reads this table when target_role is None.
+# Outcome:   Only the relevant role/department subset receives the in-app notification.
+# ---------------------------------------------------------------------------
+ALERT_ROUTING_TABLE: dict[str, dict] = {
+    "capacity_alert": {
+        "role": "admin",
+        "department": None,
+        "description": "Bed/capacity over-threshold → Hospital Admin + Charge Nurse",
+    },
+    "staffing_alert": {
+        "role": "admin",
+        "department": None,
+        "description": "Staffing gap or shift-coverage shortfall → Admin + Head Nurse",
+    },
+    "forecast_alert": {
+        "role": "admin",
+        "department": None,
+        "description": "Predicted surge or model anomaly → Admin + Senior Doctor",
+    },
+    "optimization_alert": {
+        "role": "admin",
+        "department": None,
+        "description": "MILP optimiser recommendation → Admin for approval workflow",
+    },
+    "critical_alert": {
+        "role": "all",
+        "department": None,
+        "description": "Mass-casualty / critical event → All active roles",
+    },
+    "operational_alert": {
+        "role": "all",
+        "department": None,
+        "description": "General operational signal → All users (default)",
+    },
+}
+
+
 def _users_for_scope(
     db: Session,
     tenant_id: int,
@@ -715,7 +759,16 @@ def create_alert_and_notify(
     target_department: Optional[str] = None,
     dedupe_window_minutes: int = 30,
 ) -> Alert:
-    """Create an alert (with simple dedupe) and create in-app notifications."""
+    """Create an alert (with simple dedupe) and create in-app notifications.
+
+    Purpose:      Centralised alert creation — enforces deduplication, validates
+                  alert_type/priority enums, and fans out in-app notifications to
+                  every qualifying user (per ALERT_ROUTING_TABLE and user preferences).
+    Source:       scheduler.py (scheduled forecast/optimization checks),
+                  optimizer endpoint (POST /optimize), admin POST /alerts/create.
+    Destination:  Alert row in DB (alerts table) + Notification rows per recipient
+                  (notifications table) → visible in dashboard Notifications tab.
+    """
 
     now = datetime.now()
     prio = normalize_text(priority, "medium").lower()
@@ -771,8 +824,14 @@ def create_alert_and_notify(
         db.commit()
         db.refresh(alert)
 
+    # Resolve target_role from ALERT_ROUTING_TABLE when not explicitly provided.
+    effective_role = target_role
+    if not effective_role:
+        routing = ALERT_ROUTING_TABLE.get(a_type, {})
+        effective_role = routing.get("role", "all")
+
     # Create notifications for recipients.
-    recipients = _users_for_scope(db, tenant_id, target_role, target_department)
+    recipients = _users_for_scope(db, tenant_id, effective_role, target_department)
     for u in recipients:
         pref = _get_or_create_notification_pref(db, int(u.id), tenant_id=int(tenant_id))
         if not _should_notify_user(pref, prio, channel="in_app"):
@@ -871,10 +930,23 @@ def bootstrap_messages_from_csv_if_needed(db: Session):
     return
 
 
+# Standard security headers for every response. HSTS is intentionally omitted:
+# it must only be sent by the TLS-terminating layer (the hosting platform).
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Cache-Control": "no-store",
+    "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
+}
+
+
 @app.middleware("http")
 async def log_requests(request, call_next):
     logging.info("%s %s", request.method, request.url)
     response = await call_next(request)
+    for header, value in SECURITY_HEADERS.items():
+        response.headers.setdefault(header, value)
     return response
 
 
@@ -884,6 +956,24 @@ def home_public():
 
     return {"message": "Hospital AI API is running"}
 
+
+
+@system_router.get("/alert-routing-table", tags=["System"])
+def get_alert_routing_table(_token: dict = Depends(require_staff_or_admin)):
+    """Return the alert-type → recipient-role routing table.
+
+    Purpose:    Allow admins to inspect (and in future configure) which role
+                receives notifications for each alert class.
+    Source:     Admin or audit request.
+    Destination: JSON response consumed by the Notifications settings UI.
+    """
+    return {
+        "routing_table": ALERT_ROUTING_TABLE,
+        "note": (
+            "target_role overrides this table when set explicitly on an alert. "
+            "When target_role is None, ALERT_ROUTING_TABLE provides the default recipient role."
+        ),
+    }
 
 
 @system_router.get("/health", include_in_schema=False)
@@ -1434,7 +1524,11 @@ def unpin_message(
 
 
 @auth_router.post("/login")
-def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
+def login_user(
+    payload: LoginRequest,
+    db: Session = Depends(get_db),
+    _rate: None = Depends(login_rate_limiter),
+):
     # Debug log (safe): never log raw password.
     logging.info(
         "auth.login received payload keys=%s tenant_slug=%s username=%s",
@@ -2017,6 +2111,13 @@ def predict(
     payload: PredictRequest,
     _token: dict = Depends(require_staff_or_admin),
 ):
+    """Live next-hour prediction from a caller-supplied 24x26 sequence.
+
+    Model path: root artifacts (26-feature schema) — see the dual model-path
+    note in forecast_inference.py. The dashboard's 72-h forecasts come from the
+    separate ops72h pipeline; both share the 0.80/0.20 hybrid weights.
+    """
+
     sequence_array = np.array(payload.sequence, dtype=float)
 
     if not validate_sequence_shape(sequence_array):
@@ -2078,6 +2179,13 @@ def explain(
     payload: ExplainRequest,
     _token: dict = Depends(require_staff_or_admin),
 ):
+    """Feature-sensitivity explanation for a live 24x26 input sequence.
+
+    Model path: root artifacts (26-feature schema), same as /predict — see the
+    dual model-path note in forecast_inference.py. The Explainability tab
+    discloses this difference to the user.
+    """
+
     sequence_array = np.array(payload.sequence, dtype=float)
 
     if not validate_sequence_shape(sequence_array):
@@ -2128,12 +2236,22 @@ def get_evaluation(_token: dict = Depends(require_staff_or_admin)):
     }
 
 
+def _require_csv_filename(file: UploadFile) -> None:
+    """Reject non-CSV uploads early (size is enforced in etl_pipeline)."""
+
+    name = (file.filename or "").lower()
+    if not name.endswith(".csv"):
+        raise HTTPException(status_code=400, detail="Only .csv uploads are accepted.")
+
+
 @upload_router.post("/patient_flow")
 def upload_patient_flow(
     file: UploadFile = File(...),
     _token: dict = Depends(require_admin),
     db: Session = Depends(get_db),
+    _rate: None = Depends(upload_rate_limiter),
 ):
+    _require_csv_filename(file)
     tid = get_tenant_id(_token, db)
     ingest_patient_flow(file.file, tenant_id=tid)
     return {"status": "patient flow uploaded"}
@@ -2144,7 +2262,9 @@ def upload_appointments(
     file: UploadFile = File(...),
     _token: dict = Depends(require_admin),
     db: Session = Depends(get_db),
+    _rate: None = Depends(upload_rate_limiter),
 ):
+    _require_csv_filename(file)
     tid = get_tenant_id(_token, db)
     ingest_appointments(file.file, tenant_id=tid)
     return {"status": "appointments uploaded"}
@@ -2155,7 +2275,9 @@ def upload_or(
     file: UploadFile = File(...),
     _token: dict = Depends(require_admin),
     db: Session = Depends(get_db),
+    _rate: None = Depends(upload_rate_limiter),
 ):
+    _require_csv_filename(file)
     tid = get_tenant_id(_token, db)
     ingest_or(file.file, tenant_id=tid)
     return {"status": "or bookings uploaded"}

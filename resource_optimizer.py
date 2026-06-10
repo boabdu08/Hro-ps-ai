@@ -466,6 +466,22 @@ def _select_or_escalations(or_rows: List[ORBooking], department: str, limit: int
 
 
 def optimize_resources(predicted_patients: float, *, tenant_id: int | None = None):
+    """Run the full HRO-PS resource optimisation pipeline.
+
+    Purpose:    Translate a patient-demand forecast into concrete, department-level
+                resource allocations (beds, doctors, nurses) using MILP, and produce
+                actionable recommendations for the Approvals workflow.
+    Source:     Called by the FastAPI /optimize endpoint (triggered by the dashboard
+                Optimization tab or the hourly scheduler) with the ForecastState
+                predicted_patients_next_hour value.
+    Destination: Returns a structured dict consumed by the dashboard Optimization tab
+                (KPI cards, allocation table, shortage chart) and by sync_recommendations()
+                which seeds the Approvals tab recommendation queue.
+
+    Key labels:
+        *_required  = Needed (what the forecast load demands, ×1.10 safety buffer).
+        *_shortage  = Shortage (Needed minus currently available — the MILP deficit to cover).
+    """
     predicted_patients = float(predicted_patients)
     operational_state = _load_operational_state(tenant_id=tenant_id)
     appts, or_rows, shifts = _load_entities(tenant_id=tenant_id)

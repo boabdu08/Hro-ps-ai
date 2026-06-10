@@ -93,6 +93,11 @@ def add_lags_rolls_diffs_trend(df: pd.DataFrame) -> pd.DataFrame:
     out["patients_diff_1"] = patients.diff(1)
     out["patients_diff_24"] = patients.diff(24)
 
+    # trend_feature: normalised row position in the training window → [0.0, 1.0].
+    # Formula: index / (N-1).  Captures long-run demand growth/decay over the
+    # training horizon; value is 0 at the first training row and 1 at the last.
+    # At inference time the sequence covers only the 24-h lookback window, so
+    # trend_feature ≈ 0.0 at the start of the window and ≈ 1.0 at the current hour.
     out["trend_feature"] = (
         np.arange(len(out), dtype=float) / float(len(out) - 1)
         if len(out) > 1 else 0.0
