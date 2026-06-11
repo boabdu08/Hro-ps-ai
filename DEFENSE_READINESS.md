@@ -1,7 +1,7 @@
 # Defense Readiness Assessment
 
 **Date:** 2026-06-09 (FINAL_SUBMISSION_PROMPT.md Phase E)
-**Validation state:** 235 tests passing · Smoke PASSED · compileall clean · Phase A–D complete
+**Validation state:** 255 tests passing · Smoke PASSED · compileall clean · Phase A–D complete
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Dimension | Score /10 | Key strength | Key gap |
 |-----------|-----------|-------------|---------|
-| **Technical quality** | 9.0 | ForecastState canonical state; 235 tests; 48 endpoints; scipy.milp; multi-tenant PostgreSQL | Hybrid slightly worse than LSTM alone → requires verbal answer |
+| **Technical quality** | 9.0 | ForecastState canonical state; 255 tests; 48 endpoints; scipy.milp; multi-tenant PostgreSQL | Hybrid slightly worse than LSTM alone → requires verbal answer |
 | **AI component** | 8.5 | LSTM+ARIMAX grid search; trend_feature documented; explainability panel; canonical metrics everywhere | Sensitivity analysis, not SHAP; 0.20 ARIMAX weight may invite "why bother" |
 | **Dashboard & UX** | 8.5 | 13 tabs; 3 roles; RAG re-validation loop; alert routing table; Needed/Shortage clearly labelled | No WebSocket real-time push |
 | **Documentation** | 9.0 | Thesis 9815 KB (35 figs); paper 3188 KB (5 screenshots); poster rebuilt; 31-slide deck | Paper needs Turnitin + AI-detection (manual) |
@@ -51,7 +51,7 @@
 
 All mandatory items are green:
 
-- [x] 235 tests passing, 0 failed
+- [x] 255 tests passing, 0 failed
 - [x] Smoke validation PASSED — ForecastState cross-tab consistency confirmed
 - [x] compileall clean — no syntax errors
 - [x] All canonical numbers consistent across code, configs, and documentation
@@ -87,7 +87,7 @@ All mandatory items are green:
 | API endpoints | 48 | `api.py` |
 | DB tables | 21 (all tenant-scoped) | `models.py` |
 | Dashboard tabs | 13 (3 role-based views) | `dashboard.py` |
-| Tests | 235 passing | pytest |
+| Tests | 255 passing | pytest |
 
 ---
 

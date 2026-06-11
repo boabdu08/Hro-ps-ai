@@ -271,9 +271,10 @@ def _render_hero(fs, now: datetime, api_offline: bool) -> None:
               </div>
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-top:3px;">
-              <span style="background:rgba(59,130,246,0.14);color:var(--text);
+              <span title="Best model by test RMSE on the held-out split. The deployed operational forecaster is the Hybrid (LSTM 0.80 / ARIMAX 0.20) — see the Evaluation tab."
+                style="background:rgba(59,130,246,0.14);color:var(--text);
                 border:1px solid rgba(59,130,246,0.26);border-radius:999px;
-                padding:4px 12px;font-size:12px;font-weight:750;white-space:nowrap;">Model: {model}</span>
+                padding:4px 12px;font-size:12px;font-weight:750;white-space:nowrap;cursor:help;">Best model: {model}</span>
               <span style="background:rgba({risk_rgb},0.14);color:var(--text);
                 border:1px solid rgba({risk_rgb},0.28);border-radius:999px;
                 padding:4px 12px;font-size:12px;font-weight:750;white-space:nowrap;">Risk: {risk}</span>
@@ -406,6 +407,11 @@ def _render_resource_kpis(dept_df: pd.DataFrame, appt_df: pd.DataFrame, or_df: p
             delta=f"{critical_n} Critical · {warning_n} Warning",
             status="critical" if critical_n > 0 else ("warning" if warning_n > 0 else "success"),
         )
+    st.caption(
+        "Bed/staff counts = currently **staffed and open** resources from the live department-status "
+        "snapshot. The Optimization tab plans against the larger *configured physical capacity* "
+        "(≈293 beds incl. overflow/hallway bays), which is why its totals are higher."
+    )
 
 
 # ---------------------------------------------------------------------------

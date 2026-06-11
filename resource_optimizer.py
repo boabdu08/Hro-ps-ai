@@ -16,7 +16,10 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
-from scipy.optimize import Bounds, LinearConstraint, milp
+
+# NOTE: scipy.optimize is imported lazily inside _solve_integer_resource_allocation()
+# to keep `import api` / dashboard cold start fast; the solver is only needed
+# when an optimization actually runs.
 
 from database import SessionLocal
 from models import Appointment, ORBooking, PatientTracking, StaffShift
@@ -249,6 +252,8 @@ def _solve_integer_resource_allocation(df: pd.DataFrame) -> dict:
     Objective: maximize priority-weighted assigned resources, with integer
     variables and total availability constraints for each resource class.
     """
+
+    from scipy.optimize import Bounds, LinearConstraint, milp
 
     if df.empty:
         return {"solver": "scipy.optimize.milp", "status": "empty", "allocations": []}

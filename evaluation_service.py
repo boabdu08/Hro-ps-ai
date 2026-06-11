@@ -3,15 +3,21 @@ import os
 from pathlib import Path
 import numpy as np
 import pandas as pd
-from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from forecast_state import build_canonical_forecast_state
+
+# NOTE: sklearn.metrics is imported lazily inside calculate_metrics().
+# An eager top-level import added ~15 s (sklearn + scipy.stats chain) to every
+# `import api` / dashboard cold start; the functions are only needed when a
+# caller actually recomputes metrics.
 
 
 METRICS_72H_DIR = Path("artifacts") / "metrics_72h"
 
 
 def calculate_metrics(actual, predicted):
+    from sklearn.metrics import mean_absolute_error, mean_squared_error
+
     actual = np.array(actual, dtype=float).reshape(-1)
     predicted = np.array(predicted, dtype=float).reshape(-1)
 

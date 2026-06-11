@@ -95,7 +95,10 @@ def get_patient_flow_history(limit: int = 500):
 
 def get_prediction(sequence):
     payload = {"sequence": sequence.tolist() if hasattr(sequence, "tolist") else sequence}
-    return _safe_post(f"{API_BASE_URL}/predict", payload=payload, timeout=25)
+    # 90 s: the FIRST /predict after API start lazy-loads TensorFlow + the model
+    # (10-30 s cold). A 25 s timeout made the dashboard show a misleading
+    # "API is not reachable" banner while uvicorn was up and warming.
+    return _safe_post(f"{API_BASE_URL}/predict", payload=payload, timeout=90)
 
 
 def simulate(predicted_patients, beds_available, doctors_available, demand_increase):

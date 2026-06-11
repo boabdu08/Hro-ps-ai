@@ -33,7 +33,7 @@ CSV (17,520 hourly rows, synthetic, 2024–2025, 5 departments)
 ## Quality gates
 
 Every change must pass, in order:
-`python -m pytest -q` (235 tests) → `python -m compileall . -q` →
+`python -m pytest -q` (255 tests) → `python -m compileall . -q` →
 `python scripts/smoke_forecast_state.py` (cross-tab canonical wiring).
 CI (.github/workflows/ci.yml) runs all three plus lint and a Docker build.
 
@@ -41,4 +41,4 @@ CI (.github/workflows/ci.yml) runs all three plus lint and a Docker build.
 
 Dataset 17,520×61 (2 yrs, 5 depts) · LSTM test 7.65 / 9.58 / 5.52% (best) ·
 ARIMAX 15.63 / 19.33 / 12.33% · Hybrid 0.80/0.20 → 8.31 / 10.22 / 6.07%
-(deployed) · 72-h horizon · 48 endpoints · 21 tables · 13 tabs · 235 tests.
+(deployed) · 72-h horizon · 48 endpoints · 21 tables · 13 tabs · 255 tests.

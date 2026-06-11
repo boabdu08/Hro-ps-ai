@@ -711,11 +711,15 @@ def get_live_context():
 
     result = get_prediction(last_sequence)
     if not result:
+        from api_client import api_base_url
+
         return {
             "ready": False,
             "reason": (
-                "Prediction API is not reachable or returned an error. "
-                "Make sure uvicorn is running and API_BASE_URL is correct."
+                f"Prediction service at {api_base_url()} did not return a result. "
+                "If the API just started, the first prediction loads the model "
+                "(10–30 s) — retry shortly. Otherwise check that uvicorn is running, "
+                "API_BASE_URL is correct, and you are still logged in (tokens expire after 60 min)."
             ),
             "df": df,
         }

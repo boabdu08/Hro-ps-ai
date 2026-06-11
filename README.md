@@ -2,7 +2,7 @@
 
 HRO-PS is an **AI-powered hospital resource optimization prototype** built for a graduation demo. It combines patient-surge forecasting, operational dashboards, resource optimization, what-if simulation, and in-app communication foundations.
 
-> **Project status:** graduation-demo ready prototype (235 passing tests).  
+> **Project status:** graduation-demo ready prototype (255 passing tests).  
 > **Not production hospital SaaS yet:** the system still needs real hospital integration, clinical/operations validation, production migrations, and observability before real-world use. Tenant isolation, rate limiting, security headers, upload validation, and drift detection are implemented and regression-tested.
 
 ## Demo data and privacy
@@ -113,9 +113,19 @@ git clone https://github.com/boabdu08/Hro-ps-ai.git
 cd hro-ps-ai
 ```
 
-### 2) Use Python 3.11
+### 2) Python environment — ONE canonical env
 
-The deployment runtime is Python 3.11. Local Python 3.13 may work for some flows, but Python 3.11 is the safest version for dependency compatibility.
+Local development/tests run on the repo venv **`venv`** (Python 3.13) — the only
+supported local environment (redundant `.venv`/`.venv311` were removed in the
+perf consolidation pass). Create it if missing:
+
+```powershell
+python -m venv venv
+venv\Scripts\pip install -r requirements.txt
+```
+
+The *cloud* deployment runtime remains Python 3.11 (`runtime.txt`) — wheels for
+both versions are pinned in `requirements.txt`.
 
 ### 3) Configure environment
 
@@ -137,12 +147,19 @@ Important variables:
 ### 4) Recommended local run commands on Windows
 
 ```powershell
+# One command for demo day: API (background) + dashboard (foreground)
+./scripts/run_all.ps1
+
+# Or individually:
 ./scripts/seed.ps1
 ./scripts/run_api.ps1
 ./scripts/run_dashboard.ps1
 
 # optional always-on pipeline / demo worker
 ./scripts/run_worker.ps1
+
+# Before demo day: re-anchor the demo display dates to the current week
+python scripts/refresh_demo_dates.py
 ```
 
 If PowerShell blocks script execution:

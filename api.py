@@ -2138,6 +2138,10 @@ def predict(
         # - Feature drift (wrong feature count)
         raise HTTPException(status_code=503, detail=f"Forecast service unavailable: {e}")
     predicted_patients = float(state.predicted_patients_next_hour or result["hybrid_prediction"])
+    # Patient counts cannot be negative. Out-of-distribution input sequences can
+    # push the regression below zero; clamp to match the artifact pipeline's
+    # validation rule (no negative forecasts) before deriving resources.
+    predicted_patients = max(0.0, predicted_patients)
 
     return {
         "predicted_patients_next_hour": predicted_patients,
