@@ -1149,13 +1149,24 @@ def show_forecast():
             markers=True,
             title="72-hour overall forecast (patient counts)",
         )
-        # Uncertainty band: empirical 80% residual quantiles from the held-out
+        # Uncertainty band: empirical residual quantiles from the held-out
         # test split (artifacts/metrics_72h/supplementary). Additive evidence —
-        # the point forecast itself is unchanged.
+        # the point forecast itself is unchanged. User-selectable level.
         bands = _load_uncertainty_bands()
-        if bands and "hybrid_pred" in overall_chart_df.columns:
-            lo_off = float(bands["band_80"]["lower_offset"])
-            up_off = float(bands["band_80"]["upper_offset"])
+        band_choice = "80%"
+        if bands:
+            band_choice = st.radio(
+                "Uncertainty band",
+                ["Off", "80%", "95%"],
+                index=1,
+                horizontal=True,
+                key=scoped_key("forecast", "band_level"),
+                help="Empirical prediction interval from held-out test residuals.",
+            )
+        if bands and band_choice != "Off" and "hybrid_pred" in overall_chart_df.columns:
+            band_key = "band_80" if band_choice == "80%" else "band_95"
+            lo_off = float(bands[band_key]["lower_offset"])
+            up_off = float(bands[band_key]["upper_offset"])
             hybrid_vals = pd.to_numeric(overall_chart_df["hybrid_pred"], errors="coerce")
             x_vals = overall_chart_df["datetime"].tolist()
             fig_forecast.add_trace(
@@ -1169,16 +1180,16 @@ def show_forecast():
                     x=x_vals, y=(hybrid_vals + lo_off).clip(lower=0).tolist(),
                     mode="lines", line=dict(width=0), fill="tonexty",
                     fillcolor="rgba(99, 110, 250, 0.15)",
-                    name="80% uncertainty band", hoverinfo="skip",
+                    name=f"{band_choice} uncertainty band", hoverinfo="skip",
                 )
             )
         fig_forecast.update_layout(height=380, xaxis_title="Forecast time", yaxis_title="Predicted patients")
         fig_forecast.update_traces(hovertemplate="%{x}<br>%{fullData.name}: %{y:.0f} patients<extra></extra>", selector=dict(mode="lines+markers"))
         st.plotly_chart(fig_forecast, use_container_width=True, key=scoped_key("forecast", "ops72h_overall_curve"))
-        if bands:
+        if bands and band_choice != "Off":
             st.caption(
-                "Shaded band = empirical 80% prediction interval from held-out test residuals "
-                "(one-step-ahead). True multi-step uncertainty widens toward hour 72."
+                f"Shaded band = empirical {band_choice} prediction interval from held-out test "
+                "residuals (one-step-ahead). True multi-step uncertainty widens toward hour 72."
             )
 
     with col2:
@@ -2473,6 +2484,70 @@ def render_digital_twin(*, key_prefix: str = "twin"):
         peak_h = int(np.argmax(np.array(plot_values, dtype=float)) + 1)
         st.caption(f"Peak within 72h occurs at +{peak_h}h (based on the saved Hybrid forecast output).")
 
+    _render_census_projection(state, key_prefix=key_prefix)
+
+
+def _render_census_projection(state, *, key_prefix: str = "twin") -> None:
+    """Census & occupancy projection + time-to-saturation KPI (Digital Twin).
+
+    Projection = queueing SIMULATION (patient_flow_sim) seeded from the live
+    department snapshot — labelled as such; not a clinical model.
+    """
+
+    try:
+        from ops_insights import project_census, saturation_label
+    except Exception:
+        return
+
+    vals72 = list(state.forecast_72h_values or []) if state else []
+    if not vals72:
+        return
+
+    dept_path = Path("data/updated_exports/department_status_updated.csv")
+    staffed, occupied = 172, 129  # documented demo defaults if snapshot missing
+    if dept_path.exists():
+        try:
+            dept = pd.read_csv(dept_path)
+            staffed = int(pd.to_numeric(dept["total_beds"], errors="coerce").sum())
+            occupied = int(pd.to_numeric(dept["occupied_beds"], errors="coerce").sum())
+        except Exception:
+            pass
+
+    section_header(
+        "Census & occupancy projection",
+        "Projected occupied beds from the 72-h arrivals forecast (queueing simulation)",
+    )
+
+    proj = project_census(vals72, staffed_beds=staffed, initial_census=occupied)
+
+    k1, k2, k3 = st.columns(3)
+    with k1:
+        kpi_card("Time to saturation", saturation_label(proj.hours_to_saturation),
+                 status="critical" if proj.hours_to_saturation is not None else "success")
+    with k2:
+        kpi_card("Projected peak census", f"{proj.peak_census:.0f}",
+                 delta=f"at +{proj.peak_hour}h", status="info")
+    with k3:
+        kpi_card("Staffed beds", str(staffed), delta=f"{occupied} occupied now", status="normal")
+
+    hours = list(range(len(proj.census)))
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=hours, y=proj.census, mode="lines", name="Projected census",
+                             line=dict(width=2)))
+    fig.add_trace(go.Scatter(x=hours, y=[staffed] * len(hours), mode="lines",
+                             name=f"Staffed beds ({staffed})", line=dict(dash="dash")))
+    if proj.hours_to_saturation is not None:
+        fig.add_vline(x=proj.hours_to_saturation, line_dash="dot",
+                      annotation_text=f"saturation +{proj.hours_to_saturation}h")
+    fig.update_layout(height=340, xaxis_title="Hours ahead", yaxis_title="Occupied beds",
+                      margin=dict(l=10, r=10, t=10, b=10))
+    st.plotly_chart(fig, use_container_width=True, key=scoped_key(key_prefix, "census_projection"))
+    st.caption(
+        "SIMULATION — operational queueing approximation (log-normal length-of-stay, "
+        "24 h mean), seeded from the live department snapshot. Not a clinical model; "
+        "synthetic demo data."
+    )
+
 
 def render_department_status(*, key_prefix: str = "dept"):
     """Department status tab: per-department breakdown from optimization allocations."""
@@ -2618,6 +2693,80 @@ def show_operations_center(*, key_prefix: str = "ops"):
     render_operations(key_prefix=key_prefix)
 
 
+@st.cache_data(ttl=600)
+def _model_health_payload() -> dict | None:
+    """Model Health inputs from REAL artifacts only.
+
+    Input drift:   reference = prior 30 days of the operational dataset,
+                   recent    = its latest 7-day window (latest available data
+                   in this synthetic-demo deployment — labelled as such).
+    Performance:   rolling |hybrid_pred - actual| over the last 72 h of the
+                   saved held-out test outputs, vs the canonical MAE baseline.
+    """
+
+    import json
+
+    ds_path = Path("artifacts/datasets/ops_hourly_overall.csv")
+    lstm_npz = Path("artifacts/metrics_72h/lstm_ops72h_test_outputs.npz")
+    arimax_npz = Path("artifacts/metrics_72h/arimax_ops72h_test_outputs.npz")
+    cfg_path = Path("artifacts/models_72h/hybrid_config.json")
+    if not (ds_path.exists() and lstm_npz.exists() and arimax_npz.exists()):
+        return None
+    try:
+        from ops_insights import model_health
+
+        patients = pd.to_numeric(
+            pd.read_csv(ds_path)["patients"], errors="coerce"
+        ).dropna().to_numpy(dtype=float)
+        recent = patients[-168:]                  # latest 7 days (hourly)
+        reference = patients[-888:-168]           # prior 30 days
+
+        lstm = np.load(lstm_npz)
+        arimax = np.load(arimax_npz)
+        cfg = json.loads(cfg_path.read_text(encoding="utf-8")) if cfg_path.exists() else {}
+        w_l = float(cfg.get("lstm_weight", 0.8))
+        w_a = float(cfg.get("arimax_weight", 0.2))
+        n = min(len(lstm["y_true"]), len(arimax["y_true"]))
+        hybrid_pred = w_l * lstm["y_pred"][-n:] + w_a * arimax["y_pred"][-n:]
+        abs_err = np.abs(hybrid_pred - lstm["y_true"][-n:])[-72:]
+
+        return model_health(reference, recent, rolling_abs_errors=list(abs_err))
+    except Exception:
+        return None
+
+
+def _render_model_health_panel() -> None:
+    """Admin Model Health card: drift status + rolling MAE vs canonical baseline."""
+
+    health = _model_health_payload()
+    if health is None:
+        return
+
+    section_header("Model health", "Input-drift (PSI) and rolling error vs the canonical test baseline")
+    h1, h2, h3 = st.columns(3)
+    with h1:
+        kpi_card("Input drift (PSI)", f"{health['psi']:.3f}",
+                 delta=health["chip_label"],
+                 status={"success": "success", "warning": "warning", "error": "critical"}[health["chip_tone"]])
+    with h2:
+        mae_txt = "—" if health["rolling_mae"] is None else f"{health['rolling_mae']:.2f}"
+        ratio = health["mae_ratio"]
+        ratio_txt = f"{ratio:.2f}x baseline 8.31" if ratio else "baseline 8.31"
+        kpi_card("Rolling MAE (last 72 h of test)", mae_txt,
+                 delta=ratio_txt,
+                 status="success" if health["performance_status"] == "ok" else "warning")
+    with h3:
+        kpi_card("Verdict", "DRIFT" if health["drifted"] else "HEALTHY",
+                 status="critical" if health["drifted"] else "success")
+    for note in health["notes"]:
+        st.caption(f"⚠️ {note}")
+    st.caption(
+        "PSI compares the latest 7-day window of the operational dataset against the prior "
+        "30 days (latest available data in this synthetic-demo deployment). Rolling MAE is "
+        "computed from the saved held-out test outputs — no live ground truth exists in the demo."
+    )
+
+
 def show_evaluation_panel():
     page_header("Evaluation", "Model comparison with MAE/RMSE as primary decision metrics and MAPE shown as a caution metric.")
 
@@ -2656,6 +2805,8 @@ def show_evaluation_panel():
         f"Best model is selected using the lowest RMSE: {_model_name(best_model_row.get('Model'))}. RMSE and MAE are emphasized because they are errors in patient-count units.",
         "success",
     )
+
+    _render_model_health_panel()
 
     # Notes about metric interpretation (important for operational throughput experiments)
     st.warning(
@@ -3019,11 +3170,99 @@ def show_explainability_panel():
             modern_table(ctx_table, key=scoped_key("explainability", "ctx_table"))
 
 
+@st.cache_data(ttl=600, show_spinner=False)
+def _cached_scenario_run(scenario: str, profile_name: str) -> dict:
+    """Run one production-scenario through forecast→census→optimizer (cached)."""
+
+    from production_scenarios import (
+        PROFILE_CLEOPATRA_SCALE,
+        PROFILE_DEMO,
+        PROFILE_SMALL_CLINIC,
+        run_scenario,
+    )
+
+    profiles = {p.name: p for p in (PROFILE_DEMO, PROFILE_CLEOPATRA_SCALE, PROFILE_SMALL_CLINIC)}
+    r = run_scenario(scenario, profiles[profile_name])
+    # Keep only what the UI needs (cache-friendly, JSON-ish).
+    return {
+        "demand": r["demand"],
+        "census": r["census"],
+        "peak_demand": r["peak_demand"],
+        "peak_census": r["peak_census"],
+        "total_overflow": r["total_overflow"],
+        "capacity_exceeded": r["capacity_exceeded"],
+        "beds": profiles[profile_name].total_beds,
+        "summary": r["optimizer_summary"],
+    }
+
+
+def _render_scenario_player(key_prefix: str = "sim") -> None:
+    """Scenario Player — replay the M9 production stress scenarios in the UI.
+
+    All scenarios are SYNTHETIC STRESS INPUTS layered on the real 72-h forecast
+    artifact; the same tested harness the test suite runs (production_scenarios).
+    """
+
+    with st.expander("🎬 Scenario Player — production stress scenarios (synthetic)", expanded=False):
+        c1, c2 = st.columns(2)
+        with c1:
+            scenario = st.selectbox(
+                "Scenario",
+                ["baseline", "surge", "holiday", "covid_crisis", "mass_casualty", "infeasible_demand"],
+                key=scoped_key(key_prefix, "scenario_choice"),
+                help="Deterministic transforms on the saved 72-h forecast — see production_scenarios.py",
+            )
+        with c2:
+            profile = st.selectbox(
+                "Hospital profile (illustrative)",
+                ["demo-hospital", "cleopatra-scale", "small-clinic"],
+                key=scoped_key(key_prefix, "scenario_profile"),
+            )
+
+        with st.spinner("Running scenario through forecast → census → optimizer..."):
+            try:
+                r = _cached_scenario_run(scenario, profile)
+            except Exception as e:
+                empty_state(f"Scenario run failed: {e}")
+                return
+
+        k1, k2, k3 = st.columns(3)
+        with k1:
+            kpi_card("Peak demand", f"{r['peak_demand']:.0f}/h", status="info")
+        with k2:
+            kpi_card("Peak census", f"{r['peak_census']:.0f}",
+                     delta=f"capacity {r['beds']}",
+                     status="critical" if r["capacity_exceeded"] else "success")
+        with k3:
+            kpi_card("Unplaced patients (72 h)", f"{r['total_overflow']:.0f}",
+                     status="critical" if r["total_overflow"] > 0 else "success")
+
+        hours = list(range(len(r["demand"])))
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=hours, y=r["demand"], name="Demand (arrivals/h)", mode="lines"))
+        fig.add_trace(go.Scatter(x=hours, y=r["census"], name="Projected census", mode="lines"))
+        fig.add_trace(go.Scatter(x=hours, y=[r["beds"]] * len(hours),
+                                 name=f"Beds ({r['beds']})", mode="lines", line=dict(dash="dash")))
+        fig.update_layout(height=340, xaxis_title="Hours ahead", yaxis_title="Patients / beds",
+                          margin=dict(l=10, r=10, t=10, b=10))
+        st.plotly_chart(fig, use_container_width=True, key=scoped_key(key_prefix, "scenario_chart"))
+
+        s = r["summary"]
+        st.caption(
+            f"Optimizer at peak: beds {s.get('beds_needed_total', '—')} · "
+            f"doctors {s.get('doctors_needed_total', '—')} · nurses {s.get('nurses_needed_total', '—')} · "
+            f"MILP status: {s.get('mip_status', '—')}.  "
+            "**SYNTHETIC STRESS INPUT** — deterministic transform of the saved 72-h forecast; "
+            "hospital profiles are illustrative configurations, not real institutions."
+        )
+
+
 def show_simulation():
     page_header(
         "Simulation",
         "What-if analysis: simulate demand shocks and visualize capacity impact.",
     )
+    _render_scenario_player(key_prefix="sim")
     render_simulation(key_prefix="sim")
 
 

@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-10  
 **Pass:** FINAL_SUBMISSION_PROMPT.md (Phases A–E) + FINAL_ENHANCEMENT_PROMPT.md (Phases 1–4)  
-**State:** **255 tests passing** · Smoke PASSED · compileall clean · canonical metrics unchanged
+**State:** **277 tests passing** · Smoke PASSED · compileall clean · canonical metrics unchanged
 
 ---
 
@@ -12,7 +12,7 @@
 
 | File | Size | Description |
 |------|------|-------------|
-| `HRO-PS_Thesis_REVISED.docx` | 9,815 KB | **PRIMARY THESIS** — 8 chapters, 35 embedded figures, commercial-products table (Table 2.2), testing table (Table 5.3), Hugging Face deployment. Recompiled 2026-06-11 with updated 255-test coverage statement. |
+| `HRO-PS_Thesis_REVISED.docx` | 9,815 KB | **PRIMARY THESIS** — 8 chapters, 35 embedded figures, commercial-products table (Table 2.2), testing table (Table 5.3), Hugging Face deployment. Recompiled 2026-06-11 with updated 277-test coverage statement. |
 | `HRO-PS_Thesis_REVISED.md` | 100 KB | Thesis source markdown (edit this, recompile to DOCX). |
 | `HRO-PS_Paper_REVISED.docx` | 3,188 KB | **RESEARCH PAPER** — 10 pages, journal structure, 5 dashboard screenshots + 3 diagrams embedded. ⚠️ Requires paraphrase + Turnitin + AI-detection before journal submission. |
 | `HRO-PS_Paper_REVISED.md` | 31 KB | Paper source markdown. |
@@ -69,10 +69,12 @@
 | `tests/test_demo_date_refresh.py` | 10 | Appts(7-day)=0 bug: whole-week date-shift logic + KPI window against refreshed data. |
 | `tests/test_import_performance.py` | 8 | `import api`/`dashboard_sections` must not pull TF/shap/sklearn/scipy eagerly. |
 | `tests/test_predict_clamp.py` | 2 | /predict never returns negative patient counts. |
+| `tests/test_ops_insights.py` | 17 | Briefing templates, census projection, time-to-saturation, model-health glue. |
+| `tests/test_upgrade_features.py` | 5 | Scenario Player cache, Model Health payload, guided-demo honesty, Py3.11 syntax sweep. |
 | `tests/test_forecast_state_wiring.py` | 1 | Cross-tab ForecastState consistency. |
 | `tests/test_health.py` | 1 | Health endpoint response. |
 | `tests/test_imports.py` | 2 | API + dashboard import-safety. |
-| **Total** | **255** | All passing. No mocks on forecast artifacts. |
+| **Total** | **277** | All passing. No mocks on forecast artifacts. |
 
 **Enhancement-pass additions (2026-06-10):**
 
@@ -126,7 +128,7 @@
 | API endpoints | 48 (FastAPI) |
 | Database tables | 21 (all tenant-scoped) |
 | Dashboard tabs | 13 (3 role-based views) |
-| Tests | **255 passing** |
+| Tests | **277 passing** |
 | Deployment | Hugging Face Spaces (GitHub-linked) |
 | Industrial reference | Al-Demerdash Hospital, Ain Shams University (site visit; no real patient data) |
 

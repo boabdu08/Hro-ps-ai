@@ -937,6 +937,79 @@ def _render_footer(fs) -> None:
 # Main entry point
 # ---------------------------------------------------------------------------
 
+def _render_ops_briefing(fs, dept_df: pd.DataFrame, now: datetime) -> None:
+    """Daily Ops Briefing — deterministic template over real state (no LLM).
+
+    Every number traces to ForecastState, the department-status snapshot, or
+    the census projection (labelled as a projection).
+    """
+
+    try:
+        from ops_insights import build_briefing, project_census, saturation_label
+    except Exception:
+        return
+
+    vals72 = list(fs.forecast_72h_values) if fs and fs.forecast_72h_values else []
+    nxt = float(fs.predicted_patients_next_hour) if fs and fs.predicted_patients_next_hour else None
+    risk = str(fs.risk_level or "LOW") if fs else "LOW"
+    peak72 = float(fs.peak_72h) if fs and fs.peak_72h else None
+    peak_off = int(vals72.index(max(vals72))) if vals72 else None
+
+    staffed = occupied = 0
+    top_dept = None
+    bed_short = 0
+    if not dept_df.empty:
+        staffed = int(_safe_sum(dept_df.get("total_beds", pd.Series(dtype=float))))
+        occupied = int(_safe_sum(dept_df.get("occupied_beds", pd.Series(dtype=float))))
+        bed_short = int(_safe_sum(dept_df.get("bed_shortage", pd.Series(dtype=float))))
+        if "pressure_level" in dept_df.columns:
+            ranked = dept_df.sort_values("bed_shortage", ascending=False) if "bed_shortage" in dept_df.columns else dept_df
+            top_dept = str(ranked.iloc[0]["department"]) if not ranked.empty else None
+
+    hours_to_sat = None
+    if vals72 and staffed > 0:
+        proj = project_census(vals72, staffed_beds=staffed, initial_census=occupied)
+        hours_to_sat = proj.hours_to_saturation
+
+    critical_n, warning_n = _alert_counts(dept_df)
+    lines = build_briefing(
+        now=now, predicted_next_hour=nxt, peak_72h=peak72, peak_hour_offset=peak_off,
+        risk_level=risk, critical_alerts=critical_n, warning_alerts=warning_n,
+        top_pressure_department=top_dept, total_bed_shortage=bed_short,
+        hours_to_saturation=hours_to_sat, staffed_beds=staffed or None,
+    )
+    if not lines:
+        return
+
+    with st.container(border=True):
+        st.markdown("**📋 Daily Ops Briefing** &nbsp; " + now.strftime("%a %d %b · %H:%M"))
+        for line in lines:
+            st.markdown(f"- {line}")
+        st.caption(
+            f"Auto-generated from ForecastState + department snapshot + census projection "
+            f"({saturation_label(hours_to_sat)} to saturation). Template-based — every number "
+            "is traceable; synthetic demo data."
+        )
+
+
+def _render_demo_freshness_chip(appt_df: pd.DataFrame, now: datetime) -> None:
+    """Warn when the demo display data window has drifted away from today
+    (the cause of the historical 'Appts (7-day) = 0' bug)."""
+
+    if appt_df.empty or "date" not in appt_df.columns:
+        return
+    dates = pd.to_datetime(appt_df["date"], errors="coerce").dropna()
+    if dates.empty:
+        return
+    dmin, dmax = dates.min().date(), dates.max().date()
+    if not (dmin <= now.date() <= dmax):
+        st.warning(
+            f"Demo display data covers {dmin} → {dmax}, but today is {now.date()}. "
+            "Run `python scripts/refresh_demo_dates.py --db` to re-anchor the demo window.",
+            icon="📅",
+        )
+
+
 def show_home() -> None:
     """Render the Home tab — Hospital AI Command Center."""
     now = datetime.now()
@@ -980,6 +1053,10 @@ def show_home() -> None:
 
     # ── Hero ────────────────────────────────────────────────────────────────
     _render_hero(fs, now, api_offline)
+
+    # ── Demo data freshness + Daily Ops Briefing ─────────────────────────────
+    _render_demo_freshness_chip(appt_df, now)
+    _render_ops_briefing(fs, dept_df, now)
 
     # ── KPI Row 1: Forecast ──────────────────────────────────────────────────
     _render_forecast_kpis(fs, cur, nxt, pk24, api_offline, dept_df)

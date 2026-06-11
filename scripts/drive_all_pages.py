@@ -7,12 +7,19 @@ first exception found. Not a pytest module (run directly).
 import os
 import sys
 import time
+from pathlib import Path
 
 import requests
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 os.environ.setdefault("APP_ENV", "dev")
 B = "http://127.0.0.1:8000"
+
+# AppTest.from_file resolves relative paths against THIS file's directory —
+# use the absolute repo-root path so the driver works from scripts/.
+REPO_ROOT = Path(__file__).resolve().parent.parent
+DASHBOARD = str(REPO_ROOT / "dashboard.py")
+sys.path.insert(0, str(REPO_ROOT))
 
 ROLE_PAGES = {
     "admin": ["Home", "Command Center", "Forecast", "Optimization", "Operations Center",
@@ -41,7 +48,7 @@ def drive(role):
     for page in ROLE_PAGES[role]:
         t0 = time.time()
         try:
-            at = AppTest.from_file("dashboard.py", default_timeout=180)
+            at = AppTest.from_file(DASHBOARD, default_timeout=180)
             at.session_state["user"] = auth["user"]
             at.session_state["token"] = auth["access_token"]
             os.environ["API_TOKEN"] = auth["access_token"]

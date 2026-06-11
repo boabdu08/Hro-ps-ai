@@ -21,8 +21,16 @@ Local check (no Space needed):
 from __future__ import annotations
 
 import os
+import sys
 import threading
 import time
+from pathlib import Path
+
+# Make imports/path resolution independent of the caller's CWD (Space runner,
+# preflight harness, AppTest) — everything resolves relative to this file.
+_REPO_ROOT = Path(__file__).resolve().parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
 # Internal API port (not exposed by the Space; only the dashboard is public).
 _API_PORT = int(os.getenv("INTERNAL_API_PORT", "7861"))
@@ -73,7 +81,7 @@ def main() -> None:
     # Run the existing dashboard script in this Streamlit session.
     import runpy
 
-    runpy.run_path("dashboard.py", run_name="__main__")
+    runpy.run_path(str(_REPO_ROOT / "dashboard.py"), run_name="__main__")
 
 
 # Only bootstrap when executed by Streamlit — a plain `import app` (used by the

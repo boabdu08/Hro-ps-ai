@@ -2,7 +2,7 @@
 
 HRO-PS is an **AI-powered hospital resource optimization prototype** built for a graduation demo. It combines patient-surge forecasting, operational dashboards, resource optimization, what-if simulation, and in-app communication foundations.
 
-> **Project status:** graduation-demo ready prototype (255 passing tests).  
+> **Project status:** graduation-demo ready prototype (277 passing tests).  
 > **Not production hospital SaaS yet:** the system still needs real hospital integration, clinical/operations validation, production migrations, and observability before real-world use. Tenant isolation, rate limiting, security headers, upload validation, and drift detection are implemented and regression-tested.
 
 ## Demo data and privacy

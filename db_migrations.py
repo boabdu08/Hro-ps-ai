@@ -17,6 +17,19 @@ from sqlalchemy.engine import Engine
 from settings import get_settings
 
 
+def _is_postgres(engine: Engine) -> bool:
+    """These helpers upgrade LEGACY PostgreSQL databases in place using raw
+    Postgres SQL (SERIAL, NOW(), information_schema with public schema).
+
+    On any other dialect — notably the SQLite fallback used by the Hugging
+    Face Space demo — they must be skipped: `Base.metadata.create_all()`
+    already creates the full current schema from the SQLAlchemy models, and
+    running Postgres-flavoured DDL on SQLite crashes API startup.
+    """
+
+    return engine.dialect.name == "postgresql"
+
+
 def _has_column(engine: Engine, table: str, column: str, schema: str = "public") -> bool:
     stmt = text(
         """
@@ -35,6 +48,9 @@ def _has_column(engine: Engine, table: str, column: str, schema: str = "public")
 
 def ensure_message_extensions(engine: Engine) -> None:
     """Ensure message_log has new production fields and create message_reads."""
+    if not _is_postgres(engine):
+        return  # SQLite/demo: create_all() covers the schema
+
 
     # Add columns to message_log (if missing).
     alter_stmts = []
@@ -78,6 +94,9 @@ def ensure_message_extensions(engine: Engine) -> None:
 
 def ensure_alerts_notifications(engine: Engine) -> None:
     """Create alerts/notifications tables + preferences (idempotent)."""
+    if not _is_postgres(engine):
+        return  # SQLite/demo: create_all() covers the schema
+
 
     with engine.begin() as conn:
         conn.execute(
@@ -172,6 +191,9 @@ def ensure_multi_tenant(engine: Engine) -> None:
 
     NOTE: This is a lightweight migration helper. In production use Alembic.
     """
+    if not _is_postgres(engine):
+        return  # SQLite/demo: create_all() covers the schema
+
 
     settings = get_settings()
     default_slug = settings.default_tenant_slug
@@ -277,6 +299,9 @@ def ensure_multi_tenant(engine: Engine) -> None:
 
 def ensure_pipeline_runs(engine: Engine) -> None:
     """Create pipeline_runs table used by the scheduler (idempotent)."""
+    if not _is_postgres(engine):
+        return  # SQLite/demo: create_all() covers the schema
+
 
     with engine.begin() as conn:
         conn.execute(
@@ -305,6 +330,9 @@ def ensure_operations_tables(engine: Engine) -> None:
     We use lightweight SQL migrations because the repo doesn't use Alembic.
     This function is safe to run on every startup.
     """
+    if not _is_postgres(engine):
+        return  # SQLite/demo: create_all() covers the schema
+
 
     with engine.begin() as conn:
         # Staff master data

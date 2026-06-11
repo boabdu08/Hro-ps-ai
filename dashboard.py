@@ -407,6 +407,28 @@ def show_sidebar_context(user):
         st.rerun()
 
 
+_DEMO_SCRIPT_STEPS = [
+    ("1 · Home", "Open with the Daily Ops Briefing: next-hour load, 72-h peak, capacity outlook — every number traceable to ForecastState."),
+    ("2 · Forecast", "Three models compared. LSTM is best on test (RMSE 9.58); the deployed Hybrid 0.80/0.20 trades ~0.6 RMSE for robustness. Toggle the 80%/95% uncertainty band."),
+    ("3 · Optimization", "MILP (scipy) allocates beds/doctors/nurses across 5 departments under hard constraints, in under 5 seconds. Note Needed vs Shortage columns."),
+    ("4 · Digital Twin", "Probe any hour ahead; show the census projection and the time-to-saturation KPI (queueing simulation, labelled)."),
+    ("5 · Simulation", "Run the Scenario Player: surge / mass-casualty / infeasible demand — synthetic stress on the real forecast, optimizer responds live."),
+    ("6 · Approvals", "Human-in-the-loop: approve a recommendation, the RAG re-validation badge confirms, audit trail records it."),
+    ("7 · Evaluation", "Canonical metrics table + Model Health (drift status). Close: 13 tabs, 48 endpoints, 21 tenant-scoped tables, every test green."),
+]
+
+
+def _render_guided_demo_sidebar(role: str) -> None:
+    """Guided demo mode — the 7-step defense script as sidebar talking points."""
+
+    if role != "admin":
+        return
+    with st.sidebar.expander("🎓 Guided demo (7 min)", expanded=False):
+        for title, talking_point in _DEMO_SCRIPT_STEPS:
+            st.markdown(f"**{title}** — {talking_point}")
+        st.caption("Full script + Q&A: DEMO_RUNBOOK.md · DEFENSE_READINESS.md")
+
+
 def main_app():
     user = st.session_state.user
     role = str(user["role"]).lower()
@@ -414,6 +436,7 @@ def main_app():
     show_header(user)
     show_sidebar_context(user)
     page = sidebar_navigation(role)
+    _render_guided_demo_sidebar(role)
 
     # UI-only page scoping so we can apply Command Center polish without
     # changing architecture, routing, or component hierarchy.
