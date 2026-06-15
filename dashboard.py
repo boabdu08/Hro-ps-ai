@@ -43,8 +43,9 @@ from ui_components import (
 st.set_page_config(page_title="HRO Command Center", layout="wide")
 
 
-@st.cache_data(ttl=30, show_spinner=False)
+@st.cache_data(ttl=120, show_spinner=False)
 def _cached_notif_count():
+    # Single cheap GET; cached 120 s so it isn't re-hit on every tab switch.
     from api_client import get_unread_notification_count
     return get_unread_notification_count()
 
@@ -291,13 +292,20 @@ def sidebar_navigation(role):
     )
 
 
-@st.cache_data(ttl=20, show_spinner=False)
+@st.cache_data(ttl=900, show_spinner=False)
 def _cached_live_context():
+    # Heavy compute (raised TTL 20s -> 900s). Only called by pages that actually
+    # display live forecast/optimization (Approvals, Command Center, etc.).
     return get_live_context()
 
 
 def show_sidebar_context(user):
-    ctx = _cached_live_context()
+    # The sidebar runs on EVERY page, so it must never trigger the ~40 s live
+    # forecast. Read the last-known snapshot (published by pages that compute
+    # it) instead — instant, never blocks first paint or a tab switch.
+    from dashboard_sections import get_live_context_snapshot
+
+    snap = get_live_context_snapshot()
 
     sidebar_status_card(
         "User Session",
@@ -308,7 +316,7 @@ def show_sidebar_context(user):
         ],
     )
 
-    # Notification counter — cached 30 s to avoid an API hit on every rerun.
+    # Notification counter — cached to avoid an API hit on every rerun.
     try:
         notif_meta = _cached_notif_count() or {}
         notif_unread = int(notif_meta.get("unread_count") or 0)
@@ -320,19 +328,25 @@ def show_sidebar_context(user):
         [f"Unread notifications: <b>{notif_unread}</b>"],
     )
 
-    if ctx.get("ready"):
-        result = ctx["prediction_result"]
+    if snap and snap.get("ready"):
+        result = snap.get("prediction_result", {})
         sidebar_status_card(
             "Live Summary",
             [
-                f"Current Patients: <b>{ctx['current_patients']}</b>",
-                f"Next Hour Forecast: <b>{int(ctx['prediction'])}</b>",
-                f"Peak Load: <b>{int(ctx['peak'])}</b>",
+                f"Current Patients: <b>{int(snap.get('current_patients') or 0)}</b>",
+                f"Next Hour Forecast: <b>{int(snap.get('prediction') or 0)}</b>",
+                f"Peak Load: <b>{int(snap.get('peak') or 0)}</b>",
                 f"Emergency: <b>{result.get('emergency_level', 'LOW')}</b>",
             ],
         )
     else:
-        sidebar_status_card("System Status", [ctx.get("reason", "Context unavailable")])
+        # Live forecast not computed yet this session — show a light status
+        # instead of stalling ~40 s. It populates after opening a live page
+        # (Command Center / Forecast / Approvals).
+        sidebar_status_card(
+            "Live Summary",
+            ["Loading on first live view…", "Open <b>Command Center</b> to compute."],
+        )
 
     if st.sidebar.button("Logout", key=scoped_key("sidebar", "logout")):
         st.session_state.user = None

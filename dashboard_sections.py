@@ -585,12 +585,14 @@ def _dashboard_forecast_state_from_live_context() -> ForecastState:
     the missing live values explicit.
     """
 
-    try:
-        ctx = get_live_context()
-        if isinstance(ctx, dict) and ctx.get("ready") and isinstance(ctx.get("forecast_state"), ForecastState):
-            return ctx["forecast_state"]
-    except Exception:
-        pass
+    # Non-blocking: use the live forecast_state ONLY if a live page already
+    # computed it (snapshot). The 72h forecast series shown by Forecast /
+    # Digital Twin is identical in the canonical artifact, so we render that
+    # instantly instead of triggering the ~40 s live multistep here. Once a
+    # live operational page computes the context, these tabs upgrade to it.
+    snap = _LIVE_CTX_SNAPSHOT
+    if snap and isinstance(snap.get("forecast_state"), ForecastState):
+        return snap["forecast_state"]
     return _cached_artifact_forecast_state()
 
 
@@ -693,7 +695,25 @@ def _load_runtime_sequence(df: pd.DataFrame):
     return None, feature_columns, sequence_length
 
 
-@st.cache_data(ttl=30, show_spinner=False)
+# Process-global snapshot of the last successful live context. Lets the sidebar
+# and Home render the last-known live summary INSTANTLY without ever triggering
+# the heavy compute (24 sequential /predict + /optimize ~40 s) on the critical
+# first-paint / tab-switch path. Updated only when get_live_context actually
+# computes a ready result — so it never shows fabricated data.
+_LIVE_CTX_SNAPSHOT: dict | None = None
+
+
+def get_live_context_snapshot() -> dict | None:
+    """Return the last successfully computed live context, or None if the heavy
+    forecast hasn't run yet this process. NEVER triggers a compute."""
+    return _LIVE_CTX_SNAPSHOT
+
+
+# TTL raised 30s -> 900s: the live context is a forecast snapshot that does not
+# change within a demo session, so recomputing it every 30s only produced the
+# SAME numbers while stalling tab switches for ~40s on each expiry. 15 min keeps
+# values identical in practice while making warm tab switches do zero compute.
+@st.cache_data(ttl=900, show_spinner=False)
 def get_live_context():
     df = _load_runtime_dataframe()
     last_sequence, feature_columns, sequence_length = _load_runtime_sequence(df)
@@ -749,7 +769,7 @@ def get_live_context():
     optimization_input = float(forecast_state.resource_recommendation_input or prediction)
     optimization = get_optimization(optimization_input) or {}
 
-    return {
+    ctx = {
         "ready": True,
         "df": df,
         "last_sequence": last_sequence,
@@ -764,6 +784,19 @@ def get_live_context():
         "forecast_values": list(forecast_state.forecast_24h_values or forecast_values),
         "forecast_state": forecast_state,
     }
+    # Publish a lightweight snapshot (no bulky frames) for instant sidebar/Home
+    # rendering on subsequent reruns.
+    global _LIVE_CTX_SNAPSHOT
+    _LIVE_CTX_SNAPSHOT = {
+        "ready": True,
+        "prediction": ctx["prediction"],
+        "current_patients": ctx["current_patients"],
+        "peak": ctx["peak"],
+        "optimization": optimization,
+        "prediction_result": result,
+        "forecast_state": forecast_state,
+    }
+    return ctx
 
 
 def show_overview():

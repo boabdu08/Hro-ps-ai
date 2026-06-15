@@ -19,9 +19,20 @@ API_BASE_URL = (
 )
 
 
+# Module-level Session for HTTP keep-alive / connection pooling. Bare
+# requests.get/post open (and TLS-negotiate) a NEW TCP connection on every
+# call; each dashboard page makes several calls and the live-forecast path
+# makes ~24, so reusing one pooled connection is a real latency win — and a
+# bigger one in HF single-process mode where the API shares this process.
+_SESSION = requests.Session()
+_ADAPTER = requests.adapters.HTTPAdapter(pool_connections=4, pool_maxsize=16)
+_SESSION.mount("http://", _ADAPTER)
+_SESSION.mount("https://", _ADAPTER)
+
+
 def _safe_get(url, params=None, timeout=20):
     try:
-        response = requests.get(url, params=params, timeout=timeout, headers=_auth_headers())
+        response = _SESSION.get(url, params=params, timeout=timeout, headers=_auth_headers())
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
@@ -32,7 +43,7 @@ def _safe_get(url, params=None, timeout=20):
 
 def _safe_post(url, payload=None, timeout=20):
     try:
-        response = requests.post(url, json=payload, timeout=timeout, headers=_auth_headers())
+        response = _SESSION.post(url, json=payload, timeout=timeout, headers=_auth_headers())
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:

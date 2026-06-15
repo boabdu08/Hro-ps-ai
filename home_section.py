@@ -181,10 +181,12 @@ def _resolve_live_kpis(fs) -> tuple[Optional[float], Optional[float], Optional[f
     pk24 = fs.peak_24h if fs else None
     api_offline = True
 
-    # 1) Try live context (already cached by sidebar; no new API calls if cache is warm)
+    # 1) Use the last-known live snapshot if a live page already computed it
+    #    (instant). Never trigger the heavy ~40 s compute from Home — the
+    #    artifact fallbacks below give correct canonical values immediately.
     try:
-        from dashboard_sections import get_live_context
-        ctx = get_live_context()
+        from dashboard_sections import get_live_context_snapshot
+        ctx = get_live_context_snapshot()
         if ctx and ctx.get("ready"):
             cur = float(ctx.get("current_patients") or cur or 0)
             nxt = float(ctx.get("prediction") or nxt or 0)
