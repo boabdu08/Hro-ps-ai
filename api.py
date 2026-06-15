@@ -133,6 +133,23 @@ async def lifespan(app: FastAPI):
 
         asyncio.create_task(scheduler_loop())
 
+    # Background model pre-warm (perf): the FIRST /predict otherwise lazy-loads
+    # TensorFlow + the LSTM/ARIMAX artifacts on the request thread (10-30 s),
+    # which made the post-login dashboard stall. Loading them in a daemon thread
+    # at startup means the model is usually warm by the time a user logs in.
+    # This only LOADS pre-generated artifacts — no training, no logic change.
+    if str(os.getenv("HRO_PREWARM_MODEL", "1")).strip().lower() not in {"0", "false", "no"}:
+        import threading
+
+        def _prewarm() -> None:
+            try:
+                _load_assets()
+                logging.info("model pre-warm complete (forecast assets loaded)")
+            except Exception as e:  # never let pre-warm break startup
+                logging.warning("model pre-warm skipped: %s", e)
+
+        threading.Thread(target=_prewarm, name="hro-model-prewarm", daemon=True).start()
+
     yield
     # Shutdown: nothing needed currently
 
@@ -1578,6 +1595,17 @@ def login_user(
     if not ok:
         logging.info("auth.login password_verify_failed tenant_id=%s username=%s", tenant_id, username)
         raise HTTPException(status_code=401, detail="Invalid username or password.")
+
+    # Opportunistic re-hash: downgrade legacy high-cost (slow) bcrypt hashes to
+    # the current factor so this user's next login is faster. Best-effort only.
+    try:
+        from auth import hash_password, needs_rehash
+
+        if stored and "$" in stored and needs_rehash(stored):
+            user.password = hash_password(password)
+            db.commit()
+    except Exception:
+        db.rollback()
 
     token = create_token(
         {

@@ -38,6 +38,47 @@ from ui_components import (
 
 
 # ---------------------------------------------------------------------------
+# Home -> tab navigation (launchpad).
+#
+# Streamlit detail: we set st.session_state["nav_target"] in an on_click
+# CALLBACK (callbacks run before widgets are instantiated next run), so the
+# sidebar radio in dashboard.sidebar_navigation() can consume it without the
+# "cannot be modified after the widget is instantiated" exception.
+# ---------------------------------------------------------------------------
+
+# Mirror of dashboard.sidebar_navigation page lists (used only to hide buttons
+# that don't exist for the current role — keeps navigation honest).
+_ROLE_PAGES = {
+    "admin": {"Home", "Command Center", "Forecast", "Optimization", "Operations Center",
+              "Shifts", "Appointments", "OR Bookings", "Notifications", "Messages",
+              "Approvals", "Evaluation", "Explainability", "Audit"},
+    "doctor": {"Home", "Overview", "Forecast", "My Shifts", "Appointments",
+               "OR Bookings", "Notifications", "Messages"},
+    "nurse": {"Home", "Overview", "My Shifts", "Appointments", "Department",
+              "Notifications", "Messages"},
+}
+
+
+def _nav_to(target: str) -> None:
+    st.session_state["nav_target"] = target
+
+
+def _nav_button(label: str, target: str, role: str, key: str, *, type: str = "secondary") -> bool:
+    """Render a button that navigates to `target` if the role has that page."""
+    if target not in _ROLE_PAGES.get(role, set()):
+        return False
+    st.button(
+        label,
+        key=scoped_key("home", "nav", key, role),
+        on_click=_nav_to,
+        args=(target,),
+        use_container_width=True,
+        type=type,
+    )
+    return True
+
+
+# ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
 
@@ -1010,8 +1051,9 @@ def _render_demo_freshness_chip(appt_df: pd.DataFrame, now: datetime) -> None:
         )
 
 
-def show_home() -> None:
-    """Render the Home tab — Hospital AI Command Center."""
+def show_home(role: str = "admin") -> None:
+    """Render the Home tab — Hospital AI Command Center launchpad."""
+    role = str(role or "admin").lower()
     now = datetime.now()
 
     # Load ForecastState (cached, reads 4 small CSVs)
@@ -1058,6 +1100,23 @@ def show_home() -> None:
     _render_demo_freshness_chip(appt_df, now)
     _render_ops_briefing(fs, dept_df, now)
 
+    # ── Quick navigation launchpad ───────────────────────────────────────────
+    section_header("Quick navigation", "Jump straight to the workspace you need")
+    nav_specs = [
+        ("📈 Forecast →", "Forecast", "forecast"),
+        ("🛠️ Optimization →", "Optimization", "optimization"),
+        ("🗓️ Appointments →", "Appointments", "appointments"),
+        ("🔔 Notifications →", "Notifications", "notifications"),
+        ("💬 Messages →", "Messages", "messages"),
+    ]
+    visible = [s for s in nav_specs if s[1] in _ROLE_PAGES.get(role, set())]
+    if visible:
+        cols = st.columns(len(visible))
+        for col, (label, target, key) in zip(cols, visible):
+            with col:
+                _nav_button(label, target, role, key)
+    st.markdown("")
+
     # ── KPI Row 1: Forecast ──────────────────────────────────────────────────
     _render_forecast_kpis(fs, cur, nxt, pk24, api_offline, dept_df)
     st.markdown("")
@@ -1102,10 +1161,16 @@ def show_home() -> None:
         rd1, rd2, rd3 = st.columns([4, 4, 4], gap="medium")
         with rd1:
             _render_dept_table(view_dept)
+            # Department detail lives in different pages per role.
+            _dept_target = "Department" if role == "nurse" else ("Operations Center" if role == "admin" else None)
+            if _dept_target:
+                _nav_button("Open department view →", _dept_target, role, "dept_full")
         with rd2:
             _render_appt_snapshot(appt_df)
+            _nav_button("Open Appointments →", "Appointments", role, "appt_full")
         with rd3:
             _render_or_snapshot(or_df)
+            _nav_button("Open OR Bookings →", "OR Bookings", role, "or_full")
 
     st.markdown("")
 

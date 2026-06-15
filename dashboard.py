@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import os
+import re
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -34,7 +35,6 @@ from ui_components import (
     UI_BUILD_ID,
     get_theme_mode,
     inject_base_styles,
-    inject_page_context,
     page_header,
     scoped_key,
     set_theme_mode,
@@ -49,67 +49,70 @@ def _cached_notif_count():
     return get_unread_notification_count()
 
 
-def _get_query_param(name: str) -> str | None:
-    """Best-effort getter for query params across Streamlit versions."""
+def _inject_runtime_js(page: str) -> None:
+    """Single consolidated per-rerun JS injector (ONE iframe instead of three).
 
-    try:
-        value = st.query_params.get(name)
-        if isinstance(value, list):
-            return value[0] if value else None
-        return str(value) if value is not None else None
-    except Exception:
-        try:
-            qp = st.experimental_get_query_params()
-            value = qp.get(name)
-            return value[0] if isinstance(value, list) and value else None
-        except Exception:
-            return None
+    Replaces the old `_sync_theme_local_storage` + `_inject_dynamic_import_recovery`
+    + `inject_page_context` trio. Each `components.html` is a real DOM iframe on
+    every navigation, so collapsing three into one is a measurable per-rerun win.
 
-
-def _set_query_params(**kwargs: str) -> None:
-    """Best-effort setter for query params across Streamlit versions."""
-
-    try:
-        for k, v in kwargs.items():
-            st.query_params[k] = v
-    except Exception:
-        try:
-            st.experimental_set_query_params(**kwargs)
-        except Exception:
-            return
-
-
-def _sync_theme_local_storage(theme: str) -> None:
-    """Persist theme preference in localStorage.
-
-    Streamlit doesn't expose localStorage to Python directly, but we can keep
-    theme in sync via:
-      - query param ?theme=
-      - a tiny JS snippet that reads/writes localStorage and reloads once
+    Responsibilities (all idempotent, no full-page reload on theme toggle):
+      - set `data-hro-page` + `data-hro-theme` on <html> from the AUTHORITATIVE
+        Python theme (never disagrees with the injected CSS variables)
+      - mirror the theme into localStorage (best-effort persistence)
+      - install the stale-chunk import-recovery listener ONCE per browser session
     """
 
-    safe_theme = "dark" if str(theme).lower() == "dark" else "light"
+    theme = "dark" if get_theme_mode() == "dark" else "light"
+    safe = str(page or "").strip().lower()
+    safe = re.sub(r"[^a-z0-9\-\s]", "", safe)
+    safe = re.sub(r"\s+", "-", safe).strip("-")
+    if safe in {"command-center", "overview", "operations-center"}:
+        safe = "command-center"
+    if not safe:
+        safe = "unknown"
+
     components.html(
         f"""
         <script>
         (function() {{
-          const root = (function() {{
-            try {{ return window.parent || window; }} catch (e) {{ return window; }}
-          }})();
-          const key = 'hro_theme';
-          const url = new URL(root.location.href);
-          const urlTheme = url.searchParams.get('theme');
-          const stored = root.localStorage.getItem(key);
+          var root;
+          try {{ root = window.parent || window; }} catch (e) {{ root = window; }}
+          try {{
+            var html = root.document.documentElement;
+            html.setAttribute('data-hro-page', '{safe}');
+            html.setAttribute('data-hro-theme', '{theme}');
+            try {{ root.localStorage.setItem('hro_theme', '{theme}'); }} catch (e) {{}}
+          }} catch (e) {{}}
 
-          // If the URL doesn't have theme but localStorage does, promote it into the URL.
-          if ((!urlTheme || urlTheme === '') && stored && (stored === 'light' || stored === 'dark')) {{
-            url.searchParams.set('theme', stored);
-            root.location.replace(url.toString());
-            return;
-          }}
-
-          // Keep localStorage aligned with the app's chosen theme.
-          root.localStorage.setItem(key, '{safe_theme}');
+          // Stale-chunk recovery — install listeners only once per session.
+          try {{
+            if (!root.__hro_recovery_installed) {{
+              root.__hro_recovery_installed = true;
+              var KEY = 'hro_import_recovery_attempted';
+              function shouldRecover(msg) {{
+                if (!msg) return false;
+                var t = String(msg);
+                return t.includes('Failed to fetch dynamically imported module')
+                    || t.includes('Importing a module script failed');
+              }}
+              function recoverOnce() {{
+                if (root.sessionStorage.getItem(KEY) === '1') return;
+                root.sessionStorage.setItem(KEY, '1');
+                var url = new URL(root.location.href);
+                url.searchParams.set('_cb', String(Date.now()));
+                root.location.replace(url.toString());
+              }}
+              root.addEventListener('error', function(e) {{
+                if (shouldRecover(e && e.message)) recoverOnce();
+              }}, true);
+              root.addEventListener('unhandledrejection', function(e) {{
+                var reason = e && e.reason;
+                var msg = (reason && (reason.message || (reason.toString && reason.toString()))) || '';
+                if (shouldRecover(msg)) recoverOnce();
+              }});
+            }}
+          }} catch (err) {{}}
         }})();
         </script>
         """,
@@ -117,83 +120,7 @@ def _sync_theme_local_storage(theme: str) -> None:
     )
 
 
-def _inject_dynamic_import_recovery() -> None:
-    """Mitigate stale Streamlit chunk cache issues.
-
-    In some deployments (especially reverse proxies / CDNs / aggressive browser
-    caches), Streamlit's lazily loaded JS chunks (/static/js/index.<hash>.js)
-    can get out of sync with the base HTML.
-
-    Symptom:
-      TypeError: Failed to fetch dynamically imported module
-
-    This recovery script:
-      - listens for that specific error
-      - performs a one-time cache-bust reload by adding/updating ?_cb=<ts>
-
-    It is intentionally conservative (one reload max per page load).
-    """
-
-    components.html(
-        """
-        <script>
-        (function() {
-          try {
-            const root = (function() {
-              try { return window.parent || window; } catch (e) { return window; }
-            })();
-
-            const KEY = 'hro_import_recovery_attempted';
-            const attempted = root.sessionStorage.getItem(KEY);
-
-            function shouldRecover(msg) {
-              if (!msg) return false;
-              const t = String(msg);
-              return (
-                t.includes('Failed to fetch dynamically imported module') ||
-                t.includes('Importing a module script failed')
-              );
-            }
-
-            function recoverOnce() {
-              if (attempted === '1') return;
-              root.sessionStorage.setItem(KEY, '1');
-              const url = new URL(root.location.href);
-              url.searchParams.set('_cb', String(Date.now()));
-              // Replace (not assign) so back button doesn't loop.
-              root.location.replace(url.toString());
-            }
-
-            root.addEventListener('error', function(e) {
-              // error.message is often the relevant string; for module errors it may be generic.
-              if (shouldRecover(e && e.message)) recoverOnce();
-            }, true);
-
-            root.addEventListener('unhandledrejection', function(e) {
-              const reason = e && e.reason;
-              const msg = (reason && (reason.message || reason.toString && reason.toString())) || '';
-              if (shouldRecover(msg)) recoverOnce();
-            });
-          } catch (err) {
-            // Never break the app for recovery logic.
-          }
-        })();
-        </script>
-        """,
-        height=0,
-    )
-
-
-def _init_theme_from_url() -> None:
-    url_theme = (_get_query_param("theme") or "").strip().lower()
-    if url_theme in {"light", "dark"}:
-        set_theme_mode(url_theme)
-
-
-_init_theme_from_url()
 inject_base_styles()
-_sync_theme_local_storage(get_theme_mode())
-_inject_dynamic_import_recovery()
 
 if "user" not in st.session_state:
     st.session_state.user = None
@@ -203,6 +130,7 @@ if "token" not in st.session_state:
 
 
 def login_view():
+    _inject_runtime_js("login")
     page_header(
         "HRO‑PS Command Center",
         "Premium hospital operations intelligence — forecasting, optimization, alerts, approvals.",
@@ -297,8 +225,10 @@ def show_header(user):
             )
             desired_mode = "dark" if want_dark else "light"
             if desired_mode != current_mode:
+                # Instant theme switch: update Python state + one cheap rerun.
+                # No query-param write and no JS location.replace (the old path
+                # forced a full browser reload, which made toggling slow).
                 set_theme_mode(desired_mode)
-                _set_query_params(theme=desired_mode)
                 st.rerun()
             st.caption(f"{datetime.now().strftime('%a %d %b • %H:%M')} • UI {UI_BUILD_ID}")
 
@@ -345,12 +275,19 @@ def sidebar_navigation(role):
             "Messages",
         ]
 
+    # Consume a navigation request from the Home launchpad. Set BEFORE the radio
+    # widget is created (safe), so on_click callbacks on Home can drive the nav.
+    nav_key = scoped_key("sidebar", "navigation", role)
+    target = st.session_state.pop("nav_target", None)
+    if target in pages:
+        st.session_state[nav_key] = target
+
     # Streamlit warns on empty labels even if collapsed.
     return st.sidebar.radio(
         "Navigation",
         pages,
         label_visibility="collapsed",
-        key=scoped_key("sidebar", "navigation", role),
+        key=nav_key,
     )
 
 
@@ -438,13 +375,12 @@ def main_app():
     page = sidebar_navigation(role)
     _render_guided_demo_sidebar(role)
 
-    # UI-only page scoping so we can apply Command Center polish without
-    # changing architecture, routing, or component hierarchy.
-    inject_page_context(page)
+    # UI-only page scoping + theme attribute + import recovery, in one iframe.
+    _inject_runtime_js(page)
 
     if role == "admin":
         if page == "Home":
-            show_home()
+            show_home(role)
 
         elif page == "Command Center":
             show_overview()
@@ -512,7 +448,7 @@ def main_app():
 
     elif role == "doctor":
         if page == "Home":
-            show_home()
+            show_home(role)
 
         elif page == "Overview":
             show_overview()
@@ -524,10 +460,10 @@ def main_app():
             show_my_shifts(user["username"], "doctor")
 
         elif page == "Appointments":
-            show_appointments("doctor", doctor_name=user.get("name"))
+            show_appointments("doctor", department=user.get("department"), doctor_name=user.get("name"))
 
         elif page == "OR Bookings":
-            show_or_bookings("doctor", doctor_name=user.get("name"))
+            show_or_bookings("doctor", doctor_name=user.get("name"), department=user.get("department"))
 
         elif page == "Notifications":
             show_notifications_panel(user)
@@ -537,7 +473,7 @@ def main_app():
 
     else:
         if page == "Home":
-            show_home()
+            show_home(role)
 
         elif page == "Overview":
             show_overview()

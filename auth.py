@@ -38,6 +38,12 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(
     _settings.access_token_expire_minutes or os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60") or "60"
 )
 
+# bcrypt cost factor. 10 (~60-90 ms/verify) is a sane, OWASP-acceptable factor
+# for this interactive demo — cost 12 (~250-300 ms) made every login noticeably
+# slower with no security benefit at this threat level. Overridable via env.
+BCRYPT_ROUNDS = int(os.getenv("BCRYPT_ROUNDS", "10") or "10")
+
+
 def hash_password(password: str) -> str:
     """Hash a password using the `bcrypt` package (not passlib).
 
@@ -50,8 +56,24 @@ def hash_password(password: str) -> str:
     pw = str(password).encode("utf-8")
     # bcrypt only uses the first 72 bytes; keep behaviour explicit.
     pw = pw[:72]
-    hashed = bcrypt.hashpw(pw, bcrypt.gensalt(rounds=12))
+    hashed = bcrypt.hashpw(pw, bcrypt.gensalt(rounds=BCRYPT_ROUNDS))
     return hashed.decode("utf-8")
+
+
+def needs_rehash(hashed_password: str) -> bool:
+    """True if a stored bcrypt hash uses a higher cost than the current target.
+
+    Lets login opportunistically downgrade legacy cost-12 hashes to the current
+    factor so repeat logins get faster without a migration.
+    """
+    try:
+        parts = str(hashed_password or "").split("$")
+        # format: $2b$<rounds>$<salt+hash>
+        if len(parts) < 4 or not parts[2].isdigit():
+            return False
+        return int(parts[2]) > BCRYPT_ROUNDS
+    except Exception:
+        return False
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

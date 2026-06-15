@@ -17,6 +17,31 @@ def _normalize(value, default=""):
     return text if text else default
 
 
+def _norm_doctor(value) -> str:
+    """Normalize a doctor name for matching: casefold, strip, drop 'Dr.' prefix."""
+    text = str(value or "").strip().casefold()
+    for prefix in ("dr.", "dr ", "dr-"):
+        if text.startswith(prefix):
+            text = text[len(prefix):].strip()
+            break
+    return text
+
+
+def _filter_by_doctor(df: pd.DataFrame, doctor_name: str) -> pd.DataFrame:
+    """Return rows whose doctor matches `doctor_name` after normalization.
+
+    Exact (normalized) match only — fuzzy/contains is avoided so we never mix
+    different doctors who share a first name. Empty result => caller falls back
+    to a department view with a clear diagnostic.
+    """
+    if df.empty or "doctor" not in df.columns:
+        return df.iloc[0:0]
+    target = _norm_doctor(doctor_name)
+    if not target:
+        return df.iloc[0:0]
+    return df[df["doctor"].map(_norm_doctor) == target]
+
+
 def _safe_int(value, default=0):
     try:
         return int(value)
@@ -252,14 +277,35 @@ def show_all_shifts():
     st.plotly_chart(fig, use_container_width=True, key=scoped_key("shifts", "all", "chart"))
 
 
-def show_or_bookings(role, doctor_name=None):
+def show_or_bookings(role, doctor_name=None, department=None):
     page_header("Operating rooms", "OR schedule, bookings, and status by room.")
     df = _load_or_df()
-    if role == "doctor" and doctor_name:
-        df = df[df["doctor"] == doctor_name]
+    fallback_note = None
+    if role == "doctor" and doctor_name and not df.empty:
+        matched = _filter_by_doctor(df, doctor_name)
+        if not matched.empty:
+            df = matched
+        else:
+            dept_df = df[df["department"].astype(str).str.casefold() == str(department or "").casefold()]
+            if not dept_df.empty:
+                fallback_note = (
+                    f"No OR bookings are listed under **{doctor_name}**. "
+                    f"Showing your department view (**{department}**) instead."
+                )
+                df = dept_df
+            else:
+                # OR rooms are a shared resource — show the full schedule rather
+                # than a blank page when neither the doctor nor their department
+                # has bookings.
+                fallback_note = (
+                    f"No OR bookings are listed under **{doctor_name}** or the "
+                    f"**{department}** department. Showing the full OR schedule."
+                )
     if df.empty:
         empty_state("No OR bookings available.")
         return
+    if fallback_note:
+        st.info(fallback_note)
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         kpi_card("OR bookings", fmt_int(len(df)), status="info")
@@ -300,13 +346,28 @@ def show_or_bookings(role, doctor_name=None):
 def show_appointments(role, department=None, doctor_name=None):
     page_header("Appointments", "Clinic load, appointment slots, and patient volume.")
     df = _load_appointments_df()
+    fallback_note = None
     if role == "doctor" and doctor_name:
-        df = df[df["doctor"] == doctor_name]
+        matched = _filter_by_doctor(df, doctor_name)
+        if matched.empty and not df.empty and department:
+            dept_df = df[df["department"].astype(str).str.casefold() == str(department).casefold()]
+            if not dept_df.empty:
+                fallback_note = (
+                    f"No appointments are booked under **{doctor_name}**. "
+                    f"Showing your department view (**{department}**) instead."
+                )
+                df = dept_df
+            else:
+                df = matched
+        else:
+            df = matched
     elif role == "nurse" and department:
-        df = df[df["department"] == department]
+        df = df[df["department"].astype(str).str.casefold() == str(department).casefold()]
     if df.empty:
         empty_state("No appointments available.")
         return
+    if fallback_note:
+        st.info(fallback_note)
     total_patients = int(pd.to_numeric(df.get("patient_count", pd.Series(dtype=float)), errors="coerce").fillna(0).sum()) if "patient_count" in df.columns else 0
     c1, c2, c3, c4 = st.columns(4)
     with c1:

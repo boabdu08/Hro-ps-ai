@@ -627,6 +627,160 @@ def inject_base_styles():
           .hro-header-meta { text-align:left; }
         }
 
+        /* =========================================================
+           DARK MODE — native / BaseWeb portal completeness.
+
+           config.toml hard-codes a LIGHT base theme, so Streamlit/BaseWeb
+           render several widgets (dropdown menus, calendars, tooltips, toasts,
+           metrics, expanders, code, sliders, uploader, dataframe internals) in
+           a portal at the document root that the token CSS above doesn't reach.
+           These rules force them dark when html[data-hro-theme="dark"] is set
+           (the attribute is driven by the authoritative Python theme).
+           ========================================================= */
+
+        /* Dropdown / select / multiselect menus + any BaseWeb popover */
+        html[data-hro-theme="dark"] div[data-baseweb="popover"] div[data-baseweb="menu"],
+        html[data-hro-theme="dark"] div[data-baseweb="popover"] ul[role="listbox"],
+        html[data-hro-theme="dark"] div[data-baseweb="popover"] > div,
+        html[data-hro-theme="dark"] ul[data-baseweb="menu"],
+        html[data-hro-theme="dark"] div[data-baseweb="select"] [role="listbox"] {
+          background: #0F172A !important;
+          color: #E5E7EB !important;
+          border: 1px solid rgba(148,163,184,0.22) !important;
+          box-shadow: 0 16px 44px rgba(0,0,0,0.55) !important;
+        }
+        html[data-hro-theme="dark"] li[role="option"],
+        html[data-hro-theme="dark"] div[data-baseweb="menu"] li {
+          background: transparent !important;
+          color: #E5E7EB !important;
+        }
+        html[data-hro-theme="dark"] li[role="option"]:hover,
+        html[data-hro-theme="dark"] li[role="option"][aria-selected="true"],
+        html[data-hro-theme="dark"] div[data-baseweb="menu"] li:hover {
+          background: rgba(96,165,250,0.18) !important;
+          color: #FFFFFF !important;
+        }
+        /* Selected-value text inside selects / multiselects */
+        html[data-hro-theme="dark"] div[data-baseweb="select"] div[data-baseweb="tag"] {
+          background: rgba(96,165,250,0.20) !important;
+          color: #E5E7EB !important;
+        }
+        html[data-hro-theme="dark"] div[data-baseweb="select"] span,
+        html[data-hro-theme="dark"] div[data-baseweb="select"] input {
+          color: #E5E7EB !important;
+        }
+
+        /* Date picker / calendar */
+        html[data-hro-theme="dark"] div[data-baseweb="calendar"],
+        html[data-hro-theme="dark"] div[data-baseweb="datepicker"],
+        html[data-hro-theme="dark"] div[data-baseweb="calendar"] * {
+          background-color: #0F172A !important;
+          color: #E5E7EB !important;
+        }
+
+        /* Tooltips */
+        html[data-hro-theme="dark"] div[data-baseweb="tooltip"],
+        html[data-hro-theme="dark"] div[role="tooltip"] {
+          background: #1E293B !important;
+          color: #E5E7EB !important;
+          border: 1px solid rgba(148,163,184,0.22) !important;
+        }
+
+        /* st.metric */
+        html[data-hro-theme="dark"] div[data-testid="stMetric"] {
+          background: var(--bg-elev) !important;
+          border: 1px solid var(--border) !important;
+          border-radius: var(--radius-card) !important;
+          padding: 12px 14px !important;
+        }
+        html[data-hro-theme="dark"] div[data-testid="stMetric"] *,
+        html[data-hro-theme="dark"] [data-testid="stMetricValue"],
+        html[data-hro-theme="dark"] [data-testid="stMetricLabel"] {
+          color: var(--text) !important;
+        }
+
+        /* Expanders */
+        html[data-hro-theme="dark"] details[data-testid="stExpander"],
+        html[data-hro-theme="dark"] div[data-testid="stExpander"] {
+          background: var(--bg-elev) !important;
+          border: 1px solid var(--border) !important;
+          border-radius: var(--radius-card) !important;
+        }
+        html[data-hro-theme="dark"] div[data-testid="stExpander"] summary,
+        html[data-hro-theme="dark"] details[data-testid="stExpander"] summary {
+          background: var(--bg-elev) !important;
+          color: var(--text) !important;
+        }
+
+        /* Toasts */
+        html[data-hro-theme="dark"] div[data-testid="stToast"] {
+          background: #1E293B !important;
+          color: var(--text) !important;
+          border: 1px solid var(--border) !important;
+        }
+
+        /* Sliders */
+        html[data-hro-theme="dark"] div[data-testid="stSlider"] div[data-baseweb="slider"] div[role="slider"] {
+          background: var(--primary) !important;
+        }
+        html[data-hro-theme="dark"] div[data-testid="stSliderTickBarMin"],
+        html[data-hro-theme="dark"] div[data-testid="stSliderTickBarMax"],
+        html[data-hro-theme="dark"] div[data-testid="stSlider"] [data-testid="stTickBar"] {
+          color: var(--text-2) !important;
+        }
+
+        /* File uploader */
+        html[data-hro-theme="dark"] section[data-testid="stFileUploaderDropzone"],
+        html[data-hro-theme="dark"] div[data-testid="stFileUploader"] section {
+          background: var(--bg-muted) !important;
+          color: var(--text) !important;
+          border: 1px dashed rgba(148,163,184,0.40) !important;
+        }
+
+        /* Code blocks */
+        html[data-hro-theme="dark"] pre,
+        html[data-hro-theme="dark"] code,
+        html[data-hro-theme="dark"] div[data-testid="stCodeBlock"] {
+          background: #0B1220 !important;
+          color: #E5E7EB !important;
+        }
+
+        /* Dataframe internals (header / cells / scrollbars) */
+        html[data-hro-theme="dark"] div[data-testid="stDataFrame"],
+        html[data-hro-theme="dark"] div[data-testid="stDataFrame"] [role="columnheader"],
+        html[data-hro-theme="dark"] div[data-testid="stDataFrame"] [role="gridcell"] {
+          background-color: var(--bg-elev) !important;
+          color: var(--text) !important;
+        }
+        html[data-hro-theme="dark"] div[data-testid="stDataFrame"] [role="columnheader"] {
+          background-color: rgba(96,165,250,0.12) !important;
+        }
+        html[data-hro-theme="dark"] div[data-testid="stDataFrame"] ::-webkit-scrollbar {
+          width: 10px; height: 10px;
+        }
+        html[data-hro-theme="dark"] div[data-testid="stDataFrame"] ::-webkit-scrollbar-thumb {
+          background: rgba(148,163,184,0.35) !important; border-radius: 6px;
+        }
+        html[data-hro-theme="dark"] div[data-testid="stDataFrame"] ::-webkit-scrollbar-track {
+          background: transparent !important;
+        }
+
+        /* Number-input steppers + text inputs in dark */
+        html[data-hro-theme="dark"] div[data-baseweb="input"] input,
+        html[data-hro-theme="dark"] div[data-baseweb="textarea"] textarea {
+          color: var(--text) !important;
+        }
+        html[data-hro-theme="dark"] button[data-testid="stNumberInputStepUp"],
+        html[data-hro-theme="dark"] button[data-testid="stNumberInputStepDown"] {
+          background: var(--bg-muted) !important; color: var(--text) !important;
+        }
+
+        /* Popover (st.popover) + download button menus */
+        html[data-hro-theme="dark"] div[data-testid="stPopoverBody"] {
+          background: var(--bg-elev) !important; color: var(--text) !important;
+          border: 1px solid var(--border) !important;
+        }
+
         </style>
         """,
         unsafe_allow_html=True,
@@ -640,10 +794,13 @@ def inject_base_styles():
 
 
 def inject_page_context(page_name: str) -> None:
-    """Set a page context attribute on the top document for CSS scoping.
+    """Set page + theme context attributes on the top document for CSS scoping.
 
-    This is a UI-only mechanism that lets us apply Command Center-specific
-    visual polish without affecting other pages.
+    This is a UI-only mechanism that lets us apply page-specific visual polish.
+    The theme is taken from the authoritative Python state (get_theme_mode), so
+    `data-hro-theme` can never disagree with the CSS variables emitted by
+    inject_base_styles() (the old code read theme from localStorage only, which
+    produced a half-dark UI on first load / right after a toggle).
     """
 
     try:
@@ -658,6 +815,8 @@ def inject_page_context(page_name: str) -> None:
         if not safe:
             safe = "unknown"
 
+        theme = get_theme_mode()
+
         components.html(
             f"""
             <script>
@@ -666,14 +825,10 @@ def inject_page_context(page_name: str) -> None:
                 const root = (function() {{
                   try {{ return window.parent || window; }} catch (e) {{ return window; }}
                 }})();
-                const theme = (function() {{
-                  try {{
-                    const t = root.localStorage.getItem('hro_theme');
-                    return (t === 'dark' || t === 'light') ? t : null;
-                  }} catch (e) {{ return null; }}
-                }})();
                 root.document.documentElement.setAttribute('data-hro-page', '{safe}');
-                if (theme) root.document.documentElement.setAttribute('data-hro-theme', theme);
+                // Authoritative theme from Python — keep localStorage aligned too.
+                root.document.documentElement.setAttribute('data-hro-theme', '{theme}');
+                try {{ root.localStorage.setItem('hro_theme', '{theme}'); }} catch (e) {{}}
               }} catch (e) {{}}
             }})();
             </script>

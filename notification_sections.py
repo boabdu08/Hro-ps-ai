@@ -207,8 +207,12 @@ def _alert_sort_key(row: dict) -> tuple[int, str]:
     return rank, _clean(row.get("created_at"), "")
 
 
-def _render_alert_card(alert: dict, *, role: str, user_department: str):
+def _render_alert_card(alert: dict, *, role: str, user_department: str, idx: int = 0):
     alert_id = _clean(alert.get("alert_id"), "")
+    # Unique suffix per card so repeated identical widgets (e.g. the "View
+    # details" expander, Acknowledge/Resolve buttons) never collide into a
+    # StreamlitDuplicateElementId, which would blank the whole tab.
+    uid = f"{idx}_{alert_id or 'noid'}"
     title = _clean(alert.get("title"), "Operational alert")
     msg = _clean(alert.get("message"), "")
     severity = _priority_to_severity(alert.get("priority"))
@@ -228,7 +232,7 @@ def _render_alert_card(alert: dict, *, role: str, user_department: str):
     ) or "Not specified"
     escalation = "Required" if severity == "Critical" else "Monitor"
 
-    with st.container(border=True):
+    with st.container(border=True, key=f"alert_card_{uid}"):
         head1, head2, head3 = st.columns([0.62, 0.18, 0.20])
         with head1:
             st.markdown(f"#### {title}")
@@ -255,7 +259,7 @@ def _render_alert_card(alert: dict, *, role: str, user_department: str):
         action1, action2, action3 = st.columns([1, 1, 2])
         with action1:
             ack_disabled = status in {"Acknowledged", "Resolved"} or not alert_id
-            if st.button("Acknowledge", key=f"ack_{alert_id}", disabled=ack_disabled):
+            if st.button("Acknowledge", key=f"ack_{uid}", disabled=ack_disabled):
                 res = ack_alert_api(alert_id)
                 _cached_get_alerts.clear()
                 if res and res.get("status") == "acknowledged":
@@ -268,7 +272,7 @@ def _render_alert_card(alert: dict, *, role: str, user_department: str):
         with action2:
             if role == "admin":
                 resolve_disabled = status == "Resolved" or not alert_id
-                if st.button("Resolve", key=f"resolve_{alert_id}", disabled=resolve_disabled):
+                if st.button("Resolve", key=f"resolve_{uid}", disabled=resolve_disabled):
                     res = resolve_alert_api(alert_id)
                     _cached_get_alerts.clear()
                     if res and res.get("status") == "resolved":
@@ -283,7 +287,7 @@ def _render_alert_card(alert: dict, *, role: str, user_department: str):
         with action3:
             if dept and dept.lower() != user_department.lower() and role != "admin":
                 st.caption("Access is filtered server-side for department visibility.")
-            with st.expander("View details", expanded=False):
+            with st.expander("View details", expanded=False, key=f"alert_details_{uid}"):
                 st.write(f"**Rule:** {_clean(alert.get('generated_by_rule'), 'Not specified')}")
                 st.write(f"**Expires:** {_clean(alert.get('expires_at'), 'No expiry set')}")
                 st.write(f"**Acknowledged at:** {_clean(alert.get('acknowledged_at'), 'Not acknowledged')}")
@@ -318,13 +322,15 @@ def show_alerts_center(user: dict):
         return
 
     sorted_alerts = sorted(filtered, key=_alert_sort_key)
+    card_idx = 0
     for severity in SEVERITY_ORDER:
         severity_rows = [a for a in sorted_alerts if _priority_to_severity(a.get("priority")) == severity]
         if not severity_rows:
             continue
         section_header(f"{severity} alerts")
         for alert in severity_rows:
-            _render_alert_card(alert, role=role, user_department=department)
+            _render_alert_card(alert, role=role, user_department=department, idx=card_idx)
+            card_idx += 1
 
 
 def _notification_recommendation(row: dict) -> str:
@@ -339,8 +345,9 @@ def _notification_recommendation(row: dict) -> str:
     return "Not provided"
 
 
-def _render_notification_card(row: dict):
+def _render_notification_card(row: dict, *, idx: int = 0, group: str = "n"):
     notification_id = _clean(row.get("notification_id"), "")
+    uid = f"{group}_{idx}_{notification_id or 'noid'}"
     title = _clean(row.get("title"), "Notification")
     body = _clean(row.get("body"), "")
     created_at = _clean(row.get("created_at"), "—")
@@ -350,7 +357,7 @@ def _render_notification_card(row: dict):
     source = _notification_source(row)
     recommended_action = _notification_recommendation(row)
 
-    with st.container(border=True):
+    with st.container(border=True, key=f"notif_card_{uid}"):
         h1, h2, h3 = st.columns([0.62, 0.18, 0.20])
         with h1:
             st.markdown(f"#### {title}")
@@ -369,7 +376,7 @@ def _render_notification_card(row: dict):
             ]
         )
         if status == "Unread" and notification_id:
-            if st.button("Mark as read", key=f"read_{notification_id}"):
+            if st.button("Mark as read", key=f"read_{uid}"):
                 res = mark_notification_read(notification_id)
                 _cached_get_notifications.clear()
                 _cached_get_unread_notification_count.clear()
@@ -385,13 +392,17 @@ def _render_notification_group(title: str, rows: list[dict]):
     if not rows:
         empty_state(f"No {title.lower()} notifications.")
         return
+    # Group prefix keeps keys unique across the Unread/Read/Archived tabs.
+    group = re.sub(r"[^a-z0-9]+", "", title.lower()) or "n"
+    card_idx = 0
     for severity in SEVERITY_ORDER:
         severity_rows = [r for r in rows if _derive_notification_severity(r) == severity]
         if not severity_rows:
             continue
         st.markdown(f"##### {severity}")
         for row in severity_rows:
-            _render_notification_card(row)
+            _render_notification_card(row, idx=card_idx, group=group)
+            card_idx += 1
 
 
 def show_notifications_center(user: dict):
